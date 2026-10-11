@@ -1,0 +1,23 @@
+@if (esEdicion()) {
+  <p class="sura-nota" role="note">
+    <mat-icon aria-hidden="true">lock</mat-icon>
+    Las glosas se añaden y se quitan por filas: {{ motivos.lista }}
+    El importe total sí se edita, en «Valores y cantidades».
+  </p>
+}
+
+<ul class="glosas">
+  @for (glosa of detalle().glosas; track glosa.identificador) {
+    <li>
+      <div class="glosa-cabecera">
+        <strong>{{ glosa.generico }}</strong>
+        @if (glosa.especifico) { · {{ glosa.especifico }} }
+        <span class="glosa-valor">{{ glosa.valor | currency:'COP':'symbol':'1.0-0' }}</span>
+      </div>
+      @if (glosa.texto) { <p class="glosa-texto">{{ glosa.texto }}</p> }
+      @if (glosa.codigoNotaCredito) {
+        <span class="sura-dato-secundario">Nota crédito: {{ glosa.codigoNotaCredito }}</span>
+      }
+    </li>
+  }
+</ul>

@@ -1,0 +1,162 @@
+.lineas-container {
+  padding: var(--sura-espacio-3) 0;
+}
+
+.lineas-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sura-espacio-3);
+  margin-bottom: var(--sura-espacio-3);
+
+  h2 {
+    margin: 0;
+  }
+}
+
+.total-badge {
+  background-color: var(--sura-azul-tenue);
+  color: var(--sura-azul-institucional);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--sura-radio-pill);
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-semibold);
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border-radius: var(--sura-radio-16);
+  background: var(--sura-blanco);
+  border: 1px solid var(--sura-gris-300);
+}
+
+table {
+  width: 100%;
+}
+
+.ok-icon {
+  color: var(--sura-exito);
+}
+
+.empty-cell {
+  text-align: center;
+  padding: var(--sura-espacio-5) var(--sura-espacio-3);
+  color: var(--sura-texto-suave);
+
+  mat-icon {
+    font-size: 3rem;
+    height: 3rem;
+    width: 3rem;
+    margin-bottom: var(--sura-espacio-3);
+    opacity: 0.4;
+  }
+}
+
+.loading-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sura-espacio-5);
+  gap: var(--sura-espacio-3);
+  color: var(--sura-texto-suave);
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sura-espacio-2);
+  padding: var(--sura-espacio-3);
+  background-color: var(--sura-error-fondo);
+  color: var(--sura-error);
+  border-left: 4px solid var(--sura-error);
+  border-radius: var(--sura-radio-12);
+  margin-bottom: var(--sura-espacio-3);
+}
+
+.paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sura-espacio-3);
+  padding: var(--sura-espacio-3) var(--sura-espacio-4);
+  background-color: var(--sura-gris-100);
+  border-top: 1px solid var(--sura-gris-300);
+
+  &__rango {
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+    font-weight: var(--sura-peso-semibold);
+  }
+
+  &__controles {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-1);
+    margin-inline: auto;
+  }
+
+  &__numero {
+    min-width: 40px;
+    padding-inline: var(--sura-espacio-2);
+    color: var(--sura-texto-suave);
+    font-weight: var(--sura-peso-semibold);
+
+    &.paginador__numero--activa {
+      background-color: var(--sura-azul-institucional);
+      color: var(--sura-blanco);
+      pointer-events: none;
+    }
+  }
+
+  &__corte {
+    padding-inline: var(--sura-espacio-1);
+    color: var(--sura-texto-tenue);
+  }
+
+  &__aviso {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+}
+
+// Celda de dos renglones: el código arriba y su descripción debajo.
+//
+// La grilla ya tiene ocho columnas dentro de un contenedor con scroll
+// horizontal, así que una columna más la empujaría fuera de la pantalla.
+// El texto se recorta y va completo en el tooltip.
+.celda-doble {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding-block: var(--sura-espacio-1);
+
+  &__principal {
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__secundario {
+    max-width: 22ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+}
+
+// El tooltip del contador de pendientes lista un motivo por renglón. Sin el
+// ancho explícito Material lo deja en una columna estrecha y cada motivo se
+// parte en seis renglones, que es justo lo que no se quiere leer.
+::ng-deep .mat-mdc-tooltip.tooltip-multilinea {
+  .mdc-tooltip__surface {
+    white-space: pre-line;
+    max-width: 42rem;
+    text-align: left;
+    line-height: 1.45;
+  }
+}

@@ -1,0 +1,53 @@
+.busqueda-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: var(--sura-espacio-5) var(--sura-espacio-3);
+  min-height: 100%;
+}
+
+.busqueda-card {
+  width: 100%;
+  max-width: var(--sura-ancho-sm);
+  padding: var(--sura-espacio-4);
+  background: var(--sura-blanco);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-16);
+  box-shadow: var(--sura-sombra-sm);
+}
+
+.campo-busqueda {
+  width: 100%;
+  margin-bottom: var(--sura-espacio-3);
+}
+
+.error-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--sura-espacio-2);
+  padding: var(--sura-espacio-3);
+  background-color: var(--sura-error-fondo);
+  color: var(--sura-error);
+  border-left: 4px solid var(--sura-error);
+  border-radius: var(--sura-radio-12);
+  margin-top: var(--sura-espacio-3);
+}
+
+.encabezado {
+  padding: 0;
+  margin-bottom: var(--sura-espacio-4);
+
+  .mat-mdc-card-title {
+    font-size: var(--sura-h2);
+    font-weight: var(--sura-peso-bold);
+    color: var(--sura-azul-institucional);
+  }
+
+  .mat-mdc-card-subtitle {
+    margin-top: var(--sura-espacio-1);
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-base);
+  }
+}
+
+.busqueda-card .mat-mdc-card-content { padding: 0; }

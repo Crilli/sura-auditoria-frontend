@@ -1,0 +1,213 @@
+<div class="lineas-container">
+
+  <div class="lineas-header">
+    <h2>Líneas de la Cuenta</h2>
+    @if (totalLineas()) {
+      <span class="total-badge">{{ totalLineas() }} registros</span>
+    }
+  </div>
+
+  @if (loading()) {
+    <div class="loading-overlay">
+      <mat-spinner diameter="48"></mat-spinner>
+      <p>Cargando líneas del servidor...</p>
+    </div>
+  }
+
+  @if (listError()) {
+    <div class="error-banner" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ listError()?.message }}</span>
+    </div>
+  }
+
+  @if (!loading()) {
+    <div class="table-wrapper mat-elevation-z2">
+      <table mat-table [dataSource]="lineas()" aria-label="Líneas de cuenta médica">
+
+        <ng-container matColumnDef="numeroLinea">
+          <th mat-header-cell *matHeaderCellDef>#</th>
+          <td mat-cell *matCellDef="let row">{{ row.numeroLinea }}</td>
+        </ng-container>
+
+        <!--
+          Celda de dos renglones: el código arriba y su texto debajo. La grilla
+          ya tiene ocho columnas con scroll horizontal, así que añadir columnas
+          nuevas la empujaría fuera de la pantalla; el texto va recortado y
+          completo en el tooltip.
+        -->
+        <ng-container matColumnDef="codigoProcedimiento">
+          <th mat-header-cell *matHeaderCellDef>Procedimiento</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ row.codigoProcedimiento }}</span>
+              @if (row.descripcionProcedimiento) {
+                <span class="celda-doble__secundario"
+                      [matTooltip]="row.descripcionProcedimiento">
+                  {{ row.descripcionProcedimiento }}
+                </span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="codigoAfiliado">
+          <th mat-header-cell *matHeaderCellDef>Afiliado</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ row.codigoAfiliado }}</span>
+              @if (row.nombreAfiliado) {
+                <span class="celda-doble__secundario" [matTooltip]="row.nombreAfiliado">
+                  {{ row.nombreAfiliado }}
+                </span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="valorAutorizado">
+          <th mat-header-cell *matHeaderCellDef>V. Autorizado</th>
+          <td mat-cell *matCellDef="let row">{{ row.valorAutorizado | currency:'COP':'symbol':'1.0-0' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="valorCubierto">
+          <th mat-header-cell *matHeaderCellDef>V. Cubierto</th>
+          <td mat-cell *matCellDef="let row">{{ row.valorCubierto | currency:'COP':'symbol':'1.0-0' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="pendientes">
+          <th mat-header-cell *matHeaderCellDef>Pendientes</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.cantidadPendientes > 0) {
+              <mat-chip color="warn" highlighted
+                        [matTooltip]="motivosDe(row)"
+                        matTooltipClass="tooltip-multilinea">
+                {{ row.cantidadPendientes }}
+              </mat-chip>
+            } @else {
+              <mat-icon class="ok-icon">check_circle</mat-icon>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.tieneNovedadBloqueante) {
+              <mat-chip color="warn" matTooltip="Novedad bloqueante">⚠ Bloqueada</mat-chip>
+            } @else if (!row.editable) {
+              <mat-chip>No editable</mat-chip>
+            } @else {
+              <mat-chip color="primary">Editable</mat-chip>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let row">
+            <!-- El ojo abre en consulta y el lápiz en edición: hasta ahora los
+                 dos iban a la misma pantalla editable. -->
+            <button mat-icon-button color="primary"
+                    [routerLink]="[row.referencia]"
+                    [attr.id]="'btn-detalle-' + row.referencia"
+                    aria-label="Consultar línea"
+                    matTooltip="Consultar (sin editar)">
+              <mat-icon>visibility</mat-icon>
+            </button>
+            @if (row.editable) {
+              <button mat-icon-button color="accent"
+                      [routerLink]="[row.referencia, 'editar']"
+                      [attr.id]="'btn-editar-' + row.referencia"
+                      aria-label="Editar línea"
+                      matTooltip="Editar">
+                <mat-icon>edit</mat-icon>
+              </button>
+            }
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+        @if (isEmpty()) {
+          <tr class="mat-row">
+            <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns.length">
+              <mat-icon>inbox</mat-icon>
+              <p>No hay líneas para esta cuenta.</p>
+            </td>
+          </tr>
+        }
+      </table>
+
+      <!--
+        PAGINACIÓN NUMERADA SOBRE UN SERVICIO KEYSET.
+        No es mat-paginator: el servicio no acepta desplazamientos, solo cursores.
+        Los números se calculan con totalRegistros y el facade encadena los
+        cursores necesarios para llegar a la página pedida.
+      -->
+      <nav class="paginador" aria-label="Paginación de líneas">
+
+        @if (rangoVisible(); as rango) {
+          <span class="paginador__rango">
+            {{ rango.desde }}–{{ rango.hasta }} de {{ rango.total }} líneas
+          </span>
+        }
+
+        <div class="paginador__controles">
+          <button mat-icon-button id="btn-primera-pagina"
+                  [disabled]="!hayAnterior() || ocupado()"
+                  (click)="primera()"
+                  matTooltip="Primera página" aria-label="Primera página">
+            <mat-icon>first_page</mat-icon>
+          </button>
+
+          <button mat-icon-button id="btn-pagina-anterior"
+                  [disabled]="!hayAnterior() || ocupado()"
+                  (click)="anterior()"
+                  matTooltip="Página anterior" aria-label="Página anterior">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+
+          @for (numero of paginasVisibles(); track $index) {
+            @if (esNumero(numero)) {
+              <button mat-button
+                      class="paginador__numero"
+                      [class.paginador__numero--activa]="numero === paginaActual()"
+                      [attr.id]="'btn-pagina-' + numero"
+                      [attr.aria-current]="numero === paginaActual() ? 'page' : null"
+                      [disabled]="ocupado()"
+                      (click)="irAPagina(numero)">
+                {{ numero }}
+              </button>
+            } @else {
+              <span class="paginador__corte" aria-hidden="true">…</span>
+            }
+          }
+
+          <button mat-icon-button id="btn-pagina-siguiente"
+                  [disabled]="!haySiguiente() || ocupado()"
+                  (click)="siguiente()"
+                  matTooltip="Página siguiente" aria-label="Página siguiente">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+
+          <button mat-icon-button id="btn-ultima-pagina"
+                  [disabled]="!haySiguiente() || ocupado()"
+                  (click)="ultima()"
+                  matTooltip="Última página" aria-label="Última página">
+            <mat-icon>last_page</mat-icon>
+          </button>
+        </div>
+
+        @if (recorriendo()) {
+          <span class="paginador__aviso" role="status">
+            <mat-spinner diameter="16"></mat-spinner>
+            Encadenando cursores hasta esa página…
+          </span>
+        }
+      </nav>
+    </div>
+  }
+
+</div>

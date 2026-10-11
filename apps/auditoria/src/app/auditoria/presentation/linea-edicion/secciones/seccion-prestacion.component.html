@@ -1,0 +1,76 @@
+@let linea = detalle();
+@let edicion = esEdicion();
+
+<dl class="sura-ficha-datos" [class.sura-ficha-datos--edicion]="edicion"
+    [formGroup]="form()">
+  <div>
+    <dt>Descripción</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.prestacion.descripcion ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.derivado" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Especialidad</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.prestacion.especialidad ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+
+  @if (edicion) {
+    <!--
+      En consulta el código y su definición caben en una sola celda
+      («—» y un segundo renglón). En edición necesitan un control cada
+      uno, y con 200px de celda no entran los dos de lado.
+    -->
+    <div>
+      <dt>Código no definido</dt>
+      <dd>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="codigoNoDefinido"
+                 maxlength="30" aria-label="Código no definido">
+        </mat-form-field>
+      </dd>
+    </div>
+    <div>
+      <dt>Definición del código</dt>
+      <dd>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="codigoNoDefinidoDef"
+                 maxlength="30" aria-label="Definición del código no definido">
+        </mat-form-field>
+      </dd>
+    </div>
+    <div class="sura-celda-ancha">
+      <dt>Descripción prestación RIPS</dt>
+      <dd>
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="descripcionRips"
+                 maxlength="100" aria-label="Descripción de la prestación en el RIPS">
+        </mat-form-field>
+      </dd>
+    </div>
+  } @else {
+    <div>
+      <dt>Código no definido</dt>
+      <dd>
+        {{ linea.prestacion.codigoNoDefinido ?? '—' }}
+        @if (linea.prestacion.codigoNoDefinidoDef) {
+          <span class="sura-dato-secundario">{{ linea.prestacion.codigoNoDefinidoDef }}</span>
+        }
+      </dd>
+    </div>
+    <div>
+      <dt>Descripción prestación RIPS</dt>
+      <dd>{{ linea.prestacion.descripcionRips ?? '—' }}</dd>
+    </div>
+  }
+</dl>

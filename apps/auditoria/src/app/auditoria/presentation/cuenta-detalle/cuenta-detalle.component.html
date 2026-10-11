@@ -1,0 +1,322 @@
+<div class="detalle-container">
+
+  <!-- Siempre visible, incluso durante la carga o si la cuenta no existe. -->
+  <div class="barra-superior">
+    <button mat-button
+            type="button"
+            class="inicio"
+            id="btn-inicio"
+            (click)="irAlInicio()"
+            matTooltip="Volver a la búsqueda de cuentas"
+            aria-label="Volver al inicio">
+      <mat-icon>home</mat-icon>
+      Inicio
+    </button>
+  </div>
+
+  @if (facade.loading()) {
+    <div class="loading-overlay">
+      <mat-spinner></mat-spinner>
+      <p>Cargando información de la cuenta...</p>
+    </div>
+  }
+
+  @if (facade.cuentaError()) {
+    <div class="error-banner">
+      <mat-icon>error</mat-icon>
+      <span>{{ facade.cuentaError()?.message }}</span>
+    </div>
+  }
+
+  @if (facade.cuenta(); as cuenta) {
+    <div class="header-section">
+
+      <!--
+        Franja de resumen: lo único que ocupa espacio de forma permanente.
+        El resto de la cabecera vive en acordeones para que las pestañas de
+        trabajo (Líneas / Pendientes / Seguimiento) queden sobre el pliegue.
+      -->
+      <div class="header-resumen">
+        <div class="titulo">
+          <h1>Cuenta {{ cuenta.codigo }}</h1>
+          <span class="estado-badge">{{ cuenta.estado }}</span>
+          @if (cuenta.pendientesSinResolver > 0) {
+            <span class="estado-badge estado-badge--alerta">
+              {{ cuenta.pendientesSinResolver }} pendiente(s) de cabecera
+            </span>
+          }
+        </div>
+
+        <div class="resumen-financiero">
+          <div class="dato">
+            <label>Total Autorizado</label>
+            <span class="valor">{{ cuenta.totalAutorizado | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="dato">
+            <label>Total Cubierto</label>
+            <span class="valor">{{ cuenta.totalCubierto | currency:'COP':'symbol':'1.0-0' }}</span>
+          </div>
+          <div class="dato">
+            <label>No reconocido</label>
+            <span class="valor valor--diferencia">
+              {{ diferencia(cuenta) | currency:'COP':'symbol':'1.0-0' }}
+            </span>
+          </div>
+        </div>
+
+        <!-- Menú de Acciones (Hamburguesa) -->
+        <div class="header-acciones">
+          <button mat-icon-button [matMenuTriggerFor]="accionesMenu" aria-label="Acciones de la cuenta">
+            <mat-icon>more_vert</mat-icon>
+          </button>
+          <mat-menu #accionesMenu="matMenu">
+            <button mat-menu-item
+                    (click)="abrirDialogoEnviar(cuenta)"
+                    [disabled]="facade.accionesCargando() || !puedeEnviar(cuenta)">
+              <mat-icon color="primary">send</mat-icon>
+              <span>Enviar Cuenta</span>
+            </button>
+
+            @if (facade.accionesCargando()) {
+              <div class="menu-helper-text">
+                Consultando qué acciones están habilitadas…
+              </div>
+            } @else if (!puedeEnviar(cuenta) && cuenta.pendientesSinResolver > 0) {
+              <div class="menu-helper-text">
+                Resuelva todos los pendientes para enviar.
+              </div>
+            }
+          </mat-menu>
+        </div>
+      </div>
+
+      <!--
+        `multi`: el auditor puede tener abiertos los dos bloques a la vez.
+        La preferencia de apertura se conserva entre cuentas (ver el componente).
+      -->
+      <mat-accordion multi class="header-detalle">
+
+        <mat-expansion-panel [expanded]="panelCuentaAbierto()"
+                             (opened)="panelCuentaAbierto.set(true)"
+                             (closed)="panelCuentaAbierto.set(false)">
+          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
+                                      aria-label="Datos de la cuenta">
+            <mat-panel-title>
+              <mat-icon aria-hidden="true">description</mat-icon>
+              Datos de la cuenta
+            </mat-panel-title>
+            <mat-panel-description>
+              {{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}
+              · v{{ cuenta.version }}
+            </mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <div class="panel-cuerpo">
+            <dl class="detalle-cabecera">
+              <div>
+                <dt>Periodo de la cuenta</dt>
+                <dd>{{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}</dd>
+              </div>
+              <div>
+                <dt>Estado</dt>
+                <dd>{{ cuenta.estado }}</dd>
+              </div>
+              <div>
+                <dt>Versión</dt>
+                <dd>{{ cuenta.version }}</dd>
+              </div>
+              <div>
+                <dt>Pendientes sin resolver</dt>
+                <dd>{{ cuenta.pendientesSinResolver }}</dd>
+              </div>
+            </dl>
+
+            <div class="acciones-disponibles">
+              <span class="acciones-disponibles__titulo">
+                Acciones habilitadas por el sistema de registro
+              </span>
+              @if (facade.accionesCargando()) {
+                <span class="sura-texto-suave">Consultando…</span>
+              } @else if (facade.acciones().length > 0) {
+                <ul class="acciones-disponibles__lista">
+                  @for (accion of facade.acciones(); track accion) {
+                    <li class="sura-distintivo sura-distintivo--info">{{ etiquetaAccion(accion) }}</li>
+                  }
+                </ul>
+              } @else {
+                <span class="sura-texto-suave">Ninguna en el estado actual.</span>
+              }
+            </div>
+          </div>
+        </mat-expansion-panel>
+
+        <!-- Prestador de facturación: radicación, factura y trámite de la cuenta. -->
+        @if (cuenta.informacionFacturacion; as factura) {
+          <mat-expansion-panel [expanded]="panelPrestadorAbierto()"
+                               (opened)="panelPrestadorAbierto.set(true)"
+                               (closed)="panelPrestadorAbierto.set(false)">
+            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
+                                        aria-label="Prestador de facturación">
+              <mat-panel-title>
+                <mat-icon aria-hidden="true">local_hospital</mat-icon>
+                Prestador de facturación
+              </mat-panel-title>
+              <!-- Lo esencial se lee sin abrir el panel. -->
+              <mat-panel-description>{{ resumenPrestador(factura) }}</mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <div class="panel-cuerpo">
+              <div class="grupos">
+
+                <section class="grupo">
+                  <h3 class="grupo__titulo">Identificación y trámite</h3>
+                  <dl class="detalle-cabecera">
+                    <div>
+                      <dt>Prestador (NIT)</dt>
+                      <dd>{{ factura.prestadorFacturacionNit ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>N° Factura</dt>
+                      <dd>{{ factura.numeroFactura ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>N° Radicado</dt>
+                      <dd>{{ factura.numeroRadicado ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Tipo de servicio</dt>
+                      <dd>{{ factura.tipoServicio ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Pagar a prestador (NIT)</dt>
+                      <dd>{{ factura.pagarAPrestadorNit ?? '—' }}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="grupo">
+                  <h3 class="grupo__titulo">Fechas</h3>
+                  <dl class="detalle-cabecera">
+                    <div>
+                      <dt>Radicación</dt>
+                      <dd>{{ (factura.fechaRadicacion | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Emisión</dt>
+                      <dd>{{ (factura.fechaEmision | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Vencimiento</dt>
+                      <dd>{{ (factura.fechaVencimiento | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Ingreso</dt>
+                      <dd>{{ (factura.fechaIngreso | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Egreso</dt>
+                      <dd>{{ (factura.fechaEgreso | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="grupo">
+                  <h3 class="grupo__titulo">Valores</h3>
+                  <dl class="detalle-cabecera">
+                    <div>
+                      <dt>Valor factura</dt>
+                      <dd>{{ factura.valorFactura === null ? '—' : (factura.valorFactura | currency:'COP':'symbol':'1.0-0') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Valor total factura</dt>
+                      <dd>{{ factura.valorTotalFactura === null ? '—' : (factura.valorTotalFactura | currency:'COP':'symbol':'1.0-0') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Total cargado</dt>
+                      <dd>{{ factura.totalCargado === null ? '—' : (factura.totalCargado | currency:'COP':'symbol':'1.0-0') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Total convenido</dt>
+                      <dd>{{ factura.totalConvenido === null ? '—' : (factura.totalConvenido | currency:'COP':'symbol':'1.0-0') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Total valor glosado</dt>
+                      <dd>{{ factura.totalValorGlosado === null ? '—' : (factura.totalValorGlosado | currency:'COP':'symbol':'1.0-0') }}</dd>
+                    </div>
+                    <div>
+                      <dt>Valor NC crédito</dt>
+                      <dd>{{ factura.valorNotaCredito === null ? '—' : (factura.valorNotaCredito | currency:'COP':'symbol':'1.0-0') }}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                <section class="grupo">
+                  <h3 class="grupo__titulo">Marcas y acuse</h3>
+                  <dl class="detalle-cabecera">
+                    <div>
+                      <dt>Acuse de recibido</dt>
+                      <dd>{{ factura.acuseRecibido ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Marca radicado ATEP</dt>
+                      <dd>{{ factura.marcaRadicadoAtep ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Marca multicore</dt>
+                      <dd>{{ factura.marcaMulticore ?? '—' }}</dd>
+                    </div>
+                    <div>
+                      <dt>Marca pendiente manual</dt>
+                      <dd>{{ factura.marcaPendienteManual ?? '—' }}</dd>
+                    </div>
+                  </dl>
+                </section>
+
+                @if (factura.observacionesInternas || factura.observacionesExternas) {
+                  <section class="grupo grupo--ancho">
+                    <h3 class="grupo__titulo">Observaciones</h3>
+                    <dl class="detalle-cabecera detalle-cabecera--observaciones">
+                      @if (factura.observacionesInternas) {
+                        <div>
+                          <dt>Observaciones internas</dt>
+                          <dd>{{ factura.observacionesInternas }}</dd>
+                        </div>
+                      }
+                      @if (factura.observacionesExternas) {
+                        <div>
+                          <dt>Observaciones externas <span class="sura-texto-suave">(notas para la glosa o devolución)</span></dt>
+                          <dd>{{ factura.observacionesExternas }}</dd>
+                        </div>
+                      }
+                    </dl>
+                  </section>
+                }
+
+              </div>
+            </div>
+          </mat-expansion-panel>
+        }
+      </mat-accordion>
+
+    </div>
+
+    <nav mat-tab-nav-bar [tabPanel]="tabPanel">
+      <a mat-tab-link routerLink="lineas" routerLinkActive #rlaLineas="routerLinkActive" [active]="rlaLineas.isActive">
+        Líneas
+      </a>
+      <a mat-tab-link routerLink="pendientes" routerLinkActive #rlaPendientes="routerLinkActive" [active]="rlaPendientes.isActive">
+        Pendientes
+        @if (cuenta.pendientesSinResolver > 0) {
+          <span class="badge">{{ cuenta.pendientesSinResolver }}</span>
+        }
+      </a>
+      <a mat-tab-link routerLink="proceso" routerLinkActive #rlaProceso="routerLinkActive" [active]="rlaProceso.isActive">
+        Seguimiento
+      </a>
+    </nav>
+
+    <mat-tab-nav-panel #tabPanel>
+      <router-outlet></router-outlet>
+    </mat-tab-nav-panel>
+  }
+</div>

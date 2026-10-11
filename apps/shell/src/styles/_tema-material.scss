@@ -1,0 +1,65 @@
+// ============================================================================
+// Tema de Angular Material con la identidad ARL SURA
+//
+// Se genera el sistema M3 a partir de una paleta base y luego se sobrescriben
+// los tokens de sistema con los colores exactos de la marca, para que todos los
+// componentes de Material (botones, campos, tablas, diálogos, chips) queden
+// alineados sin tener que estilizarlos uno por uno.
+// ============================================================================
+
+@use '@angular/material' as mat;
+
+html {
+  @include mat.theme((
+    color: (
+      primary:  mat.$azure-palette,   // base tonal más cercana al azul Sura
+      tertiary: mat.$yellow-palette,  // base tonal del amarillo del CTA
+    ),
+    typography: (
+      plain-family: ('SuraSans', 'Segoe UI', system-ui, sans-serif),
+      brand-family: ('SuraSans', 'Segoe UI', system-ui, sans-serif),
+      bold-weight:    700,
+      medium-weight:  600,
+      regular-weight: 400,
+    ),
+    density: 0,
+  ));
+
+  // Colores exactos de la marca sobre los tokens de sistema de M3.
+  @include mat.theme-overrides((
+    primary:              #2d6df6,
+    on-primary:           #ffffff,
+    primary-container:    #dfeaff,
+    on-primary-container: #0033a0,
+
+    secondary:              #0033a0,
+    on-secondary:           #ffffff,
+    secondary-container:    #e0eaff,
+    on-secondary-container: #26328c,
+
+    // El terciario es el amarillo del CTA: sobre él el texto va en azul profundo.
+    tertiary:              #e3e829,
+    on-tertiary:           #26328c,
+    tertiary-container:    #ecf0a1,
+    on-tertiary-container: #26328c,
+
+    error:              #d12d35,
+    on-error:           #ffffff,
+    error-container:    #fff4f3,
+    on-error-container: #d12d35,
+
+    surface:                #ffffff,
+    on-surface:             #1c1c24,
+    surface-container:      #f7f8f9,
+    surface-container-low:  #ffffff,
+    surface-container-high: #f1f2f5,
+    surface-variant:        #f1f2f5,
+    on-surface-variant:     #6b6c7e,
+
+    background:    #f7f8f9,
+    on-background: #1c1c24,
+
+    outline:         #cdced9,
+    outline-variant: #e7e7ed,
+  ));
+}

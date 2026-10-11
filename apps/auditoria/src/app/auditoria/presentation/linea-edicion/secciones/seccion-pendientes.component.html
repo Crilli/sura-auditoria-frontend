@@ -1,0 +1,11 @@
+<ul class="pendientes">
+  @for (pendiente of detalle().pendientes; track pendiente.identificador) {
+    <li [class.resuelto]="pendiente.resuelto">
+      <strong>{{ pendiente.codigo }}</strong>
+      @if (pendiente.descripcion) { — {{ pendiente.descripcion }} }
+      @if (pendiente.resuelto) {
+        <span class="marca-resuelto">resuelto</span>
+      }
+    </li>
+  }
+</ul>

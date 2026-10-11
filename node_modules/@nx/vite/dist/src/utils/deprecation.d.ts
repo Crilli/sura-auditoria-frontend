@@ -1,0 +1,11 @@
+export declare const VITE_BUILD_EXECUTOR_DEPRECATION_MESSAGE = "The `@nx/vite:build` executor is deprecated and will be removed in Nx v24. Run `nx g @nx/vite:convert-to-inferred` to migrate to the `@nx/vite/plugin` inferred targets. See https://nx.dev/docs/guides/tasks--caching/convert-to-inferred for details.";
+export declare const VITE_DEV_SERVER_EXECUTOR_DEPRECATION_MESSAGE = "The `@nx/vite:dev-server` executor is deprecated and will be removed in Nx v24. Run `nx g @nx/vite:convert-to-inferred` to migrate to the `@nx/vite/plugin` inferred targets. See https://nx.dev/docs/guides/tasks--caching/convert-to-inferred for details.";
+export declare const VITE_PREVIEW_SERVER_EXECUTOR_DEPRECATION_MESSAGE = "The `@nx/vite:preview-server` executor is deprecated and will be removed in Nx v24. Run `nx g @nx/vite:convert-to-inferred` to migrate to the `@nx/vite/plugin` inferred targets. See https://nx.dev/docs/guides/tasks--caching/convert-to-inferred for details.";
+export declare function warnViteBuildExecutorDeprecation(): void;
+export declare function warnViteDevServerExecutorDeprecation(): void;
+export declare function warnVitePreviewServerExecutorDeprecation(): void;
+export declare function warnViteExecutorGenerating(): void;
+export declare const NX_VITE_TS_PATHS_DEPRECATION_MESSAGE = "The `nxViteTsPaths` plugin from `@nx/vite/plugins/nx-tsconfig-paths.plugin` is deprecated and will be removed in Nx v24. Replace it with `tsconfigPaths()` from the `vite-tsconfig-paths` package. See https://nx.dev/docs/technologies/build-tools/vite/guides/configure-vite for details.";
+export declare const NX_COPY_ASSETS_PLUGIN_DEPRECATION_MESSAGE = "The `nxCopyAssetsPlugin` plugin from `@nx/vite/plugins/nx-copy-assets.plugin` is deprecated and will be removed in Nx v24. Use Vite's native `publicDir` option or the `vite-plugin-static-copy` package instead. See https://nx.dev/docs/technologies/build-tools/vite/guides/configure-vite for details.";
+export declare function warnNxViteTsPathsDeprecation(): void;
+export declare function warnNxCopyAssetsPluginDeprecation(): void;

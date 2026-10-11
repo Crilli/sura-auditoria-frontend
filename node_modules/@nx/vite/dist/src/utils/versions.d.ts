@@ -1,0 +1,12 @@
+export declare const nxVersion: any;
+export declare const viteVersion = "^8.0.0";
+export declare const viteV7Version = "^7.0.0";
+export declare const viteV6Version = "^6.0.0";
+export declare const viteV5Version = "^5.0.0";
+export declare const minSupportedViteVersion = "5.0.0";
+export declare const vitePluginReactVersion = "^6.0.0";
+export declare const vitePluginReactV4Version = "^4.2.0";
+export declare const vitePluginReactSwcVersion = "^4.3.0";
+export declare const vitePluginDtsVersion = "~4.5.0";
+export declare const ajvVersion = "^8.0.0";
+export declare const jitiVersion = "2.4.2";

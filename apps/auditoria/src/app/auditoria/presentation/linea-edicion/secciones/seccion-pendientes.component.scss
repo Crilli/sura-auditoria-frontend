@@ -1,0 +1,27 @@
+:host { display: contents; }
+
+// Sin margen inferior: la lista siempre va dentro de un panel, que ya pone su
+// propio relleno.
+.pendientes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    border-left: 3px solid var(--sura-alerta);
+    background: var(--sura-alerta-fondo);
+    margin-bottom: var(--sura-espacio-1);
+
+    &.resuelto {
+      border-left-color: var(--sura-exito);
+      opacity: 0.7;
+    }
+  }
+
+  .marca-resuelto {
+    margin-left: var(--sura-espacio-2);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-exito);
+  }
+}

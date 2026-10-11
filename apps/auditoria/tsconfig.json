@@ -1,0 +1,28 @@
+{
+  "//": "Las fuentes de apps/auditoria las compila shell (las incluye por ruta en su tsconfig.app.json). Esta configuración existe solo para las pruebas: el plugin de Angular de Analog necesita un tsconfig del proyecto para meter los componentes en el programa de TypeScript. Las opciones son las mismas que usa shell para construir, para que la prueba compile con el mismo rigor que la aplicación.",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "isolatedModules": true,
+    "target": "es2022",
+    "strict": true,
+    "noImplicitOverride": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "emitDecoratorMetadata": false,
+    "module": "preserve"
+  },
+  "angularCompilerOptions": {
+    "enableI18nLegacyMessageIdFormat": false,
+    "strictInjectionParameters": true,
+    "strictInputAccessModifiers": true,
+    "strictTemplates": true
+  },
+  "files": [],
+  "include": [],
+  "references": [
+    {
+      "path": "./tsconfig.spec.json"
+    }
+  ]
+}

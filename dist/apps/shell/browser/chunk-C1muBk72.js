@@ -1,0 +1,510 @@
+import {D as Dn,a as Dt$1,d as dt$1,r as rt$1,_ as _n$1,x as xn,s as st$1,o as ot$1}from'./chunk-BuKF1IET.js';import {P}from'./chunk-ByOZMUOR.js';import {Y as Yt$1,m as mt$1}from'./chunk-CWb4dNle.js';import {aU as cS,y,F as F$1,aV as W,i as Ee,a2 as Ye,c as Fi$1,v as u,l as lv,m as kt$1,b as ao,d as Fd,A as Ay,f as fa,L as Lv,S as Sg,w as va$1,P as Pv,aW as Y,N as Nt$1,aX as nf,aY as Py,W as Wd,x as xd,J as Jd,aF as Wy,aH as Zy,aL as Vv,aN as Hv,p as pa,h as ha,e as Ad,g as ty,aZ as Fy,I as Im,D as Dm,aJ as Qy,B as dv,G as tc,a1 as jn$1,a5 as fS,ao as H,a7 as we,a3 as hf,aD as _p,M as gS,O as ry,av as Fc,a_ as jc,Q as oy,aG as ly,R as bd,ac as By,a$ as ar,a4 as mS,an as Ld,aC as Ey,X as Hd,Z as sy,_ as ay,T,aK as Xd,ay as Wv,aA as Mc,aB as Nc}from'./main-VSBDFCJK.js';import {C as Ci$1,v as vi$1,j}from'./chunk-ky3N0EV-.js';import'./chunk-DyD8Tc-X.js';import {I as I$1,W as We,$ as $e}from'./chunk-Lp4ERQAL.js';import'./chunk-5rtBovmt.js';import'./chunk-BgxUG1w0.js';import {a as an,L as Le,r as rn,b as bn,_ as _n,z as ze}from'./chunk-_f2wotTk.js';import {b as Ea,A as Aa,C as Ca,v as va,_ as _a,r as ro,c as no,B as Bl,L as Ll,s as sd,a as ad,i as ie,R as Re,n as ni$1,D as Rr,X as Xr,V as Vr,e as At$1,E as Et$1,H as H$1,o as or,d as dn,f as sl,F as he$1,J as it$1}from'./chunk-BXpYJh_O.js';function wn(e){return e.group({valorCargado:new ie(null,[Re.min(0)]),unidadesCargadas:new ie(null,[Re.min(0)]),valorAutorizado:new ie(null,[Re.min(0)]),unidadesAutorizadas:new ie(null,[Re.min(0)]),valorGlosado:new ie(null,[Re.min(0)]),conservarBeneficios:new ie(false),conservarTarifacion:new ie(false),observacionesGlosa:new ie(null,[Re.maxLength(1e3)]),codigoAutorizacion:new ie(null,[Re.maxLength(30)]),fechaInicio:new ie(null),fechaFin:new ie(null),codigoNoDefinido:new ie(null,[Re.maxLength(30)]),codigoNoDefinidoDef:new ie(null,[Re.maxLength(30)]),descripcionRips:new ie(null,[Re.maxLength(100)]),numeroContrato:new ie(null,[Re.maxLength(30)]),homologoCups:new ie(null,[Re.maxLength(30)]),codigoUnicoContratoSiifa:new ie(null,[Re.maxLength(300)]),codigoSiniestro:new ie(null,[Re.maxLength(20)]),modoRecalculo:new ie(null,[Re.required]),versionEsperada:new ie(null,[Re.required])})}function On(e){return e?e.length>10?e.slice(0,10):e:null}function An(e){return {valorCargado:e.valorCargado,unidadesCargadas:e.unidadesCargadas,valorAutorizado:e.valorAutorizado,unidadesAutorizadas:e.unidadesAutorizadas,valorGlosado:e.valorGlosado,conservarBeneficios:e.conservarBeneficios,conservarTarifacion:e.conservarTarifacion,observacionesGlosa:e.observacionesGlosa,codigoAutorizacion:e.codigoAutorizacion,fechaInicio:On(e.fechaInicio),fechaFin:On(e.fechaFin),codigoNoDefinido:e.prestacion.codigoNoDefinido,codigoNoDefinidoDef:e.prestacion.codigoNoDefinidoDef,descripcionRips:e.prestacion.descripcionRips,numeroContrato:e.convenio.numeroContrato,homologoCups:e.convenio.homologoCups,codigoUnicoContratoSiifa:e.convenio.codigoUnicoContratoSiifa,codigoSiniestro:e.otrosDatos.codigoSiniestro,modoRecalculo:null,versionEsperada:e.version}}function Vn(e){return e||void 0}function qn(e){return {versionEsperada:e.versionEsperada,modoRecalculo:e.modoRecalculo,valorCargado:e.valorCargado??void 0,unidadesCargadas:e.unidadesCargadas??void 0,valorAutorizado:e.valorAutorizado??void 0,unidadesAutorizadas:e.unidadesAutorizadas??void 0,valorGlosado:e.valorGlosado??void 0,conservarBeneficios:e.conservarBeneficios??void 0,conservarTarifacion:e.conservarTarifacion??void 0,observacionesGlosa:e.observacionesGlosa??void 0,codigoAutorizacion:e.codigoAutorizacion??void 0,fechaInicio:Vn(e.fechaInicio),fechaFin:Vn(e.fechaFin),codigoNoDefinido:e.codigoNoDefinido??void 0,codigoNoDefinidoDef:e.codigoNoDefinidoDef??void 0,descripcionRips:e.descripcionRips??void 0,numeroContrato:e.numeroContrato??void 0,homologoCups:e.homologoCups??void 0,codigoUnicoContratoSiifa:e.codigoUnicoContratoSiifa??void 0,codigoSiniestro:e.codigoSiniestro??void 0}}function zn(e,o){return e==="edicion"&&o?"edicion":"lectura"}function Gn(e){let o=c=>c==null?"\u2014":c.toLocaleString("es-CO",{maximumFractionDigits:0}),n=[`Cargado ${o(e.valorCargado)}`,`Autorizado ${o(e.valorAutorizado)}`];return e.valorGlosado&&n.push(`Glosado ${o(e.valorGlosado)}`),n.join(" \xB7 ")}function Rn(e){let o=e.diagnosticos.find(d=>d.tipo==="PRINCIPAL")??e.diagnosticos[0];if(!o)return "";let n=e.diagnosticos.length-1,c=`${o.codigo} ${o.descripcion??""}`.trim();return n>0?`${c} \xB7 y ${n} m\xE1s`:c}function Bn(e){let o=e.novedades.filter(n=>n.severidad==="BLOQUEANTE").length;return o>0?`${e.novedades.length} \xB7 ${o} bloqueante${o>1?"s":""}`:`${e.novedades.length}`}function Un(e){let o=e.pendientes.filter(c=>!c.resuelto);if(o.length===0)return "todos resueltos";let n=o[0];return o.length>1?`${n.codigo} \xB7 y ${o.length-1} m\xE1s`:n.codigo}function $n(...e){return e.filter(o=>o!=null&&o!=="").length}function jn(e){let o=e.prestacion;return o.descripcion??o.descripcionRips??`${$n(o.especialidad,o.codigoNoDefinido,o.descripcionRips)} datos`}function Hn(e){let o=e.convenio;if(o.numeroContrato)return `Contrato ${o.numeroContrato}`;let n=$n(o.codigoTarifarioIss2001,o.codigoTarifarioIss2000,o.codigoTarifarioSoat,o.homologoCups,o.multiplesCupsHomologos,o.codigoUnicoContratoSiifa);return n>0?`${n} datos`:"sin datos"}function Qn(e){let o=e.otrosDatos,n=[];return o.unidadEstrategicaNegocio&&n.push(`UEN ${o.unidadEstrategicaNegocio}`),o.codigoSiniestro&&n.push(o.codigoSiniestro),o.tipoSala&&n.push(o.tipoSala),n.length?n.join(" \xB7 "):"sin datos"}var R=class e{motivo=cS.required();static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-campo-bloqueado"]],inputs:{motivo:[1,"motivo"]},decls:2,vars:1,consts:[["aria-label","No editable","matTooltipPosition","above","tabindex","0",1,"sura-candado",3,"matTooltip"]],template:function(n,c){n&1&&(ao(0,"mat-icon",0),Ay(1,"lock"),fa()),n&2&&xd("matTooltip",c.motivo());},dependencies:[sd,ad,Yt$1,mt$1],encapsulation:2})};var F={calculado:"Lo calcula el motor de coberturas de OHI.",afiliado:"La cuenta es de un lesionado: cambiarlo ser\xEDa readjudicar la l\xEDnea bajo otra p\xF3liza.",catalogo:"Requiere selector de cat\xE1logo, pendiente.",lista:"Requiere editor de filas, pendiente.",tarifacion:"Resultado de la tarifaci\xF3n: sale de las cl\xE1usulas del convenio.",derivado:"Se deriva del c\xF3digo de la prestaci\xF3n."};function Jn(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",1),e&2){let n=ty();xd("motivo",n.motivos.afiliado);}}function Wn(e,o){if(e&1&&(ao(0,"span",2),Ay(1),fa()),e&2){ty();let n=Fy(0);Sg(),Jd(n.nombreAfiliado);}}function et(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",1),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function nt(e,o){if(e&1&&(ao(0,"span",2),Ay(1),fa()),e&2){ty();let n=Fy(0);Sg(),Jd(n.catalogoProcedimiento);}}function tt(e,o){e&1&&(ao(0,"mat-form-field",3),Ad(1,"input",4),Im(),fa()),e&2&&(Sg(),Dm());}function it(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.codigoAutorizacion??"\u2014"," ");}}function ot(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",1),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function at(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",1),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function rt(e,o){if(e&1&&(ao(0,"span",2),Ay(1),fa()),e&2){ty();let n=Fy(0);Sg(),Jd(n.prestadorAtencionNombre);}}function ct(e,o){e&1&&(ao(0,"mat-form-field",3),Ad(1,"input",5),Im(),fa()),e&2&&(Sg(),Dm());}function dt(e,o){if(e&1&&(Ay(0),Wy(1,"date")),e&2){ty();let n=Fy(0);va$1(" ",Qy(1,1,n.fechaInicio,"dd/MM/yyyy")??"\u2014"," ");}}function lt(e,o){e&1&&(ao(0,"mat-form-field",3),Ad(1,"input",6),Im(),fa()),e&2&&(Sg(),Dm());}function st(e,o){if(e&1&&(Ay(0),Wy(1,"date")),e&2){ty();let n=Fy(0);va$1(" ",Qy(1,1,n.fechaFin,"dd/MM/yyyy")??"\u2014"," ");}}var be=class e{detalle=cS.required();form=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-ficha-identidad"]],inputs:{detalle:[1,"detalle"],form:[1,"form"],esEdicion:[1,"esEdicion"]},decls:52,vars:27,consts:[[1,"sura-ficha-datos",3,"formGroup"],[3,"motivo"],[1,"sura-dato-secundario"],["appearance","outline","subscriptSizing","dynamic",1,"sura-campo-en-sitio"],["matInput","","formControlName","codigoAutorizacion","maxlength","30","aria-label","C\xF3digo de autorizaci\xF3n"],["matInput","","type","date","formControlName","fechaInicio","aria-label","Fecha de inicio de la prestaci\xF3n"],["matInput","","type","date","formControlName","fechaFin","aria-label","Fecha fin de la prestaci\xF3n"]],template:function(n,c){if(n&1&&(nf(0),ao(1,"dl",0)(2,"div")(3,"dt"),Ay(4,"Afiliado"),fa(),ao(5,"dd"),Ay(6),Lv(7,Jn,1,1,"sura-campo-bloqueado",1),Lv(8,Wn,2,1,"span",2),fa()(),ao(9,"div")(10,"dt"),Ay(11,"Prestaci\xF3n"),fa(),ao(12,"dd"),Ay(13),Lv(14,et,1,1,"sura-campo-bloqueado",1),Lv(15,nt,2,1,"span",2),fa()(),ao(16,"div")(17,"dt"),Ay(18,"C\xF3digo de autorizaci\xF3n"),fa(),ao(19,"dd"),Lv(20,tt,2,0,"mat-form-field",3)(21,it,1,1),fa()(),ao(22,"div")(23,"dt"),Ay(24,"Clase de servicio"),fa(),ao(25,"dd"),Ay(26),Lv(27,ot,1,1,"sura-campo-bloqueado",1),fa()(),ao(28,"div")(29,"dt"),Ay(30,"Prestador de atenci\xF3n"),fa(),ao(31,"dd"),Ay(32),Lv(33,at,1,1,"sura-campo-bloqueado",1),Lv(34,rt,2,1,"span",2),fa()(),ao(35,"div")(36,"dt"),Ay(37,"Fecha de prestaci\xF3n"),fa(),ao(38,"dd"),Lv(39,ct,2,0,"mat-form-field",3)(40,dt,2,4),fa()(),ao(41,"div")(42,"dt"),Ay(43,"Fecha fin"),fa(),ao(44,"dd"),Lv(45,lt,2,0,"mat-form-field",3)(46,st,2,4),fa()(),ao(47,"div")(48,"dt"),Ay(49,"Versi\xF3n"),fa(),ao(50,"dd"),Ay(51),fa()()()),n&2){let d=Py(c.detalle()),u=c.esEdicion();Sg(),Wd("sura-ficha-datos--edicion",u),xd("formGroup",c.form()),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.codigoAfiliado," "),Sg(),Pv(u?7:-1),Sg(),Pv(d.nombreAfiliado?8:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.codigoProcedimiento," "),Sg(),Pv(u?14:-1),Sg(),Pv(d.catalogoProcedimiento?15:-1),Sg(5),Pv(u?20:21),Sg(5),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.prestacion.claseServicio??"\u2014"," "),Sg(),Pv(u?27:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.prestadorAtencionCodigo??"\u2014"," "),Sg(),Pv(u?33:-1),Sg(),Pv(d.prestadorAtencionNombre?34:-1),Sg(5),Pv(u?39:40),Sg(6),Pv(u?45:46),Sg(6),Jd(d.version);}},dependencies:[Aa,ni$1,va,_a,Rr,ro,no,I$1,an,We,$e,R,Nt$1],styles:["[_nghost-%COMP%]{display:contents}"]})};var mt=["*"],Xn=(()=>{class e{labelPosition="after";static \u0275fac=function(c){return new(c||e)};static \u0275cmp=lv({type:e,selectors:[["","mat-internal-form-field",""]],hostAttrs:[1,"mdc-form-field","mat-internal-form-field"],hostVars:2,hostBindings:function(c,d){c&2&&Wd("mdc-form-field--align-end",d.labelPosition==="before");},inputs:{labelPosition:"labelPosition"},ngContentSelectors:mt,decls:1,vars:0,template:function(c,d){c&1&&(ry(),oy(0));},styles:[`.mat-internal-form-field {
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-font-smoothing: antialiased;
+  display: inline-flex;
+  align-items: center;
+  vertical-align: middle;
+}
+.mat-internal-form-field > label, .mat-internal-form-field > .mat-internal-form-field-label {
+  margin-left: 0;
+  margin-right: auto;
+  padding-left: 4px;
+  padding-right: 0;
+  order: 0;
+}
+[dir=rtl] .mat-internal-form-field > label, [dir=rtl] .mat-internal-form-field > .mat-internal-form-field-label {
+  margin-left: auto;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 4px;
+}
+
+.mdc-form-field--align-end > label, .mdc-form-field--align-end > .mat-internal-form-field-label {
+  margin-left: auto;
+  margin-right: 0;
+  padding-left: 0;
+  padding-right: 4px;
+  order: -1;
+}
+[dir=rtl] .mdc-form-field--align-end .mdc-form-field--align-end label, [dir=rtl] .mdc-form-field--align-end .mdc-form-field--align-end .mat-internal-form-field-label {
+  margin-left: 0;
+  margin-right: auto;
+  padding-left: 4px;
+  padding-right: 0;
+}
+`],encapsulation:2})}return e})();var ut=["input"],pt=["*"],Pe={color:"accent",clickAction:"check-indeterminate",disabledInteractive:false},bt=new T("mat-checkbox-default-options",{providedIn:"root",factory:()=>Pe}),I=(function(e){return e[e.Init=0]="Init",e[e.Checked=1]="Checked",e[e.Unchecked=2]="Unchecked",e[e.Indeterminate=3]="Indeterminate",e})(I||{}),Ne=class{source;checked},Oe=(()=>{class e{_elementRef=y(jn$1);_changeDetectorRef=y(fS);_ngZone=y(H);_animationsDisabled=Et$1();_options=y(bt,{optional:true});focus(){this._inputElement.nativeElement.focus();}_createChangeEvent(n){let c=new Ne;return c.source=this,c.checked=n,c}_getAnimationTargetElement(){return this._inputElement?.nativeElement}_animationClasses={uncheckedToChecked:"mdc-checkbox--anim-unchecked-checked",uncheckedToIndeterminate:"mdc-checkbox--anim-unchecked-indeterminate",checkedToUnchecked:"mdc-checkbox--anim-checked-unchecked",checkedToIndeterminate:"mdc-checkbox--anim-checked-indeterminate",indeterminateToChecked:"mdc-checkbox--anim-indeterminate-checked",indeterminateToUnchecked:"mdc-checkbox--anim-indeterminate-unchecked"};ariaLabel="";ariaLabelledby=null;ariaDescribedby;ariaExpanded;ariaControls;ariaOwns;_uniqueId;id;get inputId(){return `${this.id||this._uniqueId}-input`}required=false;labelPosition="after";name=null;change=new we;indeterminateChange=new we;value;disableRipple=false;_inputElement;tabIndex;color;disabledInteractive;_onTouched=()=>{};_currentAnimationClass="";_currentCheckState=I.Init;_controlValueAccessorChangeFn=()=>{};_validatorChangeFn=()=>{};constructor(){y(H$1).load(or);let n=y(new hf("tabindex"),{optional:true});this._options=this._options||Pe,this.color=this._options.color||Pe.color,this.tabIndex=n==null?0:parseInt(n)||0,this.id=this._uniqueId=y(dn).getId("mat-mdc-checkbox-"),this.disabledInteractive=this._options?.disabledInteractive??false;}ngOnChanges(n){n.required&&this._validatorChangeFn();}ngAfterViewInit(){this._syncIndeterminate(this.indeterminate);}get checked(){return this._checked}set checked(n){n!=this.checked&&(this._checked=n,this._changeDetectorRef.markForCheck());}_checked=false;get disabled(){return this._disabled}set disabled(n){n!==this.disabled&&(this._disabled=n,this._changeDetectorRef.markForCheck());}_disabled=false;get indeterminate(){return this._indeterminate()}set indeterminate(n){let c=n!=this._indeterminate();this._indeterminate.set(n),c&&(n?this._transitionCheckState(I.Indeterminate):this._transitionCheckState(this.checked?I.Checked:I.Unchecked),this.indeterminateChange.emit(n)),this._syncIndeterminate(n);}_indeterminate=Ee(false);_isRippleDisabled(){return this.disableRipple||this.disabled}_onLabelTextChange(){this._changeDetectorRef.detectChanges();}writeValue(n){this.checked=!!n;}registerOnChange(n){this._controlValueAccessorChangeFn=n;}registerOnTouched(n){this._onTouched=n;}setDisabledState(n){this.disabled=n;}validate(n){return this.required&&n.value!==true?{required:true}:null}registerOnValidatorChange(n){this._validatorChangeFn=n;}_transitionCheckState(n){let c=this._currentCheckState,d=this._getAnimationTargetElement();if(!(c===n||!d)&&(this._currentAnimationClass&&d.classList.remove(this._currentAnimationClass),this._currentAnimationClass=this._getAnimationClassForCheckStateTransition(c,n),this._currentCheckState=n,this._currentAnimationClass.length>0)){d.classList.add(this._currentAnimationClass);let u=this._currentAnimationClass;this._ngZone.runOutsideAngular(()=>{setTimeout(()=>{d.classList.remove(u);},1e3);});}}_emitChangeEvent(){this._controlValueAccessorChangeFn(this.checked),this.change.emit(this._createChangeEvent(this.checked)),this._inputElement&&(this._inputElement.nativeElement.checked=this.checked);}toggle(){this.checked=!this.checked,this._controlValueAccessorChangeFn(this.checked);}_handleInputClick(){let n=this._options?.clickAction;!this.disabled&&n!=="noop"?(this.indeterminate&&n!=="check"&&Promise.resolve().then(()=>{this._indeterminate.set(false),this.indeterminateChange.emit(false);}),this._checked=!this._checked,this._transitionCheckState(this._checked?I.Checked:I.Unchecked),this._emitChangeEvent()):(this.disabled&&this.disabledInteractive||!this.disabled&&n==="noop")&&(this._inputElement.nativeElement.checked=this.checked,this._inputElement.nativeElement.indeterminate=this.indeterminate);}_onInteractionEvent(n){n.stopPropagation();}_onBlur(){Promise.resolve().then(()=>{this._onTouched(),this._changeDetectorRef.markForCheck();});}_getAnimationClassForCheckStateTransition(n,c){if(this._animationsDisabled)return "";switch(n){case I.Init:if(c===I.Checked)return this._animationClasses.uncheckedToChecked;if(c==I.Indeterminate)return this._checked?this._animationClasses.checkedToIndeterminate:this._animationClasses.uncheckedToIndeterminate;break;case I.Unchecked:return c===I.Checked?this._animationClasses.uncheckedToChecked:this._animationClasses.uncheckedToIndeterminate;case I.Checked:return c===I.Unchecked?this._animationClasses.checkedToUnchecked:this._animationClasses.checkedToIndeterminate;case I.Indeterminate:return c===I.Checked?this._animationClasses.indeterminateToChecked:this._animationClasses.indeterminateToUnchecked}return ""}_syncIndeterminate(n){let c=this._inputElement;c&&(c.nativeElement.indeterminate=n);}_onInputClick(){this._handleInputClick();}_preventBubblingFromLabel(n){n.target&&this._inputElement&&n.target!==this._inputElement.nativeElement&&n.stopPropagation();}static \u0275fac=function(c){return new(c||e)};static \u0275cmp=lv({type:e,selectors:[["mat-checkbox"]],viewQuery:function(c,d){if(c&1&&Hd(ut,5),c&2){let u;sy(u=ay())&&(d._inputElement=u.first);}},hostAttrs:[1,"mat-mdc-checkbox"],hostVars:16,hostBindings:function(c,d){c&2&&(Ld("id",d.id),bd("tabindex",null)("aria-label",null)("aria-labelledby",null),Ey(d.color?"mat-"+d.color:"mat-accent"),Wd("_mat-animation-noopable",d._animationsDisabled)("mdc-checkbox--disabled",d.disabled)("mat-mdc-checkbox-disabled",d.disabled)("mat-mdc-checkbox-checked",d.checked)("mat-mdc-checkbox-disabled-interactive",d.disabledInteractive));},inputs:{ariaLabel:[0,"aria-label","ariaLabel"],ariaLabelledby:[0,"aria-labelledby","ariaLabelledby"],ariaDescribedby:[0,"aria-describedby","ariaDescribedby"],ariaExpanded:[2,"aria-expanded","ariaExpanded",gS],ariaControls:[0,"aria-controls","ariaControls"],ariaOwns:[0,"aria-owns","ariaOwns"],id:"id",required:[2,"required","required",gS],labelPosition:"labelPosition",name:"name",value:"value",disableRipple:[2,"disableRipple","disableRipple",gS],tabIndex:[2,"tabIndex","tabIndex",n=>n==null?void 0:mS(n)],color:"color",disabledInteractive:[2,"disabledInteractive","disabledInteractive",gS],checked:[2,"checked","checked",gS],disabled:[2,"disabled","disabled",gS],indeterminate:[2,"indeterminate","indeterminate",gS]},outputs:{change:"change",indeterminateChange:"indeterminateChange"},exportAs:["matCheckbox"],features:[By([{provide:he$1,useExisting:ar(()=>e),multi:true},{provide:it$1,useExisting:e,multi:true}]),_p],ngContentSelectors:pt,decls:15,vars:23,consts:[["checkbox",""],["input",""],["label",""],["mat-internal-form-field","",3,"click","labelPosition","for"],[1,"mdc-checkbox"],["aria-hidden","true",1,"mat-mdc-checkbox-touch-target"],["type","checkbox",1,"mdc-checkbox__native-control",3,"blur","click","change","checked","indeterminate","disabled","id","required","tabIndex"],["aria-hidden","true",1,"mdc-checkbox__ripple"],["aria-hidden","true",1,"mdc-checkbox__background"],["focusable","false","viewBox","0 0 24 24",1,"mdc-checkbox__checkmark"],["fill","none","d","M1.73,12.91 8.1,19.28 22.79,4.59",1,"mdc-checkbox__checkmark-path"],[1,"mdc-checkbox__mixedmark"],["mat-ripple","","aria-hidden","true",1,"mat-mdc-checkbox-ripple","mat-focus-indicator",3,"matRippleTrigger","matRippleDisabled","matRippleCentered"],[1,"mat-internal-form-field-label","mdc-label"]],template:function(c,d){if(c&1&&(ry(),ao(0,"label",3),Fd("click",function(Ee){return d._preventBubblingFromLabel(Ee)}),ao(1,"span",4,0),Ad(3,"span",5),ao(4,"input",6,1),Fd("blur",function(){return d._onBlur()})("click",function(){return d._onInputClick()})("change",function(Ee){return d._onInteractionEvent(Ee)}),fa(),Ad(6,"span",7),ao(7,"span",8),Fc(),ao(8,"svg",9),Ad(9,"path",10),fa(),jc(),Ad(10,"span",11),fa(),Ad(11,"span",12),fa(),ao(12,"span",13,2),oy(14),fa()()),c&2){let u=ly(2);xd("labelPosition",d.labelPosition)("for",d.inputId),Sg(4),Wd("mdc-checkbox--selected",d.checked),xd("checked",d.checked)("indeterminate",d.indeterminate)("disabled",d.disabled&&!d.disabledInteractive)("id",d.inputId)("required",d.required)("tabIndex",d.disabled&&!d.disabledInteractive?-1:d.tabIndex),bd("aria-label",d.ariaLabel||null)("aria-labelledby",d.ariaLabelledby)("aria-describedby",d.ariaDescribedby)("aria-checked",d.indeterminate?"mixed":null)("aria-controls",d.ariaControls)("aria-disabled",d.disabled&&d.disabledInteractive?true:null)("aria-expanded",d.ariaExpanded)("aria-owns",d.ariaOwns)("name",d.name)("value",d.value),Sg(7),xd("matRippleTrigger",u)("matRippleDisabled",d.disableRipple||d.disabled)("matRippleCentered",true);}},dependencies:[sl,Xn],styles:[`.mdc-checkbox {
+  display: inline-block;
+  position: relative;
+  flex: 0 0 18px;
+  box-sizing: content-box;
+  width: 18px;
+  height: 18px;
+  line-height: 0;
+  white-space: nowrap;
+  cursor: pointer;
+  vertical-align: bottom;
+  padding: calc((var(--mat-checkbox-state-layer-size, 40px) - 18px) / 2);
+  margin: calc((var(--mat-checkbox-state-layer-size, 40px) - var(--mat-checkbox-state-layer-size, 40px)) / 2);
+}
+.mdc-checkbox:hover > .mdc-checkbox__ripple {
+  opacity: var(--mat-checkbox-unselected-hover-state-layer-opacity, var(--mat-sys-hover-state-layer-opacity));
+  background-color: var(--mat-checkbox-unselected-hover-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox:hover > .mat-mdc-checkbox-ripple > .mat-ripple-element {
+  background-color: var(--mat-checkbox-unselected-hover-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox .mdc-checkbox__native-control:focus + .mdc-checkbox__ripple {
+  opacity: var(--mat-checkbox-unselected-focus-state-layer-opacity, var(--mat-sys-focus-state-layer-opacity));
+  background-color: var(--mat-checkbox-unselected-focus-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox .mdc-checkbox__native-control:focus ~ .mat-mdc-checkbox-ripple .mat-ripple-element {
+  background-color: var(--mat-checkbox-unselected-focus-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox:active > .mdc-checkbox__native-control + .mdc-checkbox__ripple {
+  opacity: var(--mat-checkbox-unselected-pressed-state-layer-opacity, var(--mat-sys-pressed-state-layer-opacity));
+  background-color: var(--mat-checkbox-unselected-pressed-state-layer-color, var(--mat-sys-primary));
+}
+.mdc-checkbox:active > .mdc-checkbox__native-control ~ .mat-mdc-checkbox-ripple .mat-ripple-element {
+  background-color: var(--mat-checkbox-unselected-pressed-state-layer-color, var(--mat-sys-primary));
+}
+.mdc-checkbox:hover > .mdc-checkbox__native-control:checked + .mdc-checkbox__ripple {
+  opacity: var(--mat-checkbox-selected-hover-state-layer-opacity, var(--mat-sys-hover-state-layer-opacity));
+  background-color: var(--mat-checkbox-selected-hover-state-layer-color, var(--mat-sys-primary));
+}
+.mdc-checkbox:hover > .mdc-checkbox__native-control:checked ~ .mat-mdc-checkbox-ripple .mat-ripple-element {
+  background-color: var(--mat-checkbox-selected-hover-state-layer-color, var(--mat-sys-primary));
+}
+.mdc-checkbox .mdc-checkbox__native-control:focus:checked + .mdc-checkbox__ripple {
+  opacity: var(--mat-checkbox-selected-focus-state-layer-opacity, var(--mat-sys-focus-state-layer-opacity));
+  background-color: var(--mat-checkbox-selected-focus-state-layer-color, var(--mat-sys-primary));
+}
+.mdc-checkbox .mdc-checkbox__native-control:focus:checked ~ .mat-mdc-checkbox-ripple .mat-ripple-element {
+  background-color: var(--mat-checkbox-selected-focus-state-layer-color, var(--mat-sys-primary));
+}
+.mdc-checkbox:active > .mdc-checkbox__native-control:checked + .mdc-checkbox__ripple {
+  opacity: var(--mat-checkbox-selected-pressed-state-layer-opacity, var(--mat-sys-pressed-state-layer-opacity));
+  background-color: var(--mat-checkbox-selected-pressed-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox:active > .mdc-checkbox__native-control:checked ~ .mat-mdc-checkbox-ripple .mat-ripple-element {
+  background-color: var(--mat-checkbox-selected-pressed-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox .mdc-checkbox__native-control ~ .mat-mdc-checkbox-ripple .mat-ripple-element,
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox .mdc-checkbox__native-control + .mdc-checkbox__ripple {
+  background-color: var(--mat-checkbox-unselected-hover-state-layer-color, var(--mat-sys-on-surface));
+}
+.mdc-checkbox .mdc-checkbox__native-control {
+  position: absolute;
+  margin: 0;
+  padding: 0;
+  opacity: 0;
+  cursor: inherit;
+  z-index: 1;
+  width: var(--mat-checkbox-state-layer-size, 40px);
+  height: var(--mat-checkbox-state-layer-size, 40px);
+  top: calc((var(--mat-checkbox-state-layer-size, 40px) - var(--mat-checkbox-state-layer-size, 40px)) / 2);
+  right: calc((var(--mat-checkbox-state-layer-size, 40px) - var(--mat-checkbox-state-layer-size, 40px)) / 2);
+  left: calc((var(--mat-checkbox-state-layer-size, 40px) - var(--mat-checkbox-state-layer-size, 40px)) / 2);
+}
+
+.mdc-checkbox--disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.mdc-checkbox__background {
+  display: inline-flex;
+  position: absolute;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-radius: 2px;
+  background-color: transparent;
+  pointer-events: none;
+  will-change: background-color, border-color;
+  transition: background-color 90ms cubic-bezier(0.4, 0, 0.6, 1), border-color 90ms cubic-bezier(0.4, 0, 0.6, 1);
+  -webkit-print-color-adjust: exact;
+  color-adjust: exact;
+  border-color: var(--mat-checkbox-unselected-icon-color, var(--mat-sys-on-surface-variant));
+  top: calc((var(--mat-checkbox-state-layer-size, 40px) - 18px) / 2);
+  left: calc((var(--mat-checkbox-state-layer-size, 40px) - 18px) / 2);
+}
+
+.mdc-checkbox__native-control:enabled:checked ~ .mdc-checkbox__background,
+.mdc-checkbox__native-control:enabled:indeterminate ~ .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-selected-icon-color, var(--mat-sys-primary));
+  background-color: var(--mat-checkbox-selected-icon-color, var(--mat-sys-primary));
+}
+
+.mdc-checkbox--disabled .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-disabled-unselected-icon-color, color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent));
+}
+@media (forced-colors: active) {
+  .mdc-checkbox--disabled .mdc-checkbox__background {
+    border-color: GrayText;
+  }
+}
+
+.mdc-checkbox__native-control:disabled:checked ~ .mdc-checkbox__background,
+.mdc-checkbox__native-control:disabled:indeterminate ~ .mdc-checkbox__background {
+  background-color: var(--mat-checkbox-disabled-selected-icon-color, color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent));
+  border-color: transparent;
+}
+@media (forced-colors: active) {
+  .mdc-checkbox__native-control:disabled:checked ~ .mdc-checkbox__background,
+  .mdc-checkbox__native-control:disabled:indeterminate ~ .mdc-checkbox__background {
+    border-color: GrayText;
+  }
+}
+
+.mdc-checkbox:hover > .mdc-checkbox__native-control:not(:checked) ~ .mdc-checkbox__background,
+.mdc-checkbox:hover > .mdc-checkbox__native-control:not(:indeterminate) ~ .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-unselected-hover-icon-color, var(--mat-sys-on-surface));
+  background-color: transparent;
+}
+
+.mdc-checkbox:hover > .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background,
+.mdc-checkbox:hover > .mdc-checkbox__native-control:indeterminate ~ .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-selected-hover-icon-color, var(--mat-sys-primary));
+  background-color: var(--mat-checkbox-selected-hover-icon-color, var(--mat-sys-primary));
+}
+
+.mdc-checkbox__native-control:focus:focus:not(:checked) ~ .mdc-checkbox__background,
+.mdc-checkbox__native-control:focus:focus:not(:indeterminate) ~ .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-unselected-focus-icon-color, var(--mat-sys-on-surface));
+}
+
+.mdc-checkbox__native-control:focus:focus:checked ~ .mdc-checkbox__background,
+.mdc-checkbox__native-control:focus:focus:indeterminate ~ .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-selected-focus-icon-color, var(--mat-sys-primary));
+  background-color: var(--mat-checkbox-selected-focus-icon-color, var(--mat-sys-primary));
+}
+
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox:hover > .mdc-checkbox__native-control ~ .mdc-checkbox__background,
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox .mdc-checkbox__native-control:focus ~ .mdc-checkbox__background,
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__background {
+  border-color: var(--mat-checkbox-disabled-unselected-icon-color, color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent));
+}
+@media (forced-colors: active) {
+  .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox:hover > .mdc-checkbox__native-control ~ .mdc-checkbox__background,
+  .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox .mdc-checkbox__native-control:focus ~ .mdc-checkbox__background,
+  .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__background {
+    border-color: GrayText;
+  }
+}
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__native-control:checked ~ .mdc-checkbox__background,
+.mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__native-control:indeterminate ~ .mdc-checkbox__background {
+  background-color: var(--mat-checkbox-disabled-selected-icon-color, color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent));
+  border-color: transparent;
+}
+
+.mdc-checkbox__checkmark {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  opacity: 0;
+  transition: opacity 180ms cubic-bezier(0.4, 0, 0.6, 1);
+  color: var(--mat-checkbox-selected-checkmark-color, var(--mat-sys-on-primary));
+}
+@media (forced-colors: active) {
+  .mdc-checkbox__checkmark {
+    color: CanvasText;
+  }
+}
+
+.mdc-checkbox--disabled .mdc-checkbox__checkmark, .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__checkmark {
+  color: var(--mat-checkbox-disabled-selected-checkmark-color, var(--mat-sys-surface));
+}
+@media (forced-colors: active) {
+  .mdc-checkbox--disabled .mdc-checkbox__checkmark, .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__checkmark {
+    color: GrayText;
+  }
+}
+
+.mdc-checkbox__checkmark-path {
+  transition: stroke-dashoffset 180ms cubic-bezier(0.4, 0, 0.6, 1);
+  stroke: currentColor;
+  stroke-width: 3.12px;
+  stroke-dashoffset: 29.7833385;
+  stroke-dasharray: 29.7833385;
+}
+
+.mdc-checkbox__mixedmark {
+  width: 100%;
+  height: 0;
+  transform: scaleX(0) rotate(0deg);
+  border-width: 1px;
+  border-style: solid;
+  opacity: 0;
+  transition: opacity 90ms cubic-bezier(0.4, 0, 0.6, 1), transform 90ms cubic-bezier(0.4, 0, 0.6, 1);
+  border-color: var(--mat-checkbox-selected-checkmark-color, var(--mat-sys-on-primary));
+}
+@media (forced-colors: active) {
+  .mdc-checkbox__mixedmark {
+    margin: 0 1px;
+  }
+}
+
+.mdc-checkbox--disabled .mdc-checkbox__mixedmark, .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__mixedmark {
+  border-color: var(--mat-checkbox-disabled-selected-checkmark-color, var(--mat-sys-surface));
+}
+@media (forced-colors: active) {
+  .mdc-checkbox--disabled .mdc-checkbox__mixedmark, .mdc-checkbox--disabled.mat-mdc-checkbox-disabled-interactive .mdc-checkbox__mixedmark {
+    border-color: GrayText;
+  }
+}
+
+.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__background,
+.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__background,
+.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__background,
+.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__background {
+  animation-duration: 180ms;
+  animation-timing-function: linear;
+}
+
+.mdc-checkbox--anim-unchecked-checked .mdc-checkbox__checkmark-path {
+  animation: mdc-checkbox-unchecked-checked-checkmark-path 180ms linear;
+  transition: none;
+}
+
+.mdc-checkbox--anim-unchecked-indeterminate .mdc-checkbox__mixedmark {
+  animation: mdc-checkbox-unchecked-indeterminate-mixedmark 90ms linear;
+  transition: none;
+}
+
+.mdc-checkbox--anim-checked-unchecked .mdc-checkbox__checkmark-path {
+  animation: mdc-checkbox-checked-unchecked-checkmark-path 90ms linear;
+  transition: none;
+}
+
+.mdc-checkbox--anim-checked-indeterminate .mdc-checkbox__checkmark {
+  animation: mdc-checkbox-checked-indeterminate-checkmark 90ms linear;
+  transition: none;
+}
+.mdc-checkbox--anim-checked-indeterminate .mdc-checkbox__mixedmark {
+  animation: mdc-checkbox-checked-indeterminate-mixedmark 90ms linear;
+  transition: none;
+}
+
+.mdc-checkbox--anim-indeterminate-checked .mdc-checkbox__checkmark {
+  animation: mdc-checkbox-indeterminate-checked-checkmark 500ms linear;
+  transition: none;
+}
+.mdc-checkbox--anim-indeterminate-checked .mdc-checkbox__mixedmark {
+  animation: mdc-checkbox-indeterminate-checked-mixedmark 500ms linear;
+  transition: none;
+}
+
+.mdc-checkbox--anim-indeterminate-unchecked .mdc-checkbox__mixedmark {
+  animation: mdc-checkbox-indeterminate-unchecked-mixedmark 300ms linear;
+  transition: none;
+}
+
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background,
+.mdc-checkbox__native-control:indeterminate ~ .mdc-checkbox__background {
+  transition: border-color 90ms cubic-bezier(0, 0, 0.2, 1), background-color 90ms cubic-bezier(0, 0, 0.2, 1);
+}
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background > .mdc-checkbox__checkmark > .mdc-checkbox__checkmark-path,
+.mdc-checkbox__native-control:indeterminate ~ .mdc-checkbox__background > .mdc-checkbox__checkmark > .mdc-checkbox__checkmark-path {
+  stroke-dashoffset: 0;
+}
+
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background > .mdc-checkbox__checkmark {
+  transition: opacity 180ms cubic-bezier(0, 0, 0.2, 1), transform 180ms cubic-bezier(0, 0, 0.2, 1);
+  opacity: 1;
+}
+.mdc-checkbox__native-control:checked ~ .mdc-checkbox__background > .mdc-checkbox__mixedmark {
+  transform: scaleX(1) rotate(-45deg);
+}
+
+.mdc-checkbox__native-control:indeterminate ~ .mdc-checkbox__background > .mdc-checkbox__checkmark {
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity 90ms cubic-bezier(0.4, 0, 0.6, 1), transform 90ms cubic-bezier(0.4, 0, 0.6, 1);
+}
+.mdc-checkbox__native-control:indeterminate ~ .mdc-checkbox__background > .mdc-checkbox__mixedmark {
+  transform: scaleX(1) rotate(0deg);
+  opacity: 1;
+}
+
+@keyframes mdc-checkbox-unchecked-checked-checkmark-path {
+  0%, 50% {
+    stroke-dashoffset: 29.7833385;
+  }
+  50% {
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes mdc-checkbox-unchecked-indeterminate-mixedmark {
+  0%, 68.2% {
+    transform: scaleX(0);
+  }
+  68.2% {
+    animation-timing-function: cubic-bezier(0, 0, 0, 1);
+  }
+  100% {
+    transform: scaleX(1);
+  }
+}
+@keyframes mdc-checkbox-checked-unchecked-checkmark-path {
+  from {
+    animation-timing-function: cubic-bezier(0.4, 0, 1, 1);
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+  to {
+    opacity: 0;
+    stroke-dashoffset: -29.7833385;
+  }
+}
+@keyframes mdc-checkbox-checked-indeterminate-checkmark {
+  from {
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(45deg);
+    opacity: 0;
+  }
+}
+@keyframes mdc-checkbox-indeterminate-checked-checkmark {
+  from {
+    animation-timing-function: cubic-bezier(0.14, 0, 0, 1);
+    transform: rotate(45deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(360deg);
+    opacity: 1;
+  }
+}
+@keyframes mdc-checkbox-checked-indeterminate-mixedmark {
+  from {
+    animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
+    transform: rotate(-45deg);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+}
+@keyframes mdc-checkbox-indeterminate-checked-mixedmark {
+  from {
+    animation-timing-function: cubic-bezier(0.14, 0, 0, 1);
+    transform: rotate(0deg);
+    opacity: 1;
+  }
+  to {
+    transform: rotate(315deg);
+    opacity: 0;
+  }
+}
+@keyframes mdc-checkbox-indeterminate-unchecked-mixedmark {
+  0% {
+    animation-timing-function: linear;
+    transform: scaleX(1);
+    opacity: 1;
+  }
+  32.8%, 100% {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+}
+.mat-mdc-checkbox {
+  display: inline-block;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mat-mdc-checkbox-touch-target,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mdc-checkbox__native-control,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mdc-checkbox__ripple,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mat-mdc-checkbox-ripple::before,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mdc-checkbox__background,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mdc-checkbox__background > .mdc-checkbox__checkmark,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mdc-checkbox__background > .mdc-checkbox__checkmark > .mdc-checkbox__checkmark-path,
+.mat-mdc-checkbox._mat-animation-noopable > .mat-internal-form-field > .mdc-checkbox > .mdc-checkbox__background > .mdc-checkbox__mixedmark {
+  transition: none !important;
+  animation: none !important;
+}
+.mat-mdc-checkbox label {
+  cursor: pointer;
+}
+.mat-mdc-checkbox .mat-internal-form-field {
+  color: var(--mat-checkbox-label-text-color, var(--mat-sys-on-surface));
+  font-family: var(--mat-checkbox-label-text-font, var(--mat-sys-body-medium-font));
+  line-height: var(--mat-checkbox-label-text-line-height, var(--mat-sys-body-medium-line-height));
+  font-size: var(--mat-checkbox-label-text-size, var(--mat-sys-body-medium-size));
+  letter-spacing: var(--mat-checkbox-label-text-tracking, var(--mat-sys-body-medium-tracking));
+  font-weight: var(--mat-checkbox-label-text-weight, var(--mat-sys-body-medium-weight));
+}
+.mat-mdc-checkbox.mat-mdc-checkbox-disabled.mat-mdc-checkbox-disabled-interactive {
+  pointer-events: auto;
+}
+.mat-mdc-checkbox.mat-mdc-checkbox-disabled.mat-mdc-checkbox-disabled-interactive input {
+  cursor: default;
+}
+.mat-mdc-checkbox.mat-mdc-checkbox-disabled label {
+  cursor: default;
+}
+.mat-mdc-checkbox.mat-mdc-checkbox-disabled .mat-internal-form-field-label {
+  color: var(--mat-checkbox-disabled-label-color, color-mix(in srgb, var(--mat-sys-on-surface) 38%, transparent));
+}
+@media (forced-colors: active) {
+  .mat-mdc-checkbox.mat-mdc-checkbox-disabled .mat-internal-form-field-label {
+    color: GrayText;
+  }
+}
+.mat-mdc-checkbox .mat-internal-form-field-label:empty {
+  display: none;
+}
+.mat-mdc-checkbox .mdc-checkbox__ripple {
+  opacity: 0;
+}
+
+.mat-mdc-checkbox .mat-mdc-checkbox-ripple,
+.mdc-checkbox__ripple {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.mat-mdc-checkbox .mat-mdc-checkbox-ripple:not(:empty),
+.mdc-checkbox__ripple:not(:empty) {
+  transform: translateZ(0);
+}
+
+.mat-mdc-checkbox-ripple .mat-ripple-element {
+  opacity: 0.1;
+}
+
+.mat-mdc-checkbox-touch-target {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: var(--mat-checkbox-touch-target-size, 48px);
+  width: var(--mat-checkbox-touch-target-size, 48px);
+  transform: translate(-50%, -50%);
+  display: var(--mat-checkbox-touch-target-display, block);
+}
+
+.mat-mdc-checkbox .mat-mdc-checkbox-ripple::before {
+  border-radius: 50%;
+}
+
+.mdc-checkbox__native-control:focus-visible ~ .mat-focus-indicator::before {
+  content: "";
+}
+`],encapsulation:2})}return e})(),Zn=(()=>{class e{static \u0275fac=function(c){return new(c||e)};static \u0275mod=dv({type:e});static \u0275inj=tc({imports:[Oe,At$1]})}return e})();function ft(e,o){e&1&&(ao(0,"mat-form-field",2),Ad(1,"input",8),Im(),fa()),e&2&&(Sg(),Dm());}function xt(e,o){if(e&1&&(Ay(0),Wy(1,"currency")),e&2){ty();let n=Fy(0);va$1(" ",Zy(1,1,n.valorCargado,"COP","symbol","1.0-0")," ");}}function ht(e,o){e&1&&(ao(0,"mat-form-field",2),Ad(1,"input",9),Im(),fa()),e&2&&(Sg(),Dm());}function vt(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.unidadesCargadas??"\u2014"," ");}}function Ct(e,o){if(e&1&&(ao(0,"span",3),Ay(1),fa()),e&2){ty();let n=Fy(0);Sg(),Jd(n.convenio.tarifaAplicada);}}function gt(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",4),e&2){let n=ty();xd("motivo",n.motivos.tarifacion);}}function kt(e,o){e&1&&(ao(0,"mat-form-field",2),Ad(1,"input",10),Im(),fa()),e&2&&(Sg(),Dm());}function yt(e,o){if(e&1&&(Ay(0),Wy(1,"currency")),e&2){ty();let n=Fy(0);va$1(" ",Zy(1,1,n.valorAutorizado,"COP","symbol","1.0-0")," ");}}function Et(e,o){e&1&&(ao(0,"mat-form-field",2),Ad(1,"input",11),Im(),fa()),e&2&&(Sg(),Dm());}function St(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.unidadesAutorizadas??"\u2014"," ");}}function Mt(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",4),e&2){let n=ty();xd("motivo",n.motivos.calculado);}}function Dt(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",4),e&2){let n=ty();xd("motivo",n.motivos.calculado);}}function It(e,o){e&1&&(ao(0,"mat-form-field",2),Ad(1,"input",12),Im(),fa()),e&2&&(Sg(),Dm());}function Lt(e,o){if(e&1&&(Ay(0),Wy(1,"currency")),e&2){ty();let n=Fy(0);va$1(" ",Zy(1,1,n.valorGlosado,"COP","symbol","1.0-0")," ");}}function Ft(e,o){if(e&1&&(ao(0,"div",6)(1,"mat-form-field",13)(2,"mat-label"),Ay(3,"Observaciones de glosa"),fa(),Ad(4,"textarea",14),Im(),ao(5,"mat-hint",15),Ay(6),fa()(),ao(7,"div",16)(8,"mat-checkbox",17),Ay(9," Conservar beneficios "),fa(),Im(),ao(10,"mat-checkbox",18),Ay(11," Conservar tarifaci\xF3n "),fa(),Im(),fa()()),e&2){let n=ty();Sg(4),Dm(),Sg(2),va$1(" ",n.form().controls.observacionesGlosa.value?.length??0,"/1000 "),Sg(2),Dm(),Sg(2),Dm();}}function Tt(e,o){if(e&1&&(ao(0,"p",7)(1,"strong"),Ay(2,"Observaciones de glosa:"),fa(),Ay(3),fa()),e&2){ty();let n=Fy(0);Sg(3),va$1(" ",n.observacionesGlosa," ");}}var fe=class e{detalle=cS.required();form=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-valores"]],inputs:{detalle:[1,"detalle"],form:[1,"form"],esEdicion:[1,"esEdicion"]},decls:60,vars:33,consts:[[1,"cuerpo",3,"formGroup"],[1,"sura-tabla-detalle","sura-tabla-detalle--importes"],["appearance","outline","subscriptSizing","dynamic",1,"sura-campo-en-sitio","sura-campo-en-sitio--numero"],[1,"sura-dato-secundario"],[3,"motivo"],[1,"fila-glosa"],[1,"campos-apilados"],[1,"observacion"],["matInput","","type","number","min","0","formControlName","valorCargado","aria-label","Valor cargado"],["matInput","","type","number","min","0","formControlName","unidadesCargadas","placeholder","OHI lo exige","aria-label","Unidades cargadas"],["matInput","","type","number","min","0","formControlName","valorAutorizado","aria-label","Valor autorizado"],["matInput","","type","number","min","0","formControlName","unidadesAutorizadas","aria-label","Unidades autorizadas"],["matInput","","type","number","min","0","formControlName","valorGlosado","aria-label","Valor glosado"],["appearance","outline",1,"form-field--ancho"],["matInput","","rows","3","maxlength","1000","formControlName","observacionesGlosa","placeholder","Texto libre que acompa\xF1a a la glosa"],["align","end"],[1,"checkboxes"],["formControlName","conservarBeneficios"],["formControlName","conservarTarifacion"]],template:function(n,c){if(n&1&&(nf(0),ao(1,"div",0)(2,"table",1)(3,"thead")(4,"tr")(5,"th"),Ay(6,"Concepto"),fa(),ao(7,"th"),Ay(8,"Valor"),fa(),ao(9,"th"),Ay(10,"Cantidad"),fa()()(),ao(11,"tbody")(12,"tr")(13,"td"),Ay(14,"Cargado"),fa(),ao(15,"td"),Lv(16,ft,2,0,"mat-form-field",2)(17,xt,2,6),fa(),ao(18,"td"),Lv(19,ht,2,0,"mat-form-field",2)(20,vt,1,1),fa()(),ao(21,"tr")(22,"td"),Ay(23," Convenido "),Lv(24,Ct,2,1,"span",3),fa(),ao(25,"td"),Ay(26),Wy(27,"currency"),Lv(28,gt,1,1,"sura-campo-bloqueado",4),fa(),ao(29,"td"),Ay(30,"\u2014"),fa()(),ao(31,"tr")(32,"td"),Ay(33,"Autorizado"),fa(),ao(34,"td"),Lv(35,kt,2,0,"mat-form-field",2)(36,yt,2,6),fa(),ao(37,"td"),Lv(38,Et,2,0,"mat-form-field",2)(39,St,1,1),fa()(),ao(40,"tr")(41,"td"),Ay(42,"Cubierto"),fa(),ao(43,"td"),Ay(44),Wy(45,"currency"),Lv(46,Mt,1,1,"sura-campo-bloqueado",4),fa(),ao(47,"td"),Ay(48),Lv(49,Dt,1,1,"sura-campo-bloqueado",4),fa()(),ao(50,"tr",5)(51,"td"),Ay(52,"Glosado"),fa(),ao(53,"td"),Lv(54,It,2,0,"mat-form-field",2)(55,Lt,2,6),fa(),ao(56,"td"),Ay(57,"\u2014"),fa()()()(),Lv(58,Ft,12,1,"div",6)(59,Tt,4,1,"p",7),fa()),n&2){let d=Py(c.detalle()),u=c.esEdicion();Sg(),xd("formGroup",c.form()),Sg(),Wd("sura-tabla-detalle--editable",u),Sg(14),Pv(u?16:17),Sg(3),Pv(u?19:20),Sg(5),Pv(d.convenio.tarifaAplicada?24:-1),Sg(),Wd("sura-bloqueado",u),Sg(),va$1(" ",Zy(27,23,d.convenio.valorConvenido,"COP","symbol","1.0-0")," "),Sg(2),Pv(u?28:-1),Sg(7),Pv(u?35:36),Sg(3),Pv(u?38:39),Sg(5),Wd("sura-bloqueado",u),Sg(),va$1(" ",Zy(45,28,d.valorCubierto,"COP","symbol","1.0-0")," "),Sg(2),Pv(u?46:-1),Sg(),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.unidadesCubiertas??"\u2014"," "),Sg(),Pv(u?49:-1),Sg(5),Pv(u?54:55),Sg(4),Pv(u?58:d.observacionesGlosa?59:-1);}},dependencies:[Aa,ni$1,Xr,va,_a,Rr,Vr,ro,no,I$1,an,Le,ze,We,$e,Zn,Oe,R,kt$1],styles:["[_nghost-%COMP%], .cuerpo[_ngcontent-%COMP%]{display:contents}.fila-glosa[_ngcontent-%COMP%]   td[_ngcontent-%COMP%]{color:var(--sura-error)}.campos-apilados[_ngcontent-%COMP%]{display:flex;flex-direction:column;gap:var(--sura-espacio-3);margin-top:var(--sura-espacio-4)}.checkboxes[_ngcontent-%COMP%]{display:flex;flex-direction:column;gap:var(--sura-espacio-2)}.form-field--ancho[_ngcontent-%COMP%]{width:100%}.observacion[_ngcontent-%COMP%]{margin:0 0 var(--sura-espacio-4);padding:var(--sura-espacio-2) var(--sura-espacio-3);background:var(--sura-alerta-fondo);border-left:3px solid var(--sura-alerta);font-size:var(--sura-texto-base)}"]})};var Pt=(e,o)=>o.identificador;function Nt(e,o){if(e&1&&(ao(0,"p",0)(1,"mat-icon",2),Ay(2,"lock"),fa(),Ay(3),fa()),e&2){let n=ty();Sg(3),va$1(" Las glosas se a\xF1aden y se quitan por filas: ",n.motivos.lista," El importe total s\xED se edita, en \xABValores y cantidades\xBB. ");}}function Ot(e,o){if(e&1&&Ay(0),e&2){let n=ty().$implicit;va$1(" \xB7 ",n.especifico," ");}}function Vt(e,o){if(e&1&&(ao(0,"p",5),Ay(1),fa()),e&2){let n=ty().$implicit;Sg(),Jd(n.texto);}}function wt(e,o){if(e&1&&(ao(0,"span",6),Ay(1),fa()),e&2){let n=ty().$implicit;Sg(),va$1("Nota cr\xE9dito: ",n.codigoNotaCredito);}}function At(e,o){if(e&1&&(ao(0,"li")(1,"div",3)(2,"strong"),Ay(3),fa(),Lv(4,Ot,1,1),ao(5,"span",4),Ay(6),Wy(7,"currency"),fa()(),Lv(8,Vt,2,1,"p",5),Lv(9,wt,2,1,"span",6),fa()),e&2){let n=o.$implicit;Sg(3),Jd(n.generico),Sg(),Pv(n.especifico?4:-1),Sg(2),Jd(Zy(7,5,n.valor,"COP","symbol","1.0-0")),Sg(2),Pv(n.texto?8:-1),Sg(),Pv(n.codigoNotaCredito?9:-1);}}var xe=class e{detalle=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-glosa"]],inputs:{detalle:[1,"detalle"],esEdicion:[1,"esEdicion"]},decls:4,vars:1,consts:[["role","note",1,"sura-nota"],[1,"glosas"],["aria-hidden","true"],[1,"glosa-cabecera"],[1,"glosa-valor"],[1,"glosa-texto"],[1,"sura-dato-secundario"]],template:function(n,c){n&1&&(Lv(0,Nt,4,1,"p",0),ao(1,"ul",1),Vv(2,At,10,10,"li",null,Pt),fa()),n&2&&(Pv(c.esEdicion()?0:-1),Sg(2),Hv(c.detalle().glosas));},dependencies:[sd,ad,kt$1],styles:["[_nghost-%COMP%]{display:contents}.sura-nota[_ngcontent-%COMP%]{margin:0 0 var(--sura-espacio-3)}.glosas[_ngcontent-%COMP%]{list-style:none;margin:0;padding:0}.glosas[_ngcontent-%COMP%]   li[_ngcontent-%COMP%]{padding:var(--sura-espacio-2) var(--sura-espacio-3);border-left:3px solid var(--sura-error);background:var(--sura-error-fondo);margin-bottom:var(--sura-espacio-2)}.glosa-cabecera[_ngcontent-%COMP%]{display:flex;align-items:baseline;gap:var(--sura-espacio-2)}.glosa-valor[_ngcontent-%COMP%]{margin-left:auto;font-variant-numeric:tabular-nums;font-weight:600}.glosa-texto[_ngcontent-%COMP%]{margin:var(--sura-espacio-1) 0 0;font-size:var(--sura-texto-sm);color:var(--sura-texto-suave)}"]})};var qt=(e,o)=>o.secuencia;function zt(e,o){if(e&1&&(ao(0,"p",0)(1,"mat-icon",2),Ay(2,"lock"),fa(),Ay(3),fa()),e&2){let n=ty();Sg(3),va$1(" ",n.motivos.lista," ");}}function Gt(e,o){if(e&1&&(ao(0,"span",3),Ay(1),fa()),e&2){let n=ty().$implicit;Sg(),Jd(n.descripcion);}}function Rt(e,o){if(e&1&&(ao(0,"tr")(1,"td"),Ay(2),fa(),ao(3,"td"),Ay(4),fa(),ao(5,"td"),Ay(6),Lv(7,Gt,2,1,"span",3),fa()()),e&2){let n=o.$implicit;Sg(2),Jd(n.secuencia),Sg(2),Jd(n.descripcionTipo??n.tipo??"\u2014"),Sg(2),va$1(" ",n.codigo," "),Sg(),Pv(n.descripcion?7:-1);}}var he=class e{detalle=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-diagnosticos"]],inputs:{detalle:[1,"detalle"],esEdicion:[1,"esEdicion"]},decls:13,vars:1,consts:[["role","note",1,"sura-nota"],[1,"sura-tabla-detalle","sura-tabla-detalle--diagnosticos"],["aria-hidden","true"],[1,"sura-dato-secundario"]],template:function(n,c){n&1&&(Lv(0,zt,4,1,"p",0),ao(1,"table",1)(2,"thead")(3,"tr")(4,"th"),Ay(5,"Secuencia"),fa(),ao(6,"th"),Ay(7,"Tipo"),fa(),ao(8,"th"),Ay(9,"Diagn\xF3stico"),fa()()(),ao(10,"tbody"),Vv(11,Rt,8,4,"tr",null,qt),fa()()),n&2&&(Pv(c.esEdicion()?0:-1),Sg(11),Hv(c.detalle().diagnosticos));},dependencies:[sd,ad],styles:["[_nghost-%COMP%]{display:contents}.sura-nota[_ngcontent-%COMP%]{margin:0 0 var(--sura-espacio-3)}"]})};var Bt=(e,o)=>o.id;function Ut(e,o){if(e&1&&(pa(0,"li")(1,"strong"),Ay(2),ha(),Ay(3),ha()),e&2){let n=o.$implicit;Wd("bloqueante",n.severidad==="BLOQUEANTE"),Sg(2),Jd(n.codigo),Sg(),va$1(" \u2014 ",n.descripcion," ");}}var ve=class e{detalle=cS.required();static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-novedades"]],inputs:{detalle:[1,"detalle"]},decls:3,vars:0,consts:[[1,"novedades"],[3,"bloqueante"]],template:function(n,c){n&1&&(pa(0,"ul",0),Vv(1,Ut,4,4,"li",1,Bt),ha()),n&2&&(Sg(),Hv(c.detalle().novedades));},styles:["[_nghost-%COMP%]{display:contents}.novedades[_ngcontent-%COMP%]{list-style:none;margin:0;padding:0}.novedades[_ngcontent-%COMP%]   li[_ngcontent-%COMP%]{padding:var(--sura-espacio-2) var(--sura-espacio-3);border-left:4px solid var(--sura-gris-400);background:var(--sura-gris-100);border-radius:0 var(--sura-radio-8) var(--sura-radio-8) 0;margin-bottom:var(--sura-espacio-2);font-size:var(--sura-texto-base)}.novedades[_ngcontent-%COMP%]   li[_ngcontent-%COMP%]   strong[_ngcontent-%COMP%]{color:var(--sura-azul-institucional)}.novedades[_ngcontent-%COMP%]   li.bloqueante[_ngcontent-%COMP%]{border-left-color:var(--sura-error);background:var(--sura-error-fondo)}.novedades[_ngcontent-%COMP%]   li.bloqueante[_ngcontent-%COMP%]   strong[_ngcontent-%COMP%]{color:var(--sura-error)}"]})};var $t=(e,o)=>o.identificador;function jt(e,o){if(e&1&&Ay(0),e&2){let n=ty().$implicit;va$1(" \u2014 ",n.descripcion," ");}}function Ht(e,o){e&1&&(pa(0,"span",2),Ay(1,"resuelto"),ha());}function Qt(e,o){if(e&1&&(pa(0,"li")(1,"strong"),Ay(2),ha(),Lv(3,jt,1,1),Lv(4,Ht,2,0,"span",2),ha()),e&2){let n=o.$implicit;Wd("resuelto",n.resuelto),Sg(2),Jd(n.codigo),Sg(),Pv(n.descripcion?3:-1),Sg(),Pv(n.resuelto?4:-1);}}var Ce=class e{detalle=cS.required();static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-pendientes"]],inputs:{detalle:[1,"detalle"]},decls:3,vars:0,consts:[[1,"pendientes"],[3,"resuelto"],[1,"marca-resuelto"]],template:function(n,c){n&1&&(pa(0,"ul",0),Vv(1,Qt,5,5,"li",1,$t),ha()),n&2&&(Sg(),Hv(c.detalle().pendientes));},styles:["[_nghost-%COMP%]{display:contents}.pendientes[_ngcontent-%COMP%]{list-style:none;margin:0;padding:0}.pendientes[_ngcontent-%COMP%]   li[_ngcontent-%COMP%]{padding:var(--sura-espacio-2) var(--sura-espacio-3);border-left:3px solid var(--sura-alerta);background:var(--sura-alerta-fondo);margin-bottom:var(--sura-espacio-1)}.pendientes[_ngcontent-%COMP%]   li.resuelto[_ngcontent-%COMP%]{border-left-color:var(--sura-exito);opacity:.7}.pendientes[_ngcontent-%COMP%]   .marca-resuelto[_ngcontent-%COMP%]{margin-left:var(--sura-espacio-2);font-size:var(--sura-texto-sm);color:var(--sura-exito)}"]})};function Xt(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",1),e&2){let n=ty();xd("motivo",n.motivos.derivado);}}function Zt(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",1),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function Kt(e,o){e&1&&(ao(0,"div")(1,"dt"),Ay(2,"C\xF3digo no definido"),fa(),ao(3,"dd")(4,"mat-form-field",2),Ad(5,"input",3),Im(),fa()()(),ao(6,"div")(7,"dt"),Ay(8,"Definici\xF3n del c\xF3digo"),fa(),ao(9,"dd")(10,"mat-form-field",2),Ad(11,"input",4),Im(),fa()()(),ao(12,"div",5)(13,"dt"),Ay(14,"Descripci\xF3n prestaci\xF3n RIPS"),fa(),ao(15,"dd")(16,"mat-form-field",2),Ad(17,"input",6),Im(),fa()()()),e&2&&(Sg(5),Dm(),Sg(6),Dm(),Sg(6),Dm());}function Yt(e,o){if(e&1&&(ao(0,"span",7),Ay(1),fa()),e&2){ty(2);let n=Fy(0);Sg(),Jd(n.prestacion.codigoNoDefinidoDef);}}function Jt(e,o){if(e&1&&(ao(0,"div")(1,"dt"),Ay(2,"C\xF3digo no definido"),fa(),ao(3,"dd"),Ay(4),Lv(5,Yt,2,1,"span",7),fa()(),ao(6,"div")(7,"dt"),Ay(8,"Descripci\xF3n prestaci\xF3n RIPS"),fa(),ao(9,"dd"),Ay(10),fa()()),e&2){ty();let n=Fy(0);Sg(4),va$1(" ",n.prestacion.codigoNoDefinido??"\u2014"," "),Sg(),Pv(n.prestacion.codigoNoDefinidoDef?5:-1),Sg(5),Jd(n.prestacion.descripcionRips??"\u2014");}}var ge=class e{detalle=cS.required();form=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-prestacion"]],inputs:{detalle:[1,"detalle"],form:[1,"form"],esEdicion:[1,"esEdicion"]},decls:16,vars:13,consts:[[1,"sura-ficha-datos",3,"formGroup"],[3,"motivo"],["appearance","outline","subscriptSizing","dynamic",1,"sura-campo-en-sitio"],["matInput","","formControlName","codigoNoDefinido","maxlength","30","aria-label","C\xF3digo no definido"],["matInput","","formControlName","codigoNoDefinidoDef","maxlength","30","aria-label","Definici\xF3n del c\xF3digo no definido"],[1,"sura-celda-ancha"],["matInput","","formControlName","descripcionRips","maxlength","100","aria-label","Descripci\xF3n de la prestaci\xF3n en el RIPS"],[1,"sura-dato-secundario"]],template:function(n,c){if(n&1&&(nf(0),ao(1,"dl",0)(2,"div")(3,"dt"),Ay(4,"Descripci\xF3n"),fa(),ao(5,"dd"),Ay(6),Lv(7,Xt,1,1,"sura-campo-bloqueado",1),fa()(),ao(8,"div")(9,"dt"),Ay(10,"Especialidad"),fa(),ao(11,"dd"),Ay(12),Lv(13,Zt,1,1,"sura-campo-bloqueado",1),fa()(),Lv(14,Kt,18,0)(15,Jt,11,3),fa()),n&2){let d=Py(c.detalle()),u=c.esEdicion();Sg(),Wd("sura-ficha-datos--edicion",u),xd("formGroup",c.form()),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.prestacion.descripcion??"\u2014"," "),Sg(),Pv(u?7:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.prestacion.especialidad??"\u2014"," "),Sg(),Pv(u?13:-1),Sg(),Pv(u?14:15);}},dependencies:[Aa,ni$1,va,_a,Rr,ro,no,I$1,an,We,$e,R],styles:["[_nghost-%COMP%]{display:contents}"]})};function Wt(e,o){e&1&&(ao(0,"mat-form-field",1),Ad(1,"input",3),Im(),fa()),e&2&&(Sg(),Dm());}function ei(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.convenio.numeroContrato??"\u2014"," ");}}function ni(e,o){e&1&&(ao(0,"mat-form-field",1),Ad(1,"input",4),Im(),fa()),e&2&&(Sg(),Dm());}function ti(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.convenio.codigoUnicoContratoSiifa??"\u2014"," ");}}function ii(e,o){e&1&&(ao(0,"mat-form-field",1),Ad(1,"input",5),Im(),fa()),e&2&&(Sg(),Dm());}function oi(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.convenio.homologoCups??"\u2014"," ");}}function ai(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function ri(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function ci(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function di(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}var ke=class e{detalle=cS.required();form=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-convenio"]],inputs:{detalle:[1,"detalle"],form:[1,"form"],esEdicion:[1,"esEdicion"]},decls:44,vars:23,consts:[[1,"sura-ficha-datos",3,"formGroup"],["appearance","outline","subscriptSizing","dynamic",1,"sura-campo-en-sitio"],[3,"motivo"],["matInput","","formControlName","numeroContrato","maxlength","30","aria-label","N\xFAmero de contrato"],["matInput","","formControlName","codigoUnicoContratoSiifa","maxlength","300","aria-label","C\xF3digo \xFAnico de contrato SIIFA"],["matInput","","formControlName","homologoCups","maxlength","30","aria-label","Hom\xF3logo CUPS"]],template:function(n,c){if(n&1&&(nf(0),ao(1,"dl",0)(2,"div")(3,"dt"),Ay(4,"N\xFAmero de contrato"),fa(),ao(5,"dd"),Lv(6,Wt,2,0,"mat-form-field",1)(7,ei,1,1),fa()(),ao(8,"div")(9,"dt"),Ay(10,"C\xF3digo \xFAnico contrato SIIFA"),fa(),ao(11,"dd"),Lv(12,ni,2,0,"mat-form-field",1)(13,ti,1,1),fa()(),ao(14,"div")(15,"dt"),Ay(16,"Hom\xF3logo CUPS"),fa(),ao(17,"dd"),Lv(18,ii,2,0,"mat-form-field",1)(19,oi,1,1),fa()(),ao(20,"div")(21,"dt"),Ay(22,"Tarifario ISS 2001"),fa(),ao(23,"dd"),Ay(24),Lv(25,ai,1,1,"sura-campo-bloqueado",2),fa()(),ao(26,"div")(27,"dt"),Ay(28,"Tarifario ISS 2000"),fa(),ao(29,"dd"),Ay(30),Lv(31,ri,1,1,"sura-campo-bloqueado",2),fa()(),ao(32,"div")(33,"dt"),Ay(34,"Tarifario SOAT"),fa(),ao(35,"dd"),Ay(36),Lv(37,ci,1,1,"sura-campo-bloqueado",2),fa()(),ao(38,"div")(39,"dt"),Ay(40,"M\xFAltiples CUPS hom\xF3logos"),fa(),ao(41,"dd"),Ay(42),Lv(43,di,1,1,"sura-campo-bloqueado",2),fa()()()),n&2){let d=Py(c.detalle()),u=c.esEdicion();Sg(),Wd("sura-ficha-datos--edicion",u),xd("formGroup",c.form()),Sg(5),Pv(u?6:7),Sg(6),Pv(u?12:13),Sg(6),Pv(u?18:19),Sg(5),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.convenio.codigoTarifarioIss2001??"\u2014"," "),Sg(),Pv(u?25:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.convenio.codigoTarifarioIss2000??"\u2014"," "),Sg(),Pv(u?31:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.convenio.codigoTarifarioSoat??"\u2014"," "),Sg(),Pv(u?37:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.convenio.multiplesCupsHomologos??"\u2014"," "),Sg(),Pv(u?43:-1);}},dependencies:[Aa,ni$1,va,_a,Rr,ro,no,I$1,an,We,$e,R],styles:["[_nghost-%COMP%]{display:contents}"]})};function li(e,o){e&1&&(ao(0,"mat-form-field",1),Ad(1,"input",3),Im(),fa()),e&2&&(Sg(),Dm());}function si(e,o){if(e&1&&Ay(0),e&2){ty();let n=Fy(0);va$1(" ",n.otrosDatos.codigoSiniestro??"\u2014"," ");}}function mi(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function ui(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.catalogo);}}function pi(e,o){if(e&1&&Ad(0,"sura-campo-bloqueado",2),e&2){let n=ty();xd("motivo",n.motivos.derivado);}}var ye=class e{detalle=cS.required();form=cS.required();esEdicion=cS.required();motivos=F;static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-seccion-otros"]],inputs:{detalle:[1,"detalle"],form:[1,"form"],esEdicion:[1,"esEdicion"]},decls:26,vars:17,consts:[[1,"sura-ficha-datos",3,"formGroup"],["appearance","outline","subscriptSizing","dynamic",1,"sura-campo-en-sitio"],[3,"motivo"],["matInput","","formControlName","codigoSiniestro","maxlength","20","aria-label","C\xF3digo de siniestro"]],template:function(n,c){if(n&1&&(nf(0),ao(1,"dl",0)(2,"div")(3,"dt"),Ay(4,"C\xF3digo de siniestro"),fa(),ao(5,"dd"),Lv(6,li,2,0,"mat-form-field",1)(7,si,1,1),fa()(),ao(8,"div")(9,"dt"),Ay(10,"Tipo de sala"),fa(),ao(11,"dd"),Ay(12),Lv(13,mi,1,1,"sura-campo-bloqueado",2),fa()(),ao(14,"div")(15,"dt"),Ay(16,"V\xEDa de acceso"),fa(),ao(17,"dd"),Ay(18),Lv(19,ui,1,1,"sura-campo-bloqueado",2),fa()(),ao(20,"div")(21,"dt"),Ay(22,"UEN"),fa(),ao(23,"dd"),Ay(24),Lv(25,pi,1,1,"sura-campo-bloqueado",2),fa()()()),n&2){let d=Py(c.detalle()),u=c.esEdicion();Sg(),Wd("sura-ficha-datos--edicion",u),xd("formGroup",c.form()),Sg(5),Pv(u?6:7),Sg(5),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.otrosDatos.tipoSala??"\u2014"," "),Sg(),Pv(u?13:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.otrosDatos.viaDeAcceso??"\u2014"," "),Sg(),Pv(u?19:-1),Sg(4),Wd("sura-bloqueado",u),Sg(),va$1(" ",d.otrosDatos.unidadEstrategicaNegocio??"\u2014"," "),Sg(),Pv(u?25:-1);}},dependencies:[Aa,ni$1,va,_a,Rr,ro,no,I$1,an,We,$e,R],styles:["[_nghost-%COMP%]{display:contents}"]})};function bi(e,o){if(e&1){let n=Wv();ao(0,"button",10),Fd("click",function(){Mc(n);let d=ty(2);return Nc(d.volverALectura())}),ao(1,"mat-icon"),Ay(2,"visibility"),fa(),Ay(3," Solo consultar "),fa();}if(e&2){let n=ty(2);xd("disabled",n.ocupado());}}function _i(e,o){if(e&1){let n=Wv();ao(0,"button",11),Fd("click",function(){Mc(n);let d=ty(2);return Nc(d.irAEdicion())}),ao(1,"mat-icon"),Ay(2,"edit"),fa(),Ay(3," Editar l\xEDnea "),fa();}}function fi(e,o){if(e&1&&(ao(0,"span",5),Ay(1),fa(),ao(2,"span",6)(3,"mat-icon",7),Ay(4),fa(),Ay(5),fa(),Lv(6,bi,4,1,"button",8)(7,_i,4,0,"button",9)),e&2){let n=o,c=ty();Sg(),Xd(" L\xEDnea #",n.numeroLinea," \xB7 ref. ",n.referencia," "),Sg(),Wd("modo--edicion",c.esEdicion()),Sg(2),Jd(c.esEdicion()?"edit":"visibility"),Sg(),va$1(" ",c.esEdicion()?"Edici\xF3n":"Consulta"," "),Sg(),Pv(c.esEdicion()?6:n.editable?7:-1);}}function xi(e,o){e&1&&(ao(0,"div",3),Ad(1,"mat-spinner",12),ao(2,"p"),Ay(3,"Cargando la l\xEDnea\u2026"),fa()());}function hi(e,o){if(e&1&&(ao(0,"div",4)(1,"mat-icon"),Ay(2,"error_outline"),fa(),ao(3,"span"),Ay(4),fa()()),e&2){let n=ty();Sg(4),Jd(n.errorComando());}}function vi(e,o){if(e&1&&(ao(0,"span",13),Ay(1),fa()),e&2){let n=ty();Sg(),Jd(n.descripcionProcedimiento);}}function Ci(e,o){e&1&&(ao(0,"p",14)(1,"mat-icon",7),Ay(2,"lock_person"),fa(),ao(3,"span"),Ay(4," Los campos marcados con un candado no se editan desde aqu\xED: pasa el cursor por el candado para ver por qu\xE9. Los datos del afiliado son uno de ellos, porque la cuenta pertenece a un lesionado y cambiarlos equivaldr\xEDa a readjudicar la l\xEDnea bajo otra p\xF3liza. Al guardar, vaciar un texto lo borra en OHI; vaciar una fecha la deja como est\xE1. "),fa()());}function gi(e,o){if(e&1){let n=Wv();ao(0,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty(2);return Nc(d.panelGlosa.set(true))})("closed",function(){Mc(n);let d=ty(2);return Nc(d.panelGlosa.set(false))}),ao(1,"mat-expansion-panel-header",19)(2,"mat-panel-title")(3,"mat-icon",7),Ay(4,"receipt_long"),fa(),Ay(5," Detalle de la glosa "),ao(6,"span",23),Ay(7),fa()(),ao(8,"mat-panel-description"),Ay(9),Wy(10,"currency"),fa()(),Ad(11,"sura-seccion-glosa",24),fa();}if(e&2){let n=ty(),c=ty();xd("expanded",c.panelGlosa()),Sg(7),Jd(n.glosas.length),Sg(2),va$1(" ",Zy(10,5,n.valorGlosado,"COP","symbol","1.0-0")," "),Sg(2),xd("detalle",n)("esEdicion",c.esEdicion());}}function ki(e,o){if(e&1){let n=Wv();ao(0,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty(2);return Nc(d.panelDiagnosticos.set(true))})("closed",function(){Mc(n);let d=ty(2);return Nc(d.panelDiagnosticos.set(false))}),ao(1,"mat-expansion-panel-header",19)(2,"mat-panel-title")(3,"mat-icon",7),Ay(4,"coronavirus"),fa(),Ay(5," Diagn\xF3sticos "),ao(6,"span",23),Ay(7),fa()(),ao(8,"mat-panel-description"),Ay(9),fa()(),Ad(10,"sura-seccion-diagnosticos",24),fa();}if(e&2){let n=ty(),c=ty();xd("expanded",c.panelDiagnosticos()),Sg(7),Jd(n.diagnosticos.length),Sg(2),Jd(c.resumenDiagnosticos(n)),Sg(),xd("detalle",n)("esEdicion",c.esEdicion());}}function yi(e,o){if(e&1){let n=Wv();ao(0,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty(2);return Nc(d.panelNovedades.set(true))})("closed",function(){Mc(n);let d=ty(2);return Nc(d.panelNovedades.set(false))}),ao(1,"mat-expansion-panel-header",19)(2,"mat-panel-title")(3,"mat-icon",7),Ay(4,"campaign"),fa(),Ay(5," Novedades "),ao(6,"span",23),Ay(7),fa()(),ao(8,"mat-panel-description"),Ay(9),fa()(),Ad(10,"sura-seccion-novedades",25),fa();}if(e&2){let n=ty(),c=ty();xd("expanded",c.panelNovedades()),Sg(7),Jd(n.novedades.length),Sg(2),Jd(c.resumenNovedades(n)),Sg(),xd("detalle",n);}}function Ei(e,o){if(e&1){let n=Wv();ao(0,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty(2);return Nc(d.panelPendientes.set(true))})("closed",function(){Mc(n);let d=ty(2);return Nc(d.panelPendientes.set(false))}),ao(1,"mat-expansion-panel-header",19)(2,"mat-panel-title")(3,"mat-icon",7),Ay(4,"pending_actions"),fa(),Ay(5," Motivos pendientes "),ao(6,"span",23),Ay(7),fa()(),ao(8,"mat-panel-description"),Ay(9),fa()(),Ad(10,"sura-seccion-pendientes",25),fa();}if(e&2){let n=ty(),c=ty();xd("expanded",c.panelPendientes()),Sg(7),Jd(n.pendientes.length),Sg(2),Jd(c.resumenPendientes(n)),Sg(),xd("detalle",n);}}function Si(e,o){e&1&&Ay(0," Esta l\xEDnea est\xE1 bloqueada ");}function Mi(e,o){e&1&&Ay(0," Esta l\xEDnea fue reemplazada ");}function Di(e,o){e&1&&Ay(0," Esta l\xEDnea no es editable ");}function Ii(e,o){e&1&&Ay(0," Se pidi\xF3 abrirla en edici\xF3n y se abri\xF3 en consulta. ");}function Li(e,o){if(e&1&&(ao(0,"div",21)(1,"mat-icon"),Ay(2,"lock"),fa(),ao(3,"span"),Lv(4,Si,1,0)(5,Mi,1,0)(6,Di,1,0),Ay(7," : solo puede consultarla y pasar a la siguiente. "),Lv(8,Ii,1,0),fa()()),e&2){let n=ty(),c=ty();Sg(4),Pv(n.bloqueada?4:n.reemplazada?5:6),Sg(4),Pv(c.edicionDenegada()?8:-1);}}function Fi(e,o){e&1&&(ao(0,"mat-error"),Ay(1,"El modo de rec\xE1lculo es obligatorio"),fa());}function Ti(e,o){e&1&&Ad(0,"mat-spinner",36);}function Pi(e,o){if(e&1&&(ao(0,"mat-icon"),Ay(1),fa()),e&2){let n=ty(4);Sg(),Jd(n.iconoAvance());}}function Ni(e,o){if(e&1){let n=Wv();ao(0,"button",34),Fd("click",function(){Mc(n);let d=ty(3);return Nc(d.guardar())}),Ay(1," Guardar "),fa(),ao(2,"button",35),Lv(3,Ti,1,0,"mat-spinner",36)(4,Pi,2,1,"mat-icon"),ao(5,"span",37),Ay(6),fa()();}if(e&2){let n=ty(3);xd("disabled",n.ocupado()||n.form.invalid),Sg(2),xd("disabled",n.ocupado()||n.form.invalid)("matTooltip",n.esUltima()?"Guarda y regresa a la cuenta: es la \xFAltima l\xEDnea":"Guarda esta l\xEDnea y, solo si el guardado es exitoso, abre la siguiente"),Sg(),Pv(n.avanzando()?3:4),Sg(3),Jd(n.etiquetaAvance());}}function Oi(e,o){e&1&&(ao(0,"mat-icon"),Ay(1,"arrow_forward"),fa());}function Vi(e,o){if(e&1){let n=Wv();ao(0,"button",38),Fd("click",function(){Mc(n);let d=ty(3);return Nc(d.siguienteSinGuardar())}),Lv(1,Oi,2,0,"mat-icon"),ao(2,"span",37),Ay(3),fa()();}if(e&2){let n=ty(3);xd("disabled",n.ocupado()),Sg(),Pv(n.esUltima()?-1:1),Sg(2),Jd(n.etiquetaSinGuardar());}}function wi(e,o){e&1&&(ao(0,"p",33),Ay(1," Esperando la confirmaci\xF3n del servicio. La siguiente l\xEDnea no se abrir\xE1 hasta que el cambio quede guardado. "),fa());}function Ai(e,o){if(e&1){let n=Wv();ao(0,"div",26)(1,"mat-form-field",27)(2,"mat-label"),Ay(3,"Modo de rec\xE1lculo"),fa(),ao(4,"mat-select",28)(5,"mat-option",29),Ay(6,"En Cascada"),fa(),ao(7,"mat-option",30),Ay(8,"Aislado"),fa()(),Im(),Lv(9,Fi,2,0,"mat-error"),fa()(),ao(10,"div",22)(11,"button",31),Fd("click",function(){Mc(n);let d=ty(2);return Nc(d.volverACuenta())}),Ay(12," Cancelar "),fa(),Lv(13,Ni,7,5)(14,Vi,4,3,"button",32),fa(),Lv(15,wi,2,0,"p",33);}if(e&2){let n=ty(),c=ty();Sg(4),Dm(),Sg(5),Pv(c.form.controls.modoRecalculo.hasError("required")?9:-1),Sg(2),xd("disabled",c.ocupado()),Sg(2),Pv(n.editable?13:14),Sg(2),Pv(c.avanzando()?15:-1);}}function qi(e,o){e&1&&(ao(0,"mat-icon"),Ay(1,"arrow_forward"),fa());}function zi(e,o){if(e&1){let n=Wv();ao(0,"div",22)(1,"button",39),Fd("click",function(){Mc(n);let d=ty(2);return Nc(d.volverACuenta())}),Ay(2," Volver a la cuenta "),fa(),ao(3,"button",40),Fd("click",function(){Mc(n);let d=ty(2);return Nc(d.siguienteSinGuardar())}),Lv(4,qi,2,0,"mat-icon"),ao(5,"span",37),Ay(6),fa()()();}if(e&2){let n=ty(2);Sg(3),xd("disabled",n.ocupado()),Sg(),Pv(n.esUltima()?-1:4),Sg(2),Jd(n.etiquetaSinGuardar());}}function Gi(e,o){if(e&1){let n=Wv();ao(0,"h2"),Ay(1),Lv(2,vi,2,1,"span",13),fa(),Lv(3,Ci,5,0,"p",14),ao(4,"form",15),Fd("ngSubmit",function(){Mc(n);let d=ty();return Nc(d.guardarYSiguiente())}),Ad(5,"sura-ficha-identidad",16),ao(6,"mat-accordion",17)(7,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty();return Nc(d.panelValores.set(true))})("closed",function(){Mc(n);let d=ty();return Nc(d.panelValores.set(false))}),ao(8,"mat-expansion-panel-header",19)(9,"mat-panel-title")(10,"mat-icon",7),Ay(11,"payments"),fa(),Ay(12," Valores y cantidades "),fa(),ao(13,"mat-panel-description"),Ay(14),fa()(),Ad(15,"sura-seccion-valores",16),fa(),Lv(16,gi,12,10,"mat-expansion-panel",20),Lv(17,ki,11,5,"mat-expansion-panel",20),Lv(18,yi,11,4,"mat-expansion-panel",20),Lv(19,Ei,11,4,"mat-expansion-panel",20),ao(20,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty();return Nc(d.panelPrestacion.set(true))})("closed",function(){Mc(n);let d=ty();return Nc(d.panelPrestacion.set(false))}),ao(21,"mat-expansion-panel-header",19)(22,"mat-panel-title")(23,"mat-icon",7),Ay(24,"medical_services"),fa(),Ay(25," Prestaci\xF3n "),fa(),ao(26,"mat-panel-description"),Ay(27),fa()(),Ad(28,"sura-seccion-prestacion",16),fa(),ao(29,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty();return Nc(d.panelConvenio.set(true))})("closed",function(){Mc(n);let d=ty();return Nc(d.panelConvenio.set(false))}),ao(30,"mat-expansion-panel-header",19)(31,"mat-panel-title")(32,"mat-icon",7),Ay(33,"handshake"),fa(),Ay(34," Datos de convenio "),fa(),ao(35,"mat-panel-description"),Ay(36),fa()(),Ad(37,"sura-seccion-convenio",16),fa(),ao(38,"mat-expansion-panel",18),Fd("opened",function(){Mc(n);let d=ty();return Nc(d.panelOtros.set(true))})("closed",function(){Mc(n);let d=ty();return Nc(d.panelOtros.set(false))}),ao(39,"mat-expansion-panel-header",19)(40,"mat-panel-title")(41,"mat-icon",7),Ay(42,"info"),fa(),Ay(43," Otros datos y siniestro "),fa(),ao(44,"mat-panel-description"),Ay(45),fa()(),Ad(46,"sura-seccion-otros",16),fa()(),Lv(47,Li,9,2,"div",21),Lv(48,Ai,16,4)(49,zi,7,3,"div",22),fa();}if(e&2){let n=o,c=ty();Sg(),Xd(" L\xEDnea #",n.numeroLinea," \u2014 ",n.codigoProcedimiento," "),Sg(),Pv(n.descripcionProcedimiento?2:-1),Sg(),Pv(c.esEdicion()?3:-1),Sg(),xd("formGroup",c.form),Sg(),xd("detalle",n)("form",c.form)("esEdicion",c.esEdicion()),Sg(2),xd("expanded",c.panelValores()),Sg(7),Jd(c.resumenValores(n)),Sg(),xd("detalle",n)("form",c.form)("esEdicion",c.esEdicion()),Sg(),Pv(n.glosas.length>0?16:-1),Sg(),Pv(n.diagnosticos.length>0?17:-1),Sg(),Pv(n.novedades.length>0?18:-1),Sg(),Pv(n.pendientes.length>0?19:-1),Sg(),xd("expanded",c.panelPrestacion()),Sg(7),Jd(c.resumenPrestacion(n)),Sg(),xd("detalle",n)("form",c.form)("esEdicion",c.esEdicion()),Sg(),xd("expanded",c.panelConvenio()),Sg(7),Jd(c.resumenConvenio(n)),Sg(),xd("detalle",n)("form",c.form)("esEdicion",c.esEdicion()),Sg(),xd("expanded",c.panelOtros()),Sg(7),Jd(c.resumenOtros(n)),Sg(),xd("detalle",n)("form",c.form)("esEdicion",c.esEdicion()),Sg(),Pv(n.editable?-1:47),Sg(),Pv(c.esEdicion()?48:49);}}var Kn=class e{codigo=cS.required();referencia=cS.required();modo=cS("lectura");fb=y(Ea);router=y(F$1);route=y(W);snackBar=y(Dn);facade=y(P);auditor="auditor@sura.com.co";panelValores=Ee(true);panelGlosa=Ee(true);panelDiagnosticos=Ee(true);panelNovedades=Ee(true);panelPendientes=Ee(true);panelPrestacion=Ee(false);panelConvenio=Ee(false);panelOtros=Ee(false);resumenValores=Gn;resumenDiagnosticos=Rn;resumenNovedades=Bn;resumenPendientes=Un;resumenPrestacion=jn;resumenConvenio=Hn;resumenOtros=Qn;siguiente=Ee(null);avanzando=Ee(false);detalle=this.facade.detalleLinea;cargando=this.facade.cargandoDetalle;errorComando=this.facade.errorComando;editable=Ye(()=>this.detalle()?.editable??false);modoEfectivo=Ye(()=>zn(this.modo(),this.editable()));esEdicion=Ye(()=>this.modoEfectivo()==="edicion");edicionDenegada=Ye(()=>this.modo()==="edicion"&&!!this.detalle()&&!this.editable());esUltima=Ye(()=>this.siguiente()===null);ocupado=Ye(()=>this.avanzando()||this.cargando());iconoAvance=Ye(()=>this.esUltima()?"done_all":"arrow_forward");etiquetaAvance=Ye(()=>this.avanzando()?"Guardando\u2026":this.esUltima()?"Guardar y finalizar":`Guardar y siguiente (#${this.siguiente()?.numeroLinea})`);etiquetaSinGuardar=Ye(()=>this.esUltima()?"Volver a la cuenta":`Siguiente (#${this.siguiente()?.numeroLinea})`);form=wn(this.fb);constructor(){Fi$1(()=>{let o=this.codigo(),n=Number(this.referencia());Y(()=>{this.cargarLinea(o,n);});}),Fi$1(()=>{let o=this.detalle();this.modoEfectivo(),o&&Y(()=>{this.form.reset(An(o)),this.esEdicion()?this.form.enable():this.form.disable();});});}cargarLinea(o,n){return u(this,null,function*(){this.siguiente.set(null),yield this.facade.consultarDetalle(o,n),this.siguiente.set(yield this.facade.siguienteLinea(o,n));})}guardar(){return u(this,null,function*(){if(!this.puedeGuardar())return;this.avanzando.set(true);let o=yield this.facade.guardar(this.codigo(),Number(this.referencia()),this.solicitudActual(),this.auditor);this.avanzando.set(false),o&&this.snackBar.open("L\xEDnea guardada","Cerrar",{duration:2500});})}guardarYSiguiente(){return u(this,null,function*(){if(!this.puedeGuardar())return;this.avanzando.set(true);let o=yield this.facade.guardarYAvanzar(this.codigo(),Number(this.referencia()),this.solicitudActual(),this.auditor);if(this.avanzando.set(false),!!o.guardado){if(!o.siguiente){this.snackBar.open("Era la \xFAltima l\xEDnea de la cuenta","Cerrar",{duration:3e3}),this.volverACuenta();return}this.irALinea(o.siguiente.referencia);}})}siguienteSinGuardar(){let o=this.siguiente();if(!o){this.volverACuenta();return}this.irALinea(o.referencia);}volverACuenta(){this.router.navigate(["lineas"],{relativeTo:this.rutaDeLaCuenta()});}puedeGuardar(){return !this.esEdicion()||this.ocupado()||!this.editable()?false:this.form.invalid?(this.form.markAllAsTouched(),false):true}solicitudActual(){return qn(this.form.getRawValue())}irALinea(o){let n=this.modo()==="edicion"?["lineas",o,"editar"]:["lineas",o];this.router.navigate(n,{relativeTo:this.rutaDeLaCuenta()});}irAEdicion(){this.router.navigate(["lineas",Number(this.referencia()),"editar"],{relativeTo:this.rutaDeLaCuenta()});}volverALectura(){this.router.navigate(["lineas",Number(this.referencia())],{relativeTo:this.rutaDeLaCuenta()});}rutaDeLaCuenta(){return this.route.parent??this.route}static \u0275fac=function(n){return new(n||e)};static \u0275cmp=lv({type:e,selectors:[["sura-linea-edicion"]],inputs:{codigo:[1,"codigo"],referencia:[1,"referencia"],modo:[1,"modo"]},decls:10,vars:5,consts:[[1,"edicion-container"],[1,"barra-superior"],["mat-button","","type","button","id","btn-volver-cuenta",1,"volver",3,"click"],["role","status",1,"cargando"],["role","alert",1,"sura-mensaje","sura-mensaje--error"],[1,"posicion"],[1,"modo"],["aria-hidden","true"],["mat-stroked-button","","type","button","id","btn-salir-edicion","matTooltip","Descarta lo que no hayas guardado",3,"disabled"],["mat-raised-button","","type","button","id","btn-entrar-edicion",1,"sura-cta"],["mat-stroked-button","","type","button","id","btn-salir-edicion","matTooltip","Descarta lo que no hayas guardado",3,"click","disabled"],["mat-raised-button","","type","button","id","btn-entrar-edicion",1,"sura-cta",3,"click"],["diameter","40"],[1,"sura-subtitulo"],["role","note",1,"sura-nota","sura-nota--regla"],[3,"ngSubmit","formGroup"],[3,"detalle","form","esEdicion"],["multi","",1,"sura-secciones"],[3,"opened","closed","expanded"],["collapsedHeight","44px","expandedHeight","44px"],[3,"expanded"],["role","status",1,"sura-mensaje","sura-mensaje--alerta"],[1,"form-actions"],[1,"sura-contador"],[3,"detalle","esEdicion"],[3,"detalle"],[1,"form-row","form-row--guardado"],["appearance","outline"],["formControlName","modoRecalculo"],["value","EN_CASCADA"],["value","AISLADO"],["mat-button","","type","button","id","btn-cancelar",3,"click","disabled"],["mat-raised-button","","type","button","id","btn-siguiente-sin-guardar",1,"sura-cta",3,"disabled"],["role","status",1,"nota-espera"],["mat-stroked-button","","type","button","id","btn-guardar",3,"click","disabled"],["mat-raised-button","","type","submit","id","btn-guardar-siguiente",1,"sura-cta",3,"disabled","matTooltip"],["diameter","20"],[1,"texto-boton"],["mat-raised-button","","type","button","id","btn-siguiente-sin-guardar",1,"sura-cta",3,"click","disabled"],["mat-button","","type","button","id","btn-volver-consulta",3,"click"],["mat-raised-button","","type","button","id","btn-siguiente-consulta",1,"sura-cta",3,"click","disabled"]],template:function(n,c){if(n&1&&(ao(0,"div",0)(1,"div",1)(2,"button",2),Fd("click",function(){return c.volverACuenta()}),ao(3,"mat-icon"),Ay(4,"arrow_back"),fa(),Ay(5),fa(),Lv(6,fi,8,7),fa(),Lv(7,xi,4,0,"div",3),Lv(8,hi,5,1,"div",4),Lv(9,Gi,50,34),fa()),n&2){let d,u;Sg(5),va$1(" Volver a la cuenta ",c.codigo()," "),Sg(),Pv((d=c.detalle())?6:-1,d),Sg(),Pv(c.cargando()?7:-1),Sg(),Pv(c.errorComando()?8:-1),Sg(),Pv((u=c.detalle())?9:-1,u);}},dependencies:[Aa,Ca,va,_a,ro,no,I$1,an,Le,rn,Ci$1,vi$1,j,Bl,Ll,sd,ad,Yt$1,mt$1,bn,_n,Dt$1,dt$1,rt$1,_n$1,xn,st$1,ot$1,be,fe,xe,he,ve,Ce,ge,ke,ye,kt$1],styles:[".edicion-container[_ngcontent-%COMP%]{padding:var(--sura-espacio-4);max-width:var(--sura-ancho-xl);margin-inline:auto;background:var(--sura-blanco);border-radius:var(--sura-radio-16);border:1px solid var(--sura-gris-300);margin-block:var(--sura-espacio-3)}.edicion-container[_ngcontent-%COMP%]   h2[_ngcontent-%COMP%]{margin-bottom:var(--sura-espacio-4);color:var(--sura-azul-institucional)}.barra-superior[_ngcontent-%COMP%]{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:var(--sura-espacio-3);padding-bottom:var(--sura-espacio-3);margin-bottom:var(--sura-espacio-3);border-bottom:1px solid var(--sura-gris-300)}.barra-superior[_ngcontent-%COMP%]   .volver[_ngcontent-%COMP%]{font-weight:var(--sura-peso-semibold);color:var(--sura-azul-primario)}.barra-superior[_ngcontent-%COMP%]   .posicion[_ngcontent-%COMP%]{margin-left:auto;color:var(--sura-texto-suave);font-size:var(--sura-texto-sm);font-weight:var(--sura-peso-semibold)}.cargando[_ngcontent-%COMP%]{display:flex;flex-direction:column;align-items:center;gap:var(--sura-espacio-2);padding:var(--sura-espacio-5) 0;color:var(--sura-texto-suave)}.modo[_ngcontent-%COMP%]{display:inline-flex;align-items:center;gap:var(--sura-espacio-1);padding:2px var(--sura-espacio-2);border-radius:999px;background:var(--sura-gris-200);color:var(--sura-texto-suave);font-size:var(--sura-texto-sm);font-weight:var(--sura-peso-semibold)}.modo[_ngcontent-%COMP%]   mat-icon[_ngcontent-%COMP%]{font-size:16px;width:16px;height:16px}.modo--edicion[_ngcontent-%COMP%]{background:var(--sura-alerta-fondo);color:var(--sura-alerta)}form[_ngcontent-%COMP%]{display:block}.form-row[_ngcontent-%COMP%]{display:flex;gap:var(--sura-espacio-4);margin-bottom:var(--sura-espacio-4)}.form-row[_ngcontent-%COMP%]   mat-form-field[_ngcontent-%COMP%]{flex:1}.form-row--guardado[_ngcontent-%COMP%]   mat-form-field[_ngcontent-%COMP%]{flex:0 0 18rem}.form-actions[_ngcontent-%COMP%]{display:flex;justify-content:flex-end;align-items:center;gap:var(--sura-espacio-3);margin-top:var(--sura-espacio-4);padding-top:var(--sura-espacio-3);border-top:1px solid var(--sura-gris-300)}.form-actions[_ngcontent-%COMP%]   .texto-boton[_ngcontent-%COMP%]{margin:0 var(--sura-espacio-1)}.nota-espera[_ngcontent-%COMP%]{margin:0;text-align:right;font-size:var(--sura-texto-sm);color:var(--sura-texto-suave)}.sura-mensaje[_ngcontent-%COMP%]{margin-bottom:var(--sura-espacio-4)}.sura-nota[_ngcontent-%COMP%]{margin:0 0 var(--sura-espacio-3)}"]})};export{Kn as LineaEdicionComponent};

@@ -1,0 +1,26 @@
+{
+  "compileOnSave": false,
+  "compilerOptions": {
+    "rootDir": ".",
+    "sourceMap": true,
+    "declaration": false,
+    "moduleResolution": "bundler",
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "importHelpers": true,
+    "target": "es2015",
+    "module": "esnext",
+    "lib": ["es2020", "dom"],
+    "skipLibCheck": true,
+    "skipDefaultLibCheck": true,
+    "strict": false,
+    "paths": {
+      "@sura/data-access/auth": ["./libs/data-access/auth/src/index.ts"],
+      "@sura/data-access/http": ["./libs/data-access/http/src/index.ts"],
+      "@sura/ui-components": ["./libs/ui-components/src/index.ts"],
+      "@sura/util/formats": ["./libs/util/formats/src/index.ts"],
+      "@sura/environments": ["./apps/auditoria/src/environments/environment.ts"]
+    }
+  },
+  "exclude": ["node_modules", "tmp"]
+}

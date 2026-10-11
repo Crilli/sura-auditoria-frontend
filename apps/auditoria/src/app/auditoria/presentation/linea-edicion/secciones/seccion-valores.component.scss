@@ -1,0 +1,41 @@
+// Solo lo propio de esta sección. La tabla (`.sura-tabla-detalle`) y los
+// segundos renglones (`.sura-dato-secundario`) son patrones compartidos y viven
+// en la capa global (`apps/shell/src/styles/_ficha-detalle.scss`): metidos aquí
+// con un `@use` se inlinearían en este componente y volverían a contar contra
+// su presupuesto.
+
+// El host y el envoltorio del `formGroup` desaparecen del flujo: la tabla y los
+// campos quedan donde estaban cuando los pintaba el contenedor.
+:host,
+.cuerpo { display: contents; }
+
+// Lo glosado se lee en rojo, que es como se lee en el resto de la aplicación.
+.fila-glosa td { color: var(--sura-error); }
+
+// Lo que no cabe en la tabla de valores: el texto de la glosa y los dos
+// «conservar», que solo tienen sentido al lado de los importes que deciden si
+// se recalculan o se respetan.
+.campos-apilados {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sura-espacio-3);
+  margin-top: var(--sura-espacio-4);
+}
+
+.checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sura-espacio-2);
+}
+
+// El área de texto de las observaciones ocupa la fila entera.
+.form-field--ancho { width: 100%; }
+
+// En consulta las observaciones se leen como una nota al pie de la tabla.
+.observacion {
+  margin: 0 0 var(--sura-espacio-4);
+  padding: var(--sura-espacio-2) var(--sura-espacio-3);
+  background: var(--sura-alerta-fondo);
+  border-left: 3px solid var(--sura-alerta);
+  font-size: var(--sura-texto-base);
+}

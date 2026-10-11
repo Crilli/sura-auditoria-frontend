@@ -1,0 +1,47 @@
+@let linea = detalle();
+@let edicion = esEdicion();
+
+<dl class="sura-ficha-datos" [class.sura-ficha-datos--edicion]="edicion"
+    [formGroup]="form()">
+  <div>
+    <dt>Código de siniestro</dt>
+    <dd>
+      @if (edicion) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="codigoSiniestro"
+                 maxlength="20" aria-label="Código de siniestro">
+        </mat-form-field>
+      } @else {
+        {{ linea.otrosDatos.codigoSiniestro ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Tipo de sala</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.otrosDatos.tipoSala ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Vía de acceso</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.otrosDatos.viaDeAcceso ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>UEN</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.otrosDatos.unidadEstrategicaNegocio ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.derivado" />
+      }
+    </dd>
+  </div>
+</dl>

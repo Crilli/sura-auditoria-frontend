@@ -1,0 +1,28 @@
+:host { display: contents; }
+
+// Sin margen inferior: la lista siempre va dentro de un panel, que ya pone su
+// propio relleno.
+.novedades {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    border-left: 4px solid var(--sura-gris-400);
+    background: var(--sura-gris-100);
+    border-radius: 0 var(--sura-radio-8) var(--sura-radio-8) 0;
+    margin-bottom: var(--sura-espacio-2);
+    font-size: var(--sura-texto-base);
+
+    strong { color: var(--sura-azul-institucional); }
+
+    // Lo bloqueante se distingue del aviso: es lo que impide cerrar la línea.
+    &.bloqueante {
+      border-left-color: var(--sura-error);
+      background: var(--sura-error-fondo);
+
+      strong { color: var(--sura-error); }
+    }
+  }
+}

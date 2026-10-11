@@ -1,0 +1,12 @@
+Backend
+cd /Users/criscaor/Documents/Proyectos/ms-auditoria-cuenta-medica
+kill $(lsof -ti tcp:8080) 2>/dev/null; sleep 3
+set -a; source .env; set +a
+EXCLUIR="org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration,org.springframework.boot.autoconfigure.data.r2dbc.R2dbcDataAutoConfiguration,org.springframework.boot.autoconfigure.data.r2dbc.R2dbcRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"
+GRADLE=~/.gradle/wrapper/dists/gradle-8.9-bin/90cnw93cvbtalezasaz0blq0a/gradle-8.9/bin/gradle
+JAVA_HOME=~/.jdk/current-jdk-21/Contents/Home $GRADLE :aplicacion-servicio-app:bootRun --console=plain \
+  --args="--spring.profiles.active=prod --spring.flyway.enabled=false --spring.main.lazy-initialization=true --integraciones.cors.origenes=http://localhost:4200,http://localhost:4201 --spring.autoconfigure.exclude=$EXCLUIR"
+  
+  Front:
+  cd /Users/criscaor/Documents/Proyectos/sura-auditoria-frontend && npx nx serve shell --port 4200
+

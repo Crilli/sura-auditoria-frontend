@@ -1,0 +1,143 @@
+<div class="pendientes-container">
+
+  <div class="header">
+    <h2>Pendientes de la Cuenta</h2>
+    @if (facade.sinResolver().length > 0) {
+      <mat-chip color="warn" highlighted>{{ facade.sinResolver().length }} sin resolver</mat-chip>
+    }
+  </div>
+
+  @if (facade.errorComando()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ facade.errorComando() }}</span>
+    </div>
+  }
+
+  @if (facade.listError()) {
+    <div class="error-banner">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ facade.listError()?.message }}</span>
+    </div>
+  }
+
+  <div class="content-layout" [class.con-formulario]="pendienteSeleccionado() !== null">
+    
+    <div class="table-section mat-elevation-z2">
+      @if (facade.loading()) {
+        <div class="loading-overlay">
+          <mat-spinner diameter="40"></mat-spinner>
+          <p>Cargando pendientes...</p>
+        </div>
+      } @else {
+        <table mat-table [dataSource]="facade.pendientes()" aria-label="Pendientes">
+          
+          <ng-container matColumnDef="codigo">
+            <th mat-header-cell *matHeaderCellDef>Código</th>
+            <td mat-cell *matCellDef="let p">{{ p.codigo }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="descripcion">
+            <th mat-header-cell *matHeaderCellDef>Descripción</th>
+            <td mat-cell *matCellDef="let p">{{ p.descripcion }}</td>
+          </ng-container>
+
+          <ng-container matColumnDef="nivel">
+            <th mat-header-cell *matHeaderCellDef>Nivel</th>
+            <td mat-cell *matCellDef="let p">
+              <mat-chip [color]="p.nivel === 'CABECERA' ? 'primary' : 'accent'">
+                {{ etiquetaNivel(p.nivel) }}
+                @if (p.numeroLinea) {
+                  #{{ p.numeroLinea }}
+                }
+              </mat-chip>
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="estado">
+            <th mat-header-cell *matHeaderCellDef>Estado</th>
+            <td mat-cell *matCellDef="let p">
+              @if (p.resuelto) {
+                <span class="estado resuelto"><mat-icon>check_circle</mat-icon> Resuelto</span>
+              } @else {
+                <span class="estado pendiente"><mat-icon>pending</mat-icon> Pendiente</span>
+              }
+            </td>
+          </ng-container>
+
+          <ng-container matColumnDef="acciones">
+            <th mat-header-cell *matHeaderCellDef>Acciones</th>
+            <td mat-cell *matCellDef="let p">
+              @if (!p.resuelto) {
+                <button mat-button color="primary" 
+                        [disabled]="pendienteSeleccionado()?.identificador === p.identificador"
+                        (click)="seleccionarParaResolver(p)">
+                  Resolver
+                </button>
+              }
+            </td>
+          </ng-container>
+
+          <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+          <tr mat-row *matRowDef="let row; columns: displayedColumns;"
+              [class.seleccionada]="pendienteSeleccionado()?.identificador === row.identificador">
+          </tr>
+          
+          @if (facade.pendientes().length === 0) {
+            <tr class="mat-row">
+              <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns.length">
+                <mat-icon>task_alt</mat-icon>
+                <p>No hay pendientes para esta cuenta.</p>
+              </td>
+            </tr>
+          }
+        </table>
+      }
+    </div>
+
+    @if (pendienteSeleccionado(); as pendiente) {
+      <div class="form-section">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Resolver Pendiente</mat-card-title>
+            <mat-card-subtitle>{{ pendiente.codigo }} - {{ pendiente.descripcion }}</mat-card-subtitle>
+          </mat-card-header>
+          
+          <mat-card-content>
+            <form [formGroup]="form">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Justificación</mat-label>
+                <textarea matInput formControlName="justificacion" rows="4" 
+                          placeholder="Ingrese el motivo de la resolución..."></textarea>
+                @if (form.get('justificacion')?.hasError('required')) {
+                  <mat-error>La justificación es obligatoria</mat-error>
+                }
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Alcance de Resolución</mat-label>
+                <mat-select formControlName="alcance">
+                  <mat-option value="CUENTA_Y_LINEAS">Cuenta y Líneas</mat-option>
+                  <mat-option value="SOLO_LINEAS">Solo Líneas</mat-option>
+                </mat-select>
+              </mat-form-field>
+            </form>
+          </mat-card-content>
+
+          <mat-card-actions align="end">
+            <button mat-button (click)="cancelarResolucion()" [disabled]="resolving()">Cancelar</button>
+            <button mat-raised-button color="primary" (click)="resolver()" 
+                    [disabled]="form.invalid || resolving()">
+              @if (resolving()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Confirmar
+              }
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
+    }
+
+  </div>
+</div>

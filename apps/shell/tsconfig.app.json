@@ -1,0 +1,25 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../dist/out-tsc",
+    "types": [],
+    "paths": {
+      "@sura/data-access/auth": ["../../libs/data-access/auth/src/index.ts"],
+      "@sura/data-access/http": ["../../libs/data-access/http/src/index.ts"],
+      "@sura/ui-components": ["../../libs/ui-components/src/index.ts"],
+      "@sura/util/formats": ["../../libs/util/formats/src/index.ts"],
+      "@sura/environments": ["../../apps/auditoria/src/environments/environment.ts"]
+    }
+  },
+  "include": [
+    "src/**/*.ts",
+    "../auditoria/src/**/*.ts"
+  ],
+  "exclude": [
+    "src/**/*.spec.ts",
+    "src/**/*.test.ts",
+    "../auditoria/src/**/*.spec.ts",
+    "../auditoria/src/**/*.test.ts",
+    "../auditoria/src/test-setup.ts"
+  ]
+}

@@ -1,0 +1,153 @@
+@let linea = detalle();
+@let edicion = esEdicion();
+
+<!--
+  El `[formGroup]` se repite aquí porque los `formControlName` de esta sección
+  resuelven su contenedor por inyección y no lo buscan más arriba del elemento
+  anfitrión del componente. El envoltorio es `display: contents`, así que la
+  tabla y los campos quedan en el flujo exactamente donde estaban.
+-->
+<div class="cuerpo" [formGroup]="form()">
+
+  <table class="sura-tabla-detalle sura-tabla-detalle--importes"
+         [class.sura-tabla-detalle--editable]="edicion">
+    <thead>
+      <tr><th>Concepto</th><th>Valor</th><th>Cantidad</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Cargado</td>
+        <td>
+          @if (edicion) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="sura-campo-en-sitio sura-campo-en-sitio--numero">
+              <input matInput type="number" min="0"
+                     formControlName="valorCargado"
+                     aria-label="Valor cargado">
+            </mat-form-field>
+          } @else {
+            {{ linea.valorCargado | currency:'COP':'symbol':'1.0-0' }}
+          }
+        </td>
+        <td>
+          @if (edicion) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="sura-campo-en-sitio sura-campo-en-sitio--numero">
+              <input matInput type="number" min="0"
+                     formControlName="unidadesCargadas"
+                     placeholder="OHI lo exige"
+                     aria-label="Unidades cargadas">
+            </mat-form-field>
+          } @else {
+            {{ linea.unidadesCargadas ?? '—' }}
+          }
+        </td>
+      </tr>
+      <tr>
+        <td>
+          Convenido
+          @if (linea.convenio.tarifaAplicada) {
+            <span class="sura-dato-secundario">{{ linea.convenio.tarifaAplicada }}</span>
+          }
+        </td>
+        <td [class.sura-bloqueado]="edicion">
+          {{ linea.convenio.valorConvenido | currency:'COP':'symbol':'1.0-0' }}
+          @if (edicion) {
+            <sura-campo-bloqueado [motivo]="motivos.tarifacion" />
+          }
+        </td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td>Autorizado</td>
+        <td>
+          @if (edicion) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="sura-campo-en-sitio sura-campo-en-sitio--numero">
+              <input matInput type="number" min="0"
+                     formControlName="valorAutorizado"
+                     aria-label="Valor autorizado">
+            </mat-form-field>
+          } @else {
+            {{ linea.valorAutorizado | currency:'COP':'symbol':'1.0-0' }}
+          }
+        </td>
+        <td>
+          @if (edicion) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="sura-campo-en-sitio sura-campo-en-sitio--numero">
+              <input matInput type="number" min="0"
+                     formControlName="unidadesAutorizadas"
+                     aria-label="Unidades autorizadas">
+            </mat-form-field>
+          } @else {
+            {{ linea.unidadesAutorizadas ?? '—' }}
+          }
+        </td>
+      </tr>
+      <tr>
+        <td>Cubierto</td>
+        <td [class.sura-bloqueado]="edicion">
+          {{ linea.valorCubierto | currency:'COP':'symbol':'1.0-0' }}
+          @if (edicion) {
+            <sura-campo-bloqueado [motivo]="motivos.calculado" />
+          }
+        </td>
+        <td [class.sura-bloqueado]="edicion">
+          {{ linea.unidadesCubiertas ?? '—' }}
+          @if (edicion) {
+            <sura-campo-bloqueado [motivo]="motivos.calculado" />
+          }
+        </td>
+      </tr>
+      <tr class="fila-glosa">
+        <td>Glosado</td>
+        <td>
+          @if (edicion) {
+            <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                            class="sura-campo-en-sitio sura-campo-en-sitio--numero">
+              <input matInput type="number" min="0"
+                     formControlName="valorGlosado"
+                     aria-label="Valor glosado">
+            </mat-form-field>
+          } @else {
+            {{ linea.valorGlosado | currency:'COP':'symbol':'1.0-0' }}
+          }
+        </td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  @if (edicion) {
+    <div class="campos-apilados">
+      <mat-form-field appearance="outline" class="form-field--ancho">
+        <mat-label>Observaciones de glosa</mat-label>
+        <textarea matInput rows="3" maxlength="1000"
+                  formControlName="observacionesGlosa"
+                  placeholder="Texto libre que acompaña a la glosa"></textarea>
+        <mat-hint align="end">
+          {{ form().controls.observacionesGlosa.value?.length ?? 0 }}/1000
+        </mat-hint>
+      </mat-form-field>
+
+      <!--
+        Los dos conservar van con los valores: solo tienen sentido al
+        lado del importe que decidirán si se recalcula o se respeta.
+      -->
+      <div class="checkboxes">
+        <mat-checkbox formControlName="conservarBeneficios">
+          Conservar beneficios
+        </mat-checkbox>
+        <mat-checkbox formControlName="conservarTarifacion">
+          Conservar tarifación
+        </mat-checkbox>
+      </div>
+    </div>
+  } @else if (linea.observacionesGlosa) {
+    <p class="observacion">
+      <strong>Observaciones de glosa:</strong> {{ linea.observacionesGlosa }}
+    </p>
+  }
+
+</div>

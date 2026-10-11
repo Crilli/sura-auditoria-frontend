@@ -1,0 +1,133 @@
+// Solo el armazón de la pantalla: la tarjeta, la barra superior, el indicador
+// de modo, el bloque de guardado y las acciones.
+//
+// Los patrones que comparten el contenedor y sus hijos —la ficha de datos en
+// rejilla, las tablas compactas, el contador y el acordeón de secciones— viven
+// en la capa global (`apps/shell/src/styles/_ficha-detalle.scss`), que no tiene
+// presupuesto por componente. No se traen aquí con `@use`: eso los inlinearía
+// y los volvería a contar contra el presupuesto de este componente, que es el
+// que estaba a punto de romper la compilación.
+
+.edicion-container {
+  padding: var(--sura-espacio-4);
+  // Igual que la ficha de la cuenta que lo envuelve (cuenta-detalle usa xl).
+  // Con lg el detalle se quedaba 288px más estrecho que su propio contenedor,
+  // y desde que la línea muestra treinta campos eso ya no daba de sí.
+  max-width: var(--sura-ancho-xl);
+  margin-inline: auto;
+  background: var(--sura-blanco);
+  border-radius: var(--sura-radio-16);
+  border: 1px solid var(--sura-gris-300);
+  margin-block: var(--sura-espacio-3);
+
+  h2 {
+    margin-bottom: var(--sura-espacio-4);
+    color: var(--sura-azul-institucional);
+  }
+}
+
+// La barra tiene ya cuatro cosas —salida, posición, modo y conmutador—, así que
+// envuelve y el conmutador queda empujado a la derecha.
+.barra-superior {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sura-espacio-3);
+  padding-bottom: var(--sura-espacio-3);
+  margin-bottom: var(--sura-espacio-3);
+  border-bottom: 1px solid var(--sura-gris-300);
+
+  .volver {
+    font-weight: var(--sura-peso-semibold);
+    color: var(--sura-azul-primario);
+  }
+
+  .posicion {
+    margin-left: auto;
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+    font-weight: var(--sura-peso-semibold);
+  }
+}
+
+.cargando {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sura-espacio-2);
+  padding: var(--sura-espacio-5) 0;
+  color: var(--sura-texto-suave);
+}
+
+// Indicador de modo en la barra superior. Se dice con palabra e icono, no solo
+// con la ausencia del formulario: entrar a editar sin darse cuenta es peor que
+// un clic de más.
+.modo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sura-espacio-1);
+  padding: 2px var(--sura-espacio-2);
+  border-radius: 999px;
+  background: var(--sura-gris-200);
+  color: var(--sura-texto-suave);
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-semibold);
+
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+
+  &--edicion {
+    background: var(--sura-alerta-fondo);
+    color: var(--sura-alerta);
+  }
+}
+
+// El formulario envuelve todo el detalle —ficha, acordeón y acciones— porque
+// los controles viven repartidos por las secciones. Por eso no puede imponer su
+// propio ritmo vertical: cada bloque ya trae el suyo y con un `gap` se duplicaba
+// con los márgenes que ya tenían.
+form {
+  display: block;
+}
+
+.form-row {
+  display: flex;
+  gap: var(--sura-espacio-4);
+  margin-bottom: var(--sura-espacio-4);
+
+  mat-form-field {
+    flex: 1;
+  }
+}
+
+// La decisión de recálculo no es un dato de la línea: no necesita ocupar el
+// ancho entero ni competir con los paneles.
+.form-row--guardado {
+  mat-form-field { flex: 0 0 18rem; }
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--sura-espacio-3);
+  margin-top: var(--sura-espacio-4);
+  padding-top: var(--sura-espacio-3);
+  border-top: 1px solid var(--sura-gris-300);
+
+  .texto-boton {
+    margin: 0 var(--sura-espacio-1);
+  }
+}
+
+.nota-espera {
+  margin: 0;
+  text-align: right;
+  font-size: var(--sura-texto-sm);
+  color: var(--sura-texto-suave);
+}
+
+// El banner de error y el aviso de línea no editable son los mensajes de la
+// marca; aquí solo se les da la separación que piden dentro del detalle.
+.sura-mensaje { margin-bottom: var(--sura-espacio-4); }
+.sura-nota    { margin: 0 0 var(--sura-espacio-3); }

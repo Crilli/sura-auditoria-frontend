@@ -1,0 +1,38 @@
+:host { display: contents; }
+
+// Esta nota siempre va dentro de un panel, así que lleva ya el margen que antes
+// le daba el contenedor.
+.sura-nota { margin: 0 0 var(--sura-espacio-3); }
+
+// Cada glosa: clasificación e importe arriba, el texto normativo debajo.
+// Sin margen inferior: el panel que la contiene ya pone su propio relleno.
+.glosas {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    border-left: 3px solid var(--sura-error);
+    background: var(--sura-error-fondo);
+    margin-bottom: var(--sura-espacio-2);
+  }
+}
+
+.glosa-cabecera {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sura-espacio-2);
+}
+
+.glosa-valor {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.glosa-texto {
+  margin: var(--sura-espacio-1) 0 0;
+  font-size: var(--sura-texto-sm);
+  color: var(--sura-texto-suave);
+}

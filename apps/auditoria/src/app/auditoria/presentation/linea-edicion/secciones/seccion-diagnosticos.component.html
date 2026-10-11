@@ -1,0 +1,26 @@
+@if (esEdicion()) {
+  <p class="sura-nota" role="note">
+    <mat-icon aria-hidden="true">lock</mat-icon>
+    {{ motivos.lista }}
+  </p>
+}
+
+<table class="sura-tabla-detalle sura-tabla-detalle--diagnosticos">
+  <thead>
+    <tr><th>Secuencia</th><th>Tipo</th><th>Diagnóstico</th></tr>
+  </thead>
+  <tbody>
+    @for (diag of detalle().diagnosticos; track diag.secuencia) {
+      <tr>
+        <td>{{ diag.secuencia }}</td>
+        <td>{{ diag.descripcionTipo ?? diag.tipo ?? '—' }}</td>
+        <td>
+          {{ diag.codigo }}
+          @if (diag.descripcion) {
+            <span class="sura-dato-secundario">{{ diag.descripcion }}</span>
+          }
+        </td>
+      </tr>
+    }
+  </tbody>
+</table>

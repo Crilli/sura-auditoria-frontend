@@ -1,0 +1,148 @@
+// ============================================================================
+// Estilos globales — Auditoría de Cuentas Médicas
+// Identidad visual ARL SURA (www.sura.co/arl)
+// ============================================================================
+
+@use './styles/tokens-sura';
+@use './styles/tema-material';
+@use './styles/utilidades';
+// Después de `utilidades`: redefine `.sura-bloqueado` dentro de la ficha, y así
+// el orden del fichero acompaña a la especificidad en vez de contradecirla.
+@use './styles/ficha-detalle';
+
+// ── Base ───────────────────────────────────────────────────────────────────
+* { box-sizing: border-box; }
+
+html {
+  font-size: 16px;
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  font-family: var(--sura-fuente);
+  font-size: var(--sura-texto-base);
+  line-height: 1.5;
+  color: var(--sura-texto);
+  background-color: var(--sura-gris-100);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+// ── Jerarquía tipográfica del tema Sura ────────────────────────────────────
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 var(--sura-espacio-3);
+  font-family: var(--sura-fuente);
+  font-weight: var(--sura-peso-bold);
+  line-height: 1.25;
+  color: var(--sura-azul-institucional);
+}
+
+h1 { font-size: var(--sura-h1); }
+h2 { font-size: var(--sura-h2); }
+h3 { font-size: var(--sura-h3); }
+h4 { font-size: var(--sura-h4); font-weight: var(--sura-peso-semibold); }
+h5 { font-size: var(--sura-h5); font-weight: var(--sura-peso-semibold); }
+h6 { font-size: var(--sura-h6); font-weight: var(--sura-peso-semibold); }
+
+p { margin: 0 0 var(--sura-espacio-3); }
+
+a {
+  color: var(--sura-azul-primario);
+  text-decoration: none;
+
+  &:hover { color: var(--sura-azul-profundo); text-decoration: underline; }
+}
+
+// ── Ajustes de componentes de Material a la marca ──────────────────────────
+
+// Barra de pestañas: subrayado en el azul institucional
+.mat-mdc-tab-nav-bar,
+.mat-mdc-tab-header {
+  --mdc-tab-indicator-active-indicator-color: var(--sura-azul-institucional);
+  --mat-tab-header-active-label-text-color:   var(--sura-azul-institucional);
+  --mat-tab-header-active-focus-label-text-color: var(--sura-azul-institucional);
+  --mat-tab-header-active-hover-label-text-color: var(--sura-azul-institucional);
+  --mat-tab-header-label-text-weight: var(--sura-peso-semibold);
+  border-bottom: 1px solid var(--sura-gris-300);
+  background: var(--sura-blanco);
+}
+
+// Tablas: encabezado tenue y filas con separador suave
+.mat-mdc-table {
+  --mat-table-header-headline-color: var(--sura-texto-suave);
+  --mat-table-header-headline-weight: var(--sura-peso-semibold);
+  --mat-table-header-headline-size: var(--sura-texto-sm);
+  --mat-table-row-item-label-text-color: var(--sura-texto);
+  border-radius: var(--sura-radio-12);
+  overflow: hidden;
+
+  .mat-mdc-header-row { background: var(--sura-gris-100); }
+  .mat-mdc-row:hover  { background: var(--sura-azul-tenue); }
+}
+
+// Campos de formulario con el radio de la marca
+.mat-mdc-form-field {
+  --mdc-outlined-text-field-container-shape: var(--sura-radio-8);
+  --mdc-outlined-text-field-focus-outline-color: var(--sura-azul-primario);
+  --mdc-outlined-text-field-focus-label-text-color: var(--sura-azul-primario);
+}
+
+// Diálogos y menús
+.mat-mdc-dialog-surface { border-radius: var(--sura-radio-16) !important; }
+.mat-mdc-menu-panel     { border-radius: var(--sura-radio-12); }
+
+// Chips
+.mat-mdc-standard-chip {
+  --mdc-chip-container-shape-radius: var(--sura-radio-pill);
+  --mdc-chip-label-text-weight: var(--sura-peso-semibold);
+}
+
+// Acordeones: se integran en la tarjeta que los contiene — sin sombra propia,
+// borde fino y encabezado compacto. Los usa la cabecera de la cuenta médica
+// para plegar el detalle y dejar las pestañas de trabajo sobre el pliegue.
+.mat-expansion-panel {
+  --mat-expansion-container-shape: var(--sura-radio-12);
+  --mat-expansion-header-text-color: var(--sura-azul-institucional);
+  --mat-expansion-header-text-weight: var(--sura-peso-semibold);
+  --mat-expansion-header-text-size: var(--sura-texto-base);
+  --mat-expansion-header-description-color: var(--sura-texto-suave);
+  --mat-expansion-header-indicator-color: var(--sura-azul-primario);
+  box-shadow: none;
+  border: 1px solid var(--sura-gris-300);
+
+  .mat-expansion-panel-header { padding: 0 var(--sura-espacio-3); }
+  .mat-expansion-panel-body   { padding: 0 var(--sura-espacio-3) var(--sura-espacio-3); }
+
+  // El título manda sobre el resumen: no debe estirarse ni empujarlo.
+  .mat-expansion-panel-header-title {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    flex: 0 0 auto;
+    margin-right: var(--sura-espacio-4);
+
+    .mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      color: var(--sura-azul-primario);
+    }
+  }
+
+  // Resumen del bloque plegado: una línea, recortada si no cabe.
+  .mat-expansion-panel-header-description {
+    font-size: var(--sura-texto-sm);
+    margin-right: var(--sura-espacio-3);
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+// Avisos emergentes
+.mat-mdc-snack-bar-container {
+  --mdc-snackbar-container-color: var(--sura-azul-profundo);
+  --mdc-snackbar-supporting-text-color: var(--sura-blanco);
+  --mat-snack-bar-button-color: var(--sura-cta);
+}

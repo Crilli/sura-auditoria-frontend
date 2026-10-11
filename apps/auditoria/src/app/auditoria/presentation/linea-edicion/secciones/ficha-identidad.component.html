@@ -1,0 +1,100 @@
+@let linea = detalle();
+@let edicion = esEdicion();
+
+<dl class="sura-ficha-datos" [class.sura-ficha-datos--edicion]="edicion"
+    [formGroup]="form()">
+  <div>
+    <dt>Afiliado</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.codigoAfiliado }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.afiliado" />
+      }
+      @if (linea.nombreAfiliado) {
+        <span class="sura-dato-secundario">{{ linea.nombreAfiliado }}</span>
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Prestación</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.codigoProcedimiento }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+      @if (linea.catalogoProcedimiento) {
+        <span class="sura-dato-secundario">{{ linea.catalogoProcedimiento }}</span>
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Código de autorización</dt>
+    <dd>
+      @if (edicion) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="codigoAutorizacion"
+                 maxlength="30" aria-label="Código de autorización">
+        </mat-form-field>
+      } @else {
+        {{ linea.codigoAutorizacion ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Clase de servicio</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.prestacion.claseServicio ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Prestador de atención</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.prestadorAtencionCodigo ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+      @if (linea.prestadorAtencionNombre) {
+        <span class="sura-dato-secundario">{{ linea.prestadorAtencionNombre }}</span>
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Fecha de prestación</dt>
+    <dd>
+      @if (edicion) {
+        <!--
+          `input type="date"` en vez de `mat-datepicker`: el proyecto no usa
+          ninguno todavía y el datepicker arrastraría el módulo y un
+          adaptador de fechas solo por estos dos campos. El nativo ya
+          entrega `yyyy-MM-dd`, que es justo lo que pide el contrato.
+        -->
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput type="date" formControlName="fechaInicio"
+                 aria-label="Fecha de inicio de la prestación">
+        </mat-form-field>
+      } @else {
+        {{ (linea.fechaInicio | date:'dd/MM/yyyy') ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Fecha fin</dt>
+    <dd>
+      @if (edicion) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput type="date" formControlName="fechaFin"
+                 aria-label="Fecha fin de la prestación">
+        </mat-form-field>
+      } @else {
+        {{ (linea.fechaFin | date:'dd/MM/yyyy') ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div><dt>Versión</dt><dd>{{ linea.version }}</dd></div>
+</dl>

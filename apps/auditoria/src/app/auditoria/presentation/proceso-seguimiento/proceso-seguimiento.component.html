@@ -1,0 +1,44 @@
+<div class="proceso-container">
+  <h3>📡 Seguimiento del Proceso</h3>
+
+  @if (loading()) {
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  }
+
+  @if (estado()) {
+    <div class="estado-card">
+      <div class="avance">
+        <mat-icon>{{ estado()!.finalizado ? 'check_circle' : 'sync' }}</mat-icon>
+        <span class="avance-texto">{{ estado()!.avance }}</span>
+      </div>
+
+      @if (estado()!.errores.length > 0) {
+        <mat-list class="errores-list">
+          @for (error of estado()!.errores; track error) {
+            <mat-list-item>
+              <mat-icon matListItemIcon color="warn">error</mat-icon>
+              <span matListItemTitle>{{ error }}</span>
+            </mat-list-item>
+          }
+        </mat-list>
+      }
+
+      @if (estado()!.finalizado) {
+        <div class="finalizado-banner">
+          <mat-icon>verified</mat-icon> Proceso finalizado correctamente
+        </div>
+      }
+    </div>
+  }
+
+  <div class="acciones">
+    <button mat-stroked-button (click)="consultarUnaVez()"
+            id="btn-consultar-proceso" [disabled]="loading()">
+      <mat-icon>refresh</mat-icon> Consultar estado
+    </button>
+    <button mat-raised-button color="primary" (click)="iniciarStream()"
+            id="btn-seguir-proceso" [disabled]="streaming()">
+      <mat-icon>stream</mat-icon> Seguir en tiempo real (SSE)
+    </button>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+.proceso-container {
+  padding: 1.5rem;
+  background-color: var(--sura-gris-100);
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  
+  h3 {
+    margin-top: 0;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+}
+
+.estado-card {
+  background-color: white;
+  padding: 1.5rem;
+  border-radius: var(--sura-radio-12);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  margin-bottom: 1.5rem;
+}
+
+.avance {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  font-size: 1.25rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  
+  mat-icon {
+    color: var(--sura-azul-institucional);
+  }
+}
+
+.errores-list {
+  background-color: var(--sura-alerta-fondo);
+  border-radius: var(--sura-radio-12);
+  margin-bottom: 1rem;
+}
+
+.finalizado-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background-color: var(--sura-exito-fondo);
+  color: var(--sura-exito);
+  border-radius: var(--sura-radio-12);
+  font-weight: 500;
+}
+
+.acciones {
+  display: flex;
+  gap: 1rem;
+}

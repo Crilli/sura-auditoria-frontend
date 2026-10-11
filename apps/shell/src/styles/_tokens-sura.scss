@@ -1,0 +1,103 @@
+// ============================================================================
+// Tokens de marca — ARL SURA
+//
+// Valores tomados del sistema de diseño publicado en www.sura.co/arl
+// (variables CSS de su tema, derivado de Bootstrap 4 vía Clay/Liferay:
+// escala de espaciadores, radios, grises y variantes de botón son las mismas).
+//
+// Aquí solo viven los tokens. El mapeo a componentes de Angular Material está
+// en _tema-material.scss y las utilidades en _utilidades.scss.
+// ============================================================================
+
+:root {
+
+  // ── Marca ────────────────────────────────────────────────────────────────
+  --sura-azul-institucional: #0033a0;  // azul corporativo, títulos y acentos
+  --sura-azul-primario:      #2d6df6;  // acción principal
+  --sura-azul-profundo:      #26328c;  // hover/press y texto sobre el CTA
+  --sura-azul-noche:         #00003f;
+  --sura-azul-claro:         #81b1ff;
+  --sura-azul-tenue:         #dfeaff;  // fondos de apoyo
+
+  --sura-cta:                #e3e829;  // amarillo del botón de acción
+  --sura-cta-hover:          #d7de17;
+  --sura-cta-press:          #c5cb15;
+
+  --sura-cian:               #00aec7;
+  --sura-lila:               #838dc8;
+  --sura-verde-agua:         #9be1e9;
+  --sura-lima-tenue:         #ecf0a1;
+
+  // ── Neutros ──────────────────────────────────────────────────────────────
+  --sura-blanco:   #ffffff;
+  --sura-gris-100: #f7f8f9;
+  --sura-gris-200: #f1f2f5;
+  --sura-gris-300: #e7e7ed;
+  --sura-gris-400: #cdced9;
+  --sura-gris-500: #a7a9bc;
+  --sura-gris-600: #6b6c7e;
+  --sura-gris-700: #495057;
+  --sura-gris-800: #393a4a;
+  --sura-gris-900: #272833;
+
+  --sura-texto:        #1c1c24;
+  --sura-texto-suave:  #6b6c7e;
+  --sura-texto-tenue:  #a7a9bc;
+
+  // ── Semánticos (color + fondo de apoyo) ──────────────────────────────────
+  --sura-exito:        #067014;
+  --sura-exito-fondo:  #def6de;
+  --sura-alerta:       #ed8b00;
+  --sura-alerta-fondo: #fff5ec;
+  --sura-error:        #d12d35;
+  --sura-error-fondo:  #fff4f3;
+  --sura-info:         #0033a0;
+  --sura-info-fondo:   #e0eaff;
+
+  // ── Tipografía ───────────────────────────────────────────────────────────
+  // SuraSans es la fuente corporativa. Si no está disponible se degrada a la
+  // pila del sistema sin romper la métrica. Ver README para autoalojarla.
+  --sura-fuente: 'SuraSans', 'Segoe UI', system-ui, -apple-system,
+                 BlinkMacSystemFont, Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  --sura-texto-base: 0.875rem;
+  --sura-texto-lg:   1.125rem;
+  --sura-texto-sm:   0.8125rem;
+
+  --sura-h1: 1.625rem;
+  --sura-h2: 1.375rem;
+  --sura-h3: 1.1875rem;
+  --sura-h4: 1rem;
+  --sura-h5: 0.875rem;
+  --sura-h6: 0.8125rem;
+
+  --sura-peso-normal:    400;
+  --sura-peso-semibold:  600;
+  --sura-peso-bold:      700;
+
+  // ── Espaciado (escala de espaciadores del tema Sura) ─────────────────────
+  --sura-espacio-1: 0.25rem;
+  --sura-espacio-2: 0.5rem;
+  --sura-espacio-3: 1rem;
+  --sura-espacio-4: 1.5rem;
+  --sura-espacio-5: 3rem;
+  --sura-espacio-6: 4.5rem;
+
+  // ── Radios ───────────────────────────────────────────────────────────────
+  --sura-radio-8:  8px;
+  --sura-radio-12: 12px;
+  --sura-radio-16: 16px;
+  --sura-radio-24: 24px;
+  --sura-radio-pill: 28px;   // los botones del sitio son de píldora
+
+  // ── Anchos de contenedor ─────────────────────────────────────────────────
+  --sura-ancho-sm: 540px;
+  --sura-ancho-md: 720px;
+  --sura-ancho-lg: 960px;
+  --sura-ancho-xl: 1248px;
+
+  // ── Sombras ──────────────────────────────────────────────────────────────
+  --sura-sombra-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+  --sura-sombra:    0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+  --sura-sombra-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}

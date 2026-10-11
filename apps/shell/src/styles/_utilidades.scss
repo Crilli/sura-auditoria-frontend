@@ -1,0 +1,217 @@
+// ============================================================================
+// Utilidades de layout y componentes propios de la marca.
+//
+// Replican las convenciones del tema Sura (que hereda de Bootstrap 4 vía Clay):
+// contenedores, escala de espaciado y el botón de píldora del CTA.
+//
+// No se importa Bootstrap completo a propósito: su reset y sus clases .btn
+// chocan con Angular Material, que es el sistema de componentes de esta app.
+// ============================================================================
+
+// ── Contenedores ───────────────────────────────────────────────────────────
+.sura-contenedor {
+  width: 100%;
+  margin-inline: auto;
+  padding-inline: var(--sura-espacio-3);
+  max-width: var(--sura-ancho-xl);
+
+  &--lg { max-width: var(--sura-ancho-lg); }
+  &--md { max-width: var(--sura-ancho-md); }
+  &--sm { max-width: var(--sura-ancho-sm); }
+}
+
+// ── Superficies ────────────────────────────────────────────────────────────
+.sura-tarjeta {
+  background: var(--sura-blanco);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-16);
+  padding: var(--sura-espacio-4);
+}
+
+.sura-panel {
+  background: var(--sura-gris-100);
+  border-radius: var(--sura-radio-12);
+  padding: var(--sura-espacio-3);
+}
+
+// ── Botón CTA de la marca (píldora amarilla) ───────────────────────────────
+// Se aplica sobre un botón de Material: class="sura-cta".
+// Se configuran los tokens del componente en vez de forzar background-color:
+// es la vía soportada por Angular Material y evita pelear por especificidad.
+.sura-cta {
+  --mat-button-protected-container-color:          var(--sura-cta);
+  --mat-button-protected-label-text-color:         var(--sura-azul-profundo);
+  --mat-button-protected-state-layer-color:        var(--sura-azul-profundo);
+  --mat-button-protected-disabled-container-color: var(--sura-gris-300);
+  --mat-button-protected-disabled-label-text-color: var(--sura-texto-tenue);
+  --mat-button-protected-container-shape:          var(--sura-radio-pill);
+  --mat-button-protected-label-text-weight:        var(--sura-peso-semibold);
+
+  --mat-button-filled-container-color:             var(--sura-cta);
+  --mat-button-filled-label-text-color:            var(--sura-azul-profundo);
+  --mat-button-filled-state-layer-color:           var(--sura-azul-profundo);
+  --mat-button-filled-disabled-container-color:    var(--sura-gris-300);
+  --mat-button-filled-disabled-label-text-color:   var(--sura-texto-tenue);
+  --mat-button-filled-container-shape:             var(--sura-radio-pill);
+
+  .mat-icon { color: var(--sura-azul-profundo); }
+
+  &:disabled .mat-icon,
+  &.mat-mdc-button-disabled .mat-icon { color: var(--sura-texto-tenue); }
+}
+
+// ── Distintivos de estado ──────────────────────────────────────────────────
+.sura-distintivo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sura-espacio-1);
+  padding: 0.2rem 0.65rem;
+  border-radius: var(--sura-radio-pill);
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-semibold);
+  line-height: 1.5;
+  white-space: nowrap;
+
+  &--info   { background: var(--sura-info-fondo);   color: var(--sura-info); }
+  &--exito  { background: var(--sura-exito-fondo);  color: var(--sura-exito); }
+  &--alerta { background: var(--sura-alerta-fondo); color: var(--sura-alerta); }
+  &--error  { background: var(--sura-error-fondo);  color: var(--sura-error); }
+  &--neutro { background: var(--sura-gris-200);     color: var(--sura-gris-700); }
+}
+
+// ── Mensajes ───────────────────────────────────────────────────────────────
+.sura-mensaje {
+  display: flex;
+  align-items: center;
+  gap: var(--sura-espacio-2);
+  padding: var(--sura-espacio-3);
+  border-radius: var(--sura-radio-12);
+  border-left: 4px solid transparent;
+  font-size: var(--sura-texto-base);
+
+  &--error  { background: var(--sura-error-fondo);  color: var(--sura-error);  border-left-color: var(--sura-error); }
+  &--alerta { background: var(--sura-alerta-fondo); color: #7a5b00;            border-left-color: var(--sura-alerta); }
+  &--info   { background: var(--sura-info-fondo);   color: var(--sura-info);   border-left-color: var(--sura-info); }
+  &--exito  { background: var(--sura-exito-fondo);  color: var(--sura-exito);  border-left-color: var(--sura-exito); }
+}
+
+// ── Edición sobre el propio dato ───────────────────────────────────────────
+// Patrón de las pantallas que se consultan y se editan sin cambiar de sitio:
+// el campo editable se edita donde se lee, y el que no se puede editar lo dice
+// con un candado y el motivo en el tooltip.
+//
+// Vive aquí y no en un componente porque lo necesita cualquier pantalla con
+// las dos modalidades, y porque la regla visual tiene que ser la misma en
+// todas: si en una el candado significa una cosa y en otra otra, deja de
+// leerse como una convención.
+
+// Control en densidad reducida, sin etiqueta propia —la etiqueta es el `<dt>`
+// de la ficha o la cabecera de la columna— y sin el hueco que Material reserva
+// para el subscript (eso se quita con `subscriptSizing="dynamic"` en la
+// plantilla). 40px en vez de los 56 por defecto: una pantalla con quince
+// controles repartidos por las secciones no aguanta la altura normal.
+.sura-campo-en-sitio {
+  width: 100%;
+
+  --mat-form-field-container-height: 40px;
+  --mat-form-field-container-vertical-padding: 8px;
+  --mat-form-field-container-text-size: var(--sura-texto-base);
+  --mat-form-field-outlined-container-shape: var(--sura-radio-8);
+
+  // Importes y cantidades se comparan de un vistazo: van a la derecha, igual
+  // que cuando se leen en una tabla.
+  &--numero input {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+// Candado del dato que no se edita. A propósito NO se pinta como un campo
+// deshabilitado —input apagado, fondo gris—: eso se lee como un fallo de la
+// pantalla o como un permiso que falta, y aquí no falta nada; es que ese dato
+// no se escribe nunca desde ahí.
+.sura-candado {
+  font-size: 15px;
+  width: 15px;
+  height: 15px;
+  vertical-align: text-bottom;
+  margin-left: var(--sura-espacio-1);
+  color: var(--sura-texto-tenue);
+  cursor: help;
+
+  // Enfocable para que el motivo también salga con teclado: Material abre el
+  // tooltip al recibir el foco, no solo al pasar el ratón.
+  &:focus-visible {
+    outline: 2px solid var(--sura-azul-primario);
+    outline-offset: 2px;
+    border-radius: 50%;
+  }
+}
+
+// El valor que acompaña al candado baja de tono: se sigue leyendo, pero deja
+// de competir con los campos en los que sí hay que trabajar.
+.sura-bloqueado {
+  color: var(--sura-texto-suave);
+  font-weight: var(--sura-peso-normal);
+}
+
+// Nota al pie de una sección: explica una regla de la pantalla, no un estado
+// ni un fallo. Por eso no reutiliza `.sura-mensaje`, que grita más de lo que
+// corresponde a algo que siempre es así.
+//
+// En su forma base cubre la sección que todavía no se edita —una lista que
+// necesita editor de filas—: gris, porque no ha fallado nada, falta una pieza.
+.sura-nota {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sura-espacio-2);
+  padding: var(--sura-espacio-2) var(--sura-espacio-3);
+  background: var(--sura-gris-100);
+  border-left: 3px solid var(--sura-gris-400);
+  border-radius: 0 var(--sura-radio-8) var(--sura-radio-8) 0;
+  font-size: var(--sura-texto-sm);
+  color: var(--sura-texto-suave);
+
+  .mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    color: var(--sura-texto-tenue);
+  }
+
+  // Una regla de negocio que conviene leer antes de tocar nada (por qué cierto
+  // dato no se edita nunca): azul informativo, no gris de segundo plano.
+  &--regla {
+    background: var(--sura-info-fondo);
+    border-left-color: var(--sura-info);
+    color: var(--sura-texto);
+
+    .mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+      color: var(--sura-info);
+    }
+  }
+}
+
+// ── Espaciado (escala del tema Sura) ───────────────────────────────────────
+@each $nombre, $token in (0: 0, 1: var(--sura-espacio-1), 2: var(--sura-espacio-2),
+                          3: var(--sura-espacio-3), 4: var(--sura-espacio-4),
+                          5: var(--sura-espacio-5)) {
+  .sura-m-#{$nombre}  { margin: #{$token}; }
+  .sura-mt-#{$nombre} { margin-top: #{$token}; }
+  .sura-mb-#{$nombre} { margin-bottom: #{$token}; }
+  .sura-p-#{$nombre}  { padding: #{$token}; }
+}
+
+// ── Texto ──────────────────────────────────────────────────────────────────
+.sura-texto-suave   { color: var(--sura-texto-suave); }
+.sura-texto-tenue   { color: var(--sura-texto-tenue); }
+.sura-etiqueta {
+  font-size: var(--sura-texto-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--sura-texto-suave);
+  font-weight: var(--sura-peso-semibold);
+}

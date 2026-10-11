@@ -1,0 +1,84 @@
+@let linea = detalle();
+@let edicion = esEdicion();
+
+<dl class="sura-ficha-datos" [class.sura-ficha-datos--edicion]="edicion"
+    [formGroup]="form()">
+  <div>
+    <dt>Número de contrato</dt>
+    <dd>
+      @if (edicion) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="numeroContrato"
+                 maxlength="30" aria-label="Número de contrato">
+        </mat-form-field>
+      } @else {
+        {{ linea.convenio.numeroContrato ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Código único contrato SIIFA</dt>
+    <dd>
+      @if (edicion) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="codigoUnicoContratoSiifa"
+                 maxlength="300" aria-label="Código único de contrato SIIFA">
+        </mat-form-field>
+      } @else {
+        {{ linea.convenio.codigoUnicoContratoSiifa ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Homólogo CUPS</dt>
+    <dd>
+      @if (edicion) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio">
+          <input matInput formControlName="homologoCups"
+                 maxlength="30" aria-label="Homólogo CUPS">
+        </mat-form-field>
+      } @else {
+        {{ linea.convenio.homologoCups ?? '—' }}
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Tarifario ISS 2001</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.convenio.codigoTarifarioIss2001 ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Tarifario ISS 2000</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.convenio.codigoTarifarioIss2000 ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Tarifario SOAT</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.convenio.codigoTarifarioSoat ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+  <div>
+    <dt>Múltiples CUPS homólogos</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.convenio.multiplesCupsHomologos ?? '—' }}
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.catalogo" />
+      }
+    </dd>
+  </div>
+</dl>

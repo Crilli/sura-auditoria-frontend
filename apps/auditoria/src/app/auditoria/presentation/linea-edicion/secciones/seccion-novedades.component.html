@@ -1,0 +1,7 @@
+<ul class="novedades">
+  @for (novedad of detalle().novedades; track novedad.id) {
+    <li [class.bloqueante]="novedad.severidad === 'BLOQUEANTE'">
+      <strong>{{ novedad.codigo }}</strong> — {{ novedad.descripcion }}
+    </li>
+  }
+</ul>

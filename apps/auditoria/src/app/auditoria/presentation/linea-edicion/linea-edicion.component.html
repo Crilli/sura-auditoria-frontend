@@ -1,0 +1,350 @@
+<div class="edicion-container">
+
+  <!-- La salida a la cuenta está siempre visible y nunca se deshabilita -->
+  <div class="barra-superior">
+    <button mat-button type="button"
+            id="btn-volver-cuenta"
+            class="volver"
+            (click)="volverACuenta()">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a la cuenta {{ codigo() }}
+    </button>
+
+    @if (detalle(); as linea) {
+      <span class="posicion">
+        Línea #{{ linea.numeroLinea }} · ref. {{ linea.referencia }}
+      </span>
+
+      <!-- El modo se dice con letras, no solo con la ausencia del formulario. -->
+      <span class="modo" [class.modo--edicion]="esEdicion()">
+        <mat-icon aria-hidden="true">{{ esEdicion() ? 'edit' : 'visibility' }}</mat-icon>
+        {{ esEdicion() ? 'Edición' : 'Consulta' }}
+      </span>
+
+      @if (esEdicion()) {
+        <button mat-stroked-button type="button" id="btn-salir-edicion"
+                [disabled]="ocupado()" (click)="volverALectura()"
+                matTooltip="Descarta lo que no hayas guardado">
+          <mat-icon>visibility</mat-icon>
+          Solo consultar
+        </button>
+      } @else if (linea.editable) {
+        <button mat-raised-button type="button" class="sura-cta" id="btn-entrar-edicion"
+                (click)="irAEdicion()">
+          <mat-icon>edit</mat-icon>
+          Editar línea
+        </button>
+      }
+    }
+  </div>
+
+  @if (cargando()) {
+    <div class="cargando" role="status">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Cargando la línea…</p>
+    </div>
+  }
+
+  @if (errorComando()) {
+    <div class="sura-mensaje sura-mensaje--error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorComando() }}</span>
+    </div>
+  }
+
+  @if (detalle(); as linea) {
+
+    <h2>
+      Línea #{{ linea.numeroLinea }} — {{ linea.codigoProcedimiento }}
+      @if (linea.descripcionProcedimiento) {
+        <span class="sura-subtitulo">{{ linea.descripcionProcedimiento }}</span>
+      }
+    </h2>
+
+    @if (esEdicion()) {
+      <!--
+        Las dos reglas que no se deducen mirando la pantalla: qué significa el
+        candado y qué pasa si dejas un campo en blanco. Se dicen una vez arriba
+        en vez de repetirlas campo a campo.
+      -->
+      <p class="sura-nota sura-nota--regla" role="note">
+        <mat-icon aria-hidden="true">lock_person</mat-icon>
+        <span>
+          Los campos marcados con un candado no se editan desde aquí: pasa el
+          cursor por el candado para ver por qué. Los datos del afiliado son uno
+          de ellos, porque la cuenta pertenece a un lesionado y cambiarlos
+          equivaldría a readjudicar la línea bajo otra póliza.
+          Al guardar, vaciar un texto lo borra en OHI; vaciar una fecha la deja
+          como está.
+        </span>
+      </p>
+    }
+
+    <!--
+      Un solo formulario envuelve todo el detalle: aquí vive el `(ngSubmit)` y
+      el único control que no es un dato de la línea, el modo de recálculo.
+      Los controles de la línea están repartidos por los hijos, y cada uno
+      vuelve a declarar su propio `[formGroup]` sobre el mismo `FormGroup`
+      porque `formControlName` no lo busca más arriba de su componente.
+
+      En consulta no se monta ni un control —de eso se encarga el `esEdicion`
+      que recibe cada hijo— y el guardado sigue cerrado por `puedeGuardar()`,
+      que rechaza cualquier intento fuera del modo edición. Eso es lo que
+      protege de `getRawValue()`, no la ausencia del `<form>`.
+    -->
+    <form [formGroup]="form" (ngSubmit)="guardarYSiguiente()">
+
+      <sura-ficha-identidad
+        [detalle]="linea" [form]="form" [esEdicion]="esEdicion()" />
+
+      <!--
+        El detalle en plano era un muro de texto. Se reparte en secciones; la
+        ficha de arriba queda siempre visible porque es la identidad de la línea,
+        y cada cabecera lleva un resumen para poder recorrer la cuenta sin abrir
+        nada. Las secciones vacías no se pintan: un panel que dice «—» estorba.
+
+        Los paneles se quedan en esta plantilla porque `MatAccordion` localiza
+        los suyos con `@ContentChildren`: metidos dentro del hijo dejarían de
+        ser contenido del acordeón. El hijo pinta el cuerpo del panel.
+      -->
+      <mat-accordion multi class="sura-secciones">
+
+        <mat-expansion-panel [expanded]="panelValores()"
+                             (opened)="panelValores.set(true)"
+                             (closed)="panelValores.set(false)">
+          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+            <mat-panel-title>
+              <mat-icon aria-hidden="true">payments</mat-icon>
+              Valores y cantidades
+            </mat-panel-title>
+            <mat-panel-description>{{ resumenValores(linea) }}</mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <sura-seccion-valores
+            [detalle]="linea" [form]="form" [esEdicion]="esEdicion()" />
+        </mat-expansion-panel>
+
+        @if (linea.glosas.length > 0) {
+          <mat-expansion-panel [expanded]="panelGlosa()"
+                               (opened)="panelGlosa.set(true)"
+                               (closed)="panelGlosa.set(false)">
+            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+              <mat-panel-title>
+                <mat-icon aria-hidden="true">receipt_long</mat-icon>
+                Detalle de la glosa
+                <span class="sura-contador">{{ linea.glosas.length }}</span>
+              </mat-panel-title>
+              <mat-panel-description>
+                {{ linea.valorGlosado | currency:'COP':'symbol':'1.0-0' }}
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <sura-seccion-glosa [detalle]="linea" [esEdicion]="esEdicion()" />
+          </mat-expansion-panel>
+        }
+
+        @if (linea.diagnosticos.length > 0) {
+          <mat-expansion-panel [expanded]="panelDiagnosticos()"
+                               (opened)="panelDiagnosticos.set(true)"
+                               (closed)="panelDiagnosticos.set(false)">
+            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+              <mat-panel-title>
+                <mat-icon aria-hidden="true">coronavirus</mat-icon>
+                Diagnósticos
+                <span class="sura-contador">{{ linea.diagnosticos.length }}</span>
+              </mat-panel-title>
+              <mat-panel-description>{{ resumenDiagnosticos(linea) }}</mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <sura-seccion-diagnosticos [detalle]="linea" [esEdicion]="esEdicion()" />
+          </mat-expansion-panel>
+        }
+
+        @if (linea.novedades.length > 0) {
+          <mat-expansion-panel [expanded]="panelNovedades()"
+                               (opened)="panelNovedades.set(true)"
+                               (closed)="panelNovedades.set(false)">
+            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+              <mat-panel-title>
+                <mat-icon aria-hidden="true">campaign</mat-icon>
+                Novedades
+                <span class="sura-contador">{{ linea.novedades.length }}</span>
+              </mat-panel-title>
+              <mat-panel-description>{{ resumenNovedades(linea) }}</mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <sura-seccion-novedades [detalle]="linea" />
+          </mat-expansion-panel>
+        }
+
+        @if (linea.pendientes.length > 0) {
+          <mat-expansion-panel [expanded]="panelPendientes()"
+                               (opened)="panelPendientes.set(true)"
+                               (closed)="panelPendientes.set(false)">
+            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+              <mat-panel-title>
+                <mat-icon aria-hidden="true">pending_actions</mat-icon>
+                Motivos pendientes
+                <span class="sura-contador">{{ linea.pendientes.length }}</span>
+              </mat-panel-title>
+              <mat-panel-description>{{ resumenPendientes(linea) }}</mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <sura-seccion-pendientes [detalle]="linea" />
+          </mat-expansion-panel>
+        }
+
+        <mat-expansion-panel [expanded]="panelPrestacion()"
+                             (opened)="panelPrestacion.set(true)"
+                             (closed)="panelPrestacion.set(false)">
+          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+            <mat-panel-title>
+              <mat-icon aria-hidden="true">medical_services</mat-icon>
+              Prestación
+            </mat-panel-title>
+            <mat-panel-description>{{ resumenPrestacion(linea) }}</mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <sura-seccion-prestacion
+            [detalle]="linea" [form]="form" [esEdicion]="esEdicion()" />
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="panelConvenio()"
+                             (opened)="panelConvenio.set(true)"
+                             (closed)="panelConvenio.set(false)">
+          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+            <mat-panel-title>
+              <mat-icon aria-hidden="true">handshake</mat-icon>
+              Datos de convenio
+            </mat-panel-title>
+            <mat-panel-description>{{ resumenConvenio(linea) }}</mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <sura-seccion-convenio
+            [detalle]="linea" [form]="form" [esEdicion]="esEdicion()" />
+        </mat-expansion-panel>
+
+        <mat-expansion-panel [expanded]="panelOtros()"
+                             (opened)="panelOtros.set(true)"
+                             (closed)="panelOtros.set(false)">
+          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px">
+            <mat-panel-title>
+              <mat-icon aria-hidden="true">info</mat-icon>
+              Otros datos y siniestro
+            </mat-panel-title>
+            <mat-panel-description>{{ resumenOtros(linea) }}</mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <sura-seccion-otros
+            [detalle]="linea" [form]="form" [esEdicion]="esEdicion()" />
+        </mat-expansion-panel>
+
+      </mat-accordion>
+
+      @if (!linea.editable) {
+        <div class="sura-mensaje sura-mensaje--alerta" role="status">
+          <mat-icon>lock</mat-icon>
+          <span>
+            @if (linea.bloqueada) { Esta línea está bloqueada }
+            @else if (linea.reemplazada) { Esta línea fue reemplazada }
+            @else { Esta línea no es editable }
+            : solo puede consultarla y pasar a la siguiente.
+            @if (edicionDenegada()) {
+              Se pidió abrirla en edición y se abrió en consulta.
+            }
+          </span>
+        </div>
+      }
+
+      @if (esEdicion()) {
+        <!--
+          El modo de recálculo no es un dato de la línea sino una decisión del
+          guardado, así que se queda junto a los botones y no en los paneles.
+        -->
+        <div class="form-row form-row--guardado">
+          <mat-form-field appearance="outline">
+            <mat-label>Modo de recálculo</mat-label>
+            <mat-select formControlName="modoRecalculo">
+              <mat-option value="EN_CASCADA">En Cascada</mat-option>
+              <mat-option value="AISLADO">Aislado</mat-option>
+            </mat-select>
+            @if (form.controls.modoRecalculo.hasError('required')) {
+              <mat-error>El modo de recálculo es obligatorio</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <div class="form-actions">
+          <button mat-button type="button"
+                  id="btn-cancelar"
+                  [disabled]="ocupado()"
+                  (click)="volverACuenta()">
+            Cancelar
+          </button>
+
+          @if (linea.editable) {
+            <button mat-stroked-button type="button"
+                    id="btn-guardar"
+                    [disabled]="ocupado() || form.invalid"
+                    (click)="guardar()">
+              Guardar
+            </button>
+
+            <button mat-raised-button type="submit"
+                    class="sura-cta"
+                    id="btn-guardar-siguiente"
+                    [disabled]="ocupado() || form.invalid"
+                    [matTooltip]="esUltima()
+                      ? 'Guarda y regresa a la cuenta: es la última línea'
+                      : 'Guarda esta línea y, solo si el guardado es exitoso, abre la siguiente'">
+              @if (avanzando()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                <mat-icon>{{ iconoAvance() }}</mat-icon>
+              }
+              <span class="texto-boton">{{ etiquetaAvance() }}</span>
+            </button>
+          } @else {
+            <button mat-raised-button type="button"
+                    class="sura-cta"
+                    id="btn-siguiente-sin-guardar"
+                    [disabled]="ocupado()"
+                    (click)="siguienteSinGuardar()">
+              @if (!esUltima()) {
+                <mat-icon>arrow_forward</mat-icon>
+              }
+              <span class="texto-boton">{{ etiquetaSinGuardar() }}</span>
+            </button>
+          }
+        </div>
+
+        @if (avanzando()) {
+          <p class="nota-espera" role="status">
+            Esperando la confirmación del servicio. La siguiente línea no se abrirá
+            hasta que el cambio quede guardado.
+          </p>
+        }
+      } @else {
+        <!--
+          En consulta no hay nada que guardar, pero sí hay que poder recorrer la
+          cuenta línea a línea: es como se revisa antes de decidir qué editar.
+        -->
+        <div class="form-actions">
+          <button mat-button type="button" id="btn-volver-consulta"
+                  (click)="volverACuenta()">
+            Volver a la cuenta
+          </button>
+          <button mat-raised-button type="button" class="sura-cta"
+                  id="btn-siguiente-consulta"
+                  [disabled]="ocupado()"
+                  (click)="siguienteSinGuardar()">
+            @if (!esUltima()) { <mat-icon>arrow_forward</mat-icon> }
+            <span class="texto-boton">{{ etiquetaSinGuardar() }}</span>
+          </button>
+        </div>
+      }
+
+    </form>
+  }
+
+</div>

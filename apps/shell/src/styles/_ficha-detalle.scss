@@ -1,0 +1,229 @@
+// ============================================================================
+// Patrones de las pantallas de detalle: la ficha de datos en rejilla, las
+// tablas compactas, el contador de la cabecera y el acordeón de secciones.
+//
+// Están aquí y no en el SCSS de cada componente porque el detalle de una línea
+// se reparte entre un contenedor y una decena de hijos de presentación, y todos
+// pintan las mismas rejillas y las mismas tablas. Metido en los hijos, el bulto
+// común se duplicaría tantas veces como hijos haya y cada uno lo contaría
+// entero contra el presupuesto `anyComponentStyle` (4 kB de aviso, 8 kB de
+// error en apps/shell/project.json).
+//
+// Importante: esto se incorpora por `styles.scss`, NUNCA con un `@use` desde el
+// SCSS de un componente. Un `@use` inlinea las reglas en ese componente y las
+// vuelve a contar contra su presupuesto, que es justo lo que se quiere evitar.
+//
+// Por eso también llevan prefijo `sura-`, como las de `_utilidades.scss`: son
+// clases globales y sin prefijo colisionarían con las locales de cualquier
+// componente.
+//
+// Y por eso los selectores pueden cruzar la frontera de un componente
+// (`.sura-secciones .sura-ficha-datos`): el CSS global no lleva los atributos
+// de encapsulación, así que alcanza a la rejilla del hijo aunque la clase
+// `.sura-secciones` esté en la plantilla del padre. Esa misma regla escrita en
+// el SCSS del contenedor no alcanzaría nada.
+// ============================================================================
+
+// ── Ficha de datos: etiqueta arriba, valor debajo, en rejilla ───────────────
+.sura-ficha-datos {
+  display: grid;
+  // 200px en vez de 160: los códigos de OHI son largos (el único de contrato
+  // SIIFA son 64 caracteres y los códigos propios de prestador rondan los 28).
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sura-espacio-3);
+  margin: 0 0 var(--sura-espacio-4);
+  padding: var(--sura-espacio-3);
+  background: var(--sura-gris-100);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-12);
+
+  // Sin esto los textos se solapaban. Un ítem de grid no baja de su contenido
+  // mínimo, y un código sin espacios (NI_8909018262_MOSYMMQ_PROPIO) no tiene
+  // dónde partirse: la celda se desbordaba y se montaba sobre la de al lado.
+  > div {
+    min-width: 0;
+  }
+
+  dt {
+    font-size: var(--sura-texto-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--sura-texto-suave);
+    font-weight: var(--sura-peso-semibold);
+    // La etiqueta tampoco: «CÓDIGO DE AUTORIZACIÓN» no cabe en una línea.
+    overflow-wrap: break-word;
+  }
+
+  dd {
+    margin: var(--sura-espacio-1) 0 0;
+    font-weight: var(--sura-peso-bold);
+    color: var(--sura-texto);
+    min-width: 0;
+    // `anywhere` y no `break-word`: hace falta poder partir dentro de una
+    // palabra sin espacios, que es justo el caso de estos códigos.
+    overflow-wrap: anywhere;
+  }
+
+  // `.sura-ficha-datos dd` ya fija color y peso, y le ganaba a la clase suelta:
+  // sin este selector el dato con candado seguía saliendo en negrita.
+  dd.sura-bloqueado {
+    color: var(--sura-texto-suave);
+    font-weight: var(--sura-peso-normal);
+  }
+}
+
+// En edición cada celda lleva un control, y las etiquetas no miden lo mismo:
+// «CÓDIGO ÚNICO CONTRATO SIIFA» ocupa dos renglones y «HOMÓLOGO CUPS» uno, así
+// que los campos de una misma fila salían a distinta altura y la rejilla se
+// leía desordenada. Se empuja el valor al pie de su celda para que todos los
+// controles de una fila arranquen a la misma línea.
+.sura-ficha-datos--edicion {
+  > div { display: flex; flex-direction: column; }
+
+  dd {
+    margin-top: auto;
+    padding-top: var(--sura-espacio-1);
+  }
+}
+
+// Un campo de 100 ó 300 caracteres no se lee en una celda de 200px: ocupa la
+// rejilla entera.
+.sura-celda-ancha { grid-column: 1 / -1; }
+
+// ── Segundos renglones ─────────────────────────────────────────────────────
+// El nombre bajo el documento, el catálogo bajo el código. Se distinguen por
+// tamaño y color, no por otra etiqueta.
+.sura-subtitulo,
+.sura-dato-secundario {
+  display: block;
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-normal);
+  color: var(--sura-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+// ── Tablas compactas del detalle ───────────────────────────────────────────
+.sura-tabla-detalle {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: var(--sura-espacio-4);
+  font-size: var(--sura-texto-base);
+
+  th, td {
+    text-align: left;
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    border-bottom: 1px solid var(--sura-gris-300);
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+
+  td:nth-child(2), td:nth-child(3) { font-variant-numeric: tabular-nums; }
+
+  th {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+    font-weight: 600;
+  }
+
+  // Solo en la tabla de importes: la primera columna lleva el concepto y,
+  // debajo, la cláusula de tarifa, que es una frase larga, así que se le deja
+  // el ancho y se aprietan las dos numéricas. En la de diagnósticos esta regla
+  // estrujaba la columna «Secuencia» hasta partirla letra a letra.
+  &--importes {
+    td:nth-child(2), td:nth-child(3),
+    th:nth-child(2), th:nth-child(3) { width: 14ch; white-space: nowrap; }
+  }
+
+  // La de diagnósticos: la secuencia es un número de una cifra.
+  &--diagnosticos {
+    td:first-child, th:first-child { width: 7rem; white-space: nowrap; }
+  }
+}
+
+// En edición las dos columnas numéricas llevan un control dentro: con los 14ch
+// de la tabla de lectura no cabe ni el importe. Y la celda deja de alinearse
+// por la primera línea de texto: lo que tiene que cuadrar es el control con el
+// concepto de su fila.
+.sura-tabla-detalle--importes.sura-tabla-detalle--editable {
+  td:nth-child(2), th:nth-child(2) { width: 12rem; white-space: normal; }
+  td:nth-child(3), th:nth-child(3) { width: 9rem;  white-space: normal; }
+
+  td { vertical-align: middle; }
+}
+
+// ── Contador junto al título de una sección ────────────────────────────────
+// Cuántos diagnósticos, novedades o glosas trae el bloque, para saberlo sin
+// abrirlo.
+.sura-contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.5rem;
+  padding-inline: var(--sura-espacio-1);
+  border-radius: 999px;
+  background: var(--sura-azul-tenue);
+  color: var(--sura-azul-profundo);
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-bold);
+}
+
+// ── Acordeón de secciones del detalle ──────────────────────────────────────
+//
+// Mismo patrón que la ficha de la cuenta (cuenta-detalle): paneles de 44px con
+// título, icono y un resumen a la derecha que se lee sin abrir.
+.sura-secciones {
+  display: block;
+  margin-bottom: var(--sura-espacio-4);
+
+  .mat-expansion-panel + .mat-expansion-panel {
+    margin-top: var(--sura-espacio-2);
+  }
+
+  // Material redondea solo el primero y el último de un acordeón; aquí todos
+  // los paneles son hermanos sueltos y sin esto los de en medio salen a pico.
+  .mat-expansion-panel {
+    border: 1px solid var(--sura-gris-300);
+    border-radius: var(--sura-radio-12);
+    box-shadow: none;
+  }
+
+  mat-panel-title {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    flex: 0 0 auto;
+    margin-right: var(--sura-espacio-4);
+    font-weight: var(--sura-peso-semibold);
+    color: var(--sura-azul-institucional);
+
+    mat-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+      color: var(--sura-azul-primario);
+    }
+  }
+
+  // El resumen es informativo: no compite con el título y se recorta si no cabe.
+  mat-panel-description {
+    justify-content: flex-end;
+    margin-right: var(--sura-espacio-2);
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Dentro de un panel la rejilla ya está contenida: sobra su propio fondo. El
+  // selector cruza al hijo que pinta la rejilla, que es lo que permite el CSS
+  // global.
+  .sura-ficha-datos {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 0;
+  }
+
+  .sura-tabla-detalle { margin-bottom: 0; }
+}

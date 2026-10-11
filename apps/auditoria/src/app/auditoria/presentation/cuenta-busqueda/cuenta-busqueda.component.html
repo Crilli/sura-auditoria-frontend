@@ -1,0 +1,48 @@
+<div class="busqueda-container">
+  <mat-card class="busqueda-card">
+    <mat-card-header class="encabezado">
+      <mat-card-title>Auditoría de cuentas médicas</mat-card-title>
+      <mat-card-subtitle>Consulte una cuenta por su código de negocio</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-form-field appearance="outline" class="campo-busqueda">
+        <mat-label>Código de cuenta</mat-label>
+        <input matInput [formControl]="codigoCtrl"
+               placeholder="Ej. GT-106586883036"
+               id="input-codigo-cuenta"
+               (keyup.enter)="buscar()">
+        <mat-icon matSuffix>search</mat-icon>
+        @if (codigoCtrl.hasError('required')) {
+          <mat-error>El código es requerido</mat-error>
+        }
+      </mat-form-field>
+
+      <button mat-raised-button
+              class="sura-cta"
+              id="btn-buscar-cuenta"
+              [disabled]="facade.loading()"
+              (click)="buscar()">
+        @if (facade.loading()) {
+          <mat-spinner diameter="20"></mat-spinner>
+        }
+        @if (!facade.loading()) {
+          <mat-icon>search</mat-icon>
+        }
+        @if (!facade.loading()) {
+          <span>Buscar</span>
+        }
+      </button>
+    </mat-card-content>
+
+    @if (facade.cuentaError()) {
+      <mat-card-content>
+        <div class="error-banner" role="alert">
+          <mat-icon>error_outline</mat-icon>
+          <span>{{ facade.cuentaError()?.message }}</span>
+        </div>
+      </mat-card-content>
+    }
+
+
+  </mat-card>
+</div>
