@@ -9,6 +9,11 @@
 // Después de `utilidades`: redefine `.sura-bloqueado` dentro de la ficha, y así
 // el orden del fichero acompaña a la especificidad en vez de contradecirla.
 @use './styles/ficha-detalle';
+// Lo comparten el listado de líneas y el de pendientes.
+@use './styles/paginador';
+// Igual que el paginador: fuera del componente por presupuesto de estilos, con
+// los selectores anidados para no perder el nivel de especificidad.
+@use './styles/resolucion-masiva';
 
 // ── Base ───────────────────────────────────────────────────────────────────
 * { box-sizing: border-box; }

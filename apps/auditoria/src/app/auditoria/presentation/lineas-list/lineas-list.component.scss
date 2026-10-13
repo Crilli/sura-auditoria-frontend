@@ -73,55 +73,8 @@ table {
   margin-bottom: var(--sura-espacio-3);
 }
 
-.paginador {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--sura-espacio-3);
-  padding: var(--sura-espacio-3) var(--sura-espacio-4);
-  background-color: var(--sura-gris-100);
-  border-top: 1px solid var(--sura-gris-300);
-
-  &__rango {
-    color: var(--sura-texto-suave);
-    font-size: var(--sura-texto-sm);
-    font-weight: var(--sura-peso-semibold);
-  }
-
-  &__controles {
-    display: flex;
-    align-items: center;
-    gap: var(--sura-espacio-1);
-    margin-inline: auto;
-  }
-
-  &__numero {
-    min-width: 40px;
-    padding-inline: var(--sura-espacio-2);
-    color: var(--sura-texto-suave);
-    font-weight: var(--sura-peso-semibold);
-
-    &.paginador__numero--activa {
-      background-color: var(--sura-azul-institucional);
-      color: var(--sura-blanco);
-      pointer-events: none;
-    }
-  }
-
-  &__corte {
-    padding-inline: var(--sura-espacio-1);
-    color: var(--sura-texto-tenue);
-  }
-
-  &__aviso {
-    display: flex;
-    align-items: center;
-    gap: var(--sura-espacio-2);
-    font-size: var(--sura-texto-sm);
-    color: var(--sura-texto-suave);
-  }
-}
+// El bloque `.paginador` vive ahora en apps/shell/src/styles/_paginador.scss:
+// lo comparte con el listado de pendientes.
 
 // Celda de dos renglones: el código arriba y su descripción debajo.
 //

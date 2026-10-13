@@ -2,10 +2,101 @@
 
   <div class="header">
     <h2>Pendientes de la Cuenta</h2>
-    @if (facade.sinResolver().length > 0) {
-      <mat-chip color="warn" highlighted>{{ facade.sinResolver().length }} sin resolver</mat-chip>
+    @if (facade.totalCuenta() > 0) {
+      <mat-chip color="warn" highlighted>{{ facade.totalCuenta() }} sin resolver</mat-chip>
+      <!--
+        Lo que el auditor necesita saber antes que nada es cuánto le impide
+        cerrar la cuenta, que no siempre es todo: fuera de adjudicación manual
+        los de sola adjudicación no frenan el envío.
+      -->
+      <mat-chip class="chip-bloqueante" highlighted
+                matTooltip="Impiden enviar la cuenta en el estado en que está">
+        <mat-icon>block</mat-icon>
+        {{ facade.totalBloqueantes() }} bloquean el envío
+      </mat-chip>
+      @if (facade.totalNoBloqueantes() > 0) {
+        <span class="chip-aparte">
+          · {{ facade.totalNoBloqueantes() }} no lo bloquean
+        </span>
+      }
     }
   </div>
+
+  <!--
+    Resultado de la última resolución múltiple. Va arriba, antes incluso de los
+    errores, y NO desaparece solo: un «se resolvieron 41 de 47» que se esfumara
+    a los tres segundos dejaría al auditor dando por hechas las seis que no se
+    resolvieron. Se cierra pulsando.
+  -->
+  @if (resultadoMasivo(); as resultado) {
+    <div class="resultado-masivo sura-mensaje"
+         [class.sura-mensaje--exito]="resultado.desenlace === 'COMPLETO'"
+         [class.sura-mensaje--alerta]="resultado.desenlace === 'PARCIAL'"
+         [class.sura-mensaje--error]="resultado.desenlace === 'FALLIDO'"
+         [class.sura-mensaje--info]="resultado.desenlace === 'EN_CURSO'"
+         role="alert">
+      <div class="resultado-masivo__cabecera">
+        <mat-icon>
+          @switch (resultado.desenlace) {
+            @case ('COMPLETO') { task_alt }
+            @case ('PARCIAL')  { rule }
+            @case ('FALLIDO')  { error_outline }
+            @default           { hourglass_top }
+          }
+        </mat-icon>
+        <strong>{{ ETIQUETA_DESENLACE[resultado.desenlace] }}</strong>
+        <button mat-icon-button class="resultado-masivo__cerrar"
+                (click)="descartarResultado()"
+                matTooltip="Descartar este aviso" aria-label="Descartar">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      @switch (resultado.desenlace) {
+        @case ('COMPLETO') {
+          <p>Los motivos seleccionados quedaron resueltos.</p>
+        }
+        @case ('EN_CURSO') {
+          <!--
+            Ni éxito ni fracaso: el sistema de registro aceptó la operación y
+            sigue trabajando. Se dice explícitamente que no se repita, porque
+            resolver no es idempotente y reintentar readjudicaría dos veces.
+          -->
+          <p>
+            El sistema de registro aceptó la operación y sigue trabajando en ella.
+            <strong>No la repita</strong>: volver a lanzarla readjudicaría la cuenta
+            otra vez. Recargue los pendientes en un momento para ver el resultado.
+          </p>
+        }
+        @default {
+          <p>
+            {{ resultado.fallos.length }}
+            {{ resultado.fallos.length === 1 ? 'motivo o elemento no se pudo resolver'
+                                             : 'motivos o elementos no se pudieron resolver' }}.
+            La lista de abajo ya refleja lo que quedó.
+          </p>
+        }
+      }
+
+      @if (resultado.fallos.length > 0) {
+        <ul class="resultado-masivo__fallos">
+          @for (fallo of resultado.fallos; track fallo.codigo + fallo.elemento) {
+            <li>
+              <span class="resultado-masivo__codigo">{{ fallo.codigo }}</span>
+              {{ fallo.detalle }}
+            </li>
+          }
+        </ul>
+      }
+
+      @if (resultado.referencias.length > 0) {
+        <p class="resultado-masivo__referencias">
+          Operación en el sistema de registro:
+          {{ resultado.referencias.join(', ') }}
+        </p>
+      }
+    </div>
+  }
 
   @if (facade.errorComando()) {
     <div class="error-banner">
@@ -21,17 +112,391 @@
     </div>
   }
 
+  <!--
+    Filtro por motivo. El auditor no persigue pendientes sueltos: persigue una
+    causa («¿qué líneas están glosadas?»). Al elegir un motivo la consulta se
+    rehace en el servicio con ese código y la tabla deja solo sus filas — las
+    líneas que lo tienen, o los pendientes de cabecera si el motivo es de ese
+    nivel, que es donde se resuelve.
+
+    Las opciones salen de GET /pendientes/motivos, no de la página a la vista:
+    con el listado paginado, agrupar aquí solo vería veinticinco filas.
+  -->
+  @if (facade.motivos().length > 0 || facade.hayAlgunFiltro()) {
+    <!--
+      Se pinta también con el agregado aún en vuelo si hay un filtro puesto: el
+      recorrido que lo calcula tarda ~10 s en la cuenta mayor, y durante ese rato
+      la sección entera desaparecía — con ella, el único botón para soltar el
+      filtro que estaba acotando la tabla.
+    -->
+    <!--
+      Filtro por bloqueo. Va antes que el de motivo porque es la pregunta que se
+      hace primero: «¿qué me impide cerrar esto?». Los dos filtros se componen —se
+      mandan juntos al servicio—, pero son independientes: el selector de motivos
+      de abajo sigue listando los de toda la cuenta, y lo que cambia con este son
+      los contadores de sus botones, que pasan a contar dentro del motivo activo.
+    -->
+    <section class="filtro-bloqueo" aria-label="Filtrar por si bloquea el envío">
+      <mat-button-toggle-group [value]="facade.filtroBloqueo()"
+                               (change)="filtrarPorBloqueo($event.value)"
+                               [disabled]="ocupado()"
+                               aria-label="Bloqueo del envío"
+                               hideSingleSelectionIndicator>
+        <mat-button-toggle value="TODOS">
+          Todos ({{ facade.totalDelAmbito() }})
+        </mat-button-toggle>
+        <!--
+          Un grupo con cero no se puede pulsar: llevaría a una tabla vacía y a
+          una ida al servicio que ya se sabe que no devuelve nada.
+        -->
+        <mat-button-toggle value="BLOQUEANTES"
+                           [disabled]="facade.totalBloqueantes() === 0"
+                           matTooltip="Pendientes que impiden enviar la cuenta">
+          <mat-icon>block</mat-icon>
+          Bloquean ({{ facade.totalBloqueantes() }})
+        </mat-button-toggle>
+        <!--
+          En adjudicación manual este grupo está vacío por definición: se
+          desactiva con el motivo a la vista, en vez de dejar pulsarlo para
+          llegar a una tabla en blanco.
+        -->
+        <mat-button-toggle value="NO_BLOQUEANTES"
+                           [disabled]="todoBloquea() || facade.totalNoBloqueantes() === 0"
+                           [matTooltip]="todoBloquea()
+                             ? 'La cuenta está en adjudicación manual: ahí todo pendiente sin resolver bloquea el envío'
+                             : 'Pendientes que no impiden enviar la cuenta'">
+          No bloquean ({{ facade.totalNoBloqueantes() }})
+        </mat-button-toggle>
+      </mat-button-toggle-group>
+
+      @if (todoBloquea()) {
+        <p class="filtro-bloqueo__nota" role="status">
+          <mat-icon>info_outline</mat-icon>
+          En <strong>adjudicación manual</strong> bloquea el envío todo pendiente sin
+          resolver, también los de sola adjudicación.
+        </p>
+      } @else if (veredictoIncierto()) {
+        <p class="filtro-bloqueo__nota filtro-bloqueo__nota--aviso" role="status">
+          <mat-icon>help_outline</mat-icon>
+          El estado de esta cuenta no está traducido al catálogo interno, así que
+          <strong>qué bloquea el envío es una conjetura</strong>: se aplica el criterio
+          general (solo frenan los que no son de sola adjudicación).
+        </p>
+      }
+
+      @if (facade.hayAlgunFiltro()) {
+        <button mat-button color="primary" (click)="limpiarTodosLosFiltros()">
+          Quitar todos los filtros
+        </button>
+      }
+    </section>
+
+    <section class="filtro-motivo" aria-label="Filtrar por motivo pendiente">
+      <mat-form-field appearance="outline" class="filtro-motivo__selector">
+        <mat-label>Filtrar por motivo</mat-label>
+        <mat-select [value]="facade.motivoFiltrado()"
+                    (selectionChange)="filtrarPor($event.value)"
+                    [disabled]="ocupado()"
+                    id="select-motivo">
+          <mat-option [value]="null">
+            Todos los motivos ({{ facade.motivos().length }})
+          </mat-option>
+          @for (motivo of facade.motivos(); track motivo.codigo) {
+            <mat-option [value]="motivo.codigo">
+              @if (motivo.bloqueante) {
+                <mat-icon class="filtro-motivo__bloqueo">block</mat-icon>
+              }
+              {{ motivo.codigo }}
+              @if (motivo.descripcion) { — {{ motivo.descripcion }} }
+              <span class="filtro-motivo__alcance">
+                · {{ alcanceDe(motivo) }} · {{ motivo.sinResolver }} sin resolver
+                · {{ motivo.bloqueante ? 'bloquea el envío' : 'no bloquea' }}
+              </span>
+            </mat-option>
+          }
+        </mat-select>
+        <mat-hint>{{ facade.motivos().length }} motivos distintos en esta cuenta</mat-hint>
+      </mat-form-field>
+
+      @if (facade.motivoActivo(); as motivo) {
+        <div class="filtro-motivo__activo" role="status">
+          <mat-chip highlighted color="primary">
+            {{ motivo.codigo }}
+            <button matChipRemove aria-label="Quitar el filtro" (click)="limpiarFiltro()">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip>
+          <span class="filtro-motivo__detalle">
+            {{ alcanceDe(motivo) }} · {{ motivo.sinResolver }} sin resolver
+          </span>
+        </div>
+      }
+    </section>
+  } @else if (facade.cargandoMotivos()) {
+    <p class="filtro-motivo__cargando" role="status">Recopilando los motivos de la cuenta…</p>
+  } @else if (facade.errorMotivos()) {
+    <!--
+      Sin el agregado no hay filtro, y la tabla sigue funcionando: se dice que
+      falta, en vez de dejar un hueco que parece que la cuenta no tiene motivos.
+    -->
+    <div class="error-banner">
+      <mat-icon>filter_alt_off</mat-icon>
+      <span>No se pudieron recopilar los motivos de la cuenta: el filtro no está disponible.</span>
+    </div>
+  }
+
+  <!--
+    Selección múltiple. La unidad es el MOTIVO, no la fila: es lo único que el
+    sistema de registro sabe resolver. «Marcar todos» significa todos los
+    motivos de la CUENTA —24 en el peor caso medido—, no los de la página; sobre
+    filas habría significado «25 de 3.507», que es la clase de «todo» que
+    engaña.
+  -->
+  @if (facade.motivos().length > 0) {
+    <section class="seleccion-masiva" aria-label="Resolución múltiple de pendientes">
+
+      <div class="seleccion-masiva__acciones">
+        @if (todosMarcados()) {
+          <button mat-button (click)="desmarcarTodos()" [disabled]="resolviendoEnMasa()">
+            <mat-icon>deselect</mat-icon>
+            Quitar la selección
+          </button>
+        } @else {
+          <button mat-button color="primary" id="btn-marcar-todos-pend"
+                  (click)="marcarTodos()" [disabled]="resolviendoEnMasa()"
+                  matTooltip="Marca los motivos de toda la cuenta, no solo los de esta página">
+            <mat-icon>select_all</mat-icon>
+            {{ facade.motivos().length === 1
+                 ? 'Marcar el único motivo de la cuenta'
+                 : 'Marcar los ' + facade.motivos().length + ' motivos de la cuenta' }}
+          </button>
+        }
+        @if (hayMarcados() && !todosMarcados()) {
+          <button mat-button (click)="desmarcarTodos()" [disabled]="resolviendoEnMasa()">
+            Quitar la selección
+          </button>
+        }
+      </div>
+
+      @if (hayMarcados()) {
+        <!--
+          El radio de impacto, antes de confirmar. Lleva las dos mitades: lo que
+          se va a resolver y lo que NO va a tocar el nivel elegido, porque los dos
+          niveles del sistema de registro son disjuntos y el auditor no tiene por
+          qué saberlo.
+        -->
+        <div class="seleccion-masiva__impacto" role="status">
+          <mat-chip highlighted color="primary">
+            {{ impacto().motivos }}
+            {{ impacto().motivos === 1 ? 'motivo marcado' : 'motivos marcados' }}
+          </mat-chip>
+          <!--
+            «hasta» y no una cifra exacta: el número sale del último agregado
+            leído, y entre esa lectura y el momento en que el sistema de registro
+            procesa la operación otro auditor puede haber resuelto parte. Los
+            fallos parciales solo se sabrán al terminar.
+          -->
+          <span class="seleccion-masiva__cifra">
+            hasta <strong>{{ impacto().seResuelven }}</strong>
+            {{ impacto().seResuelven === 1 ? 'pendiente' : 'pendientes' }}
+            @if (impacto().lineas > 0) {
+              en {{ impacto().lineas }} {{ impacto().lineas === 1 ? 'línea' : 'líneas' }}
+            }
+          </span>
+          @if (impacto().bloqueantes > 0) {
+            <span class="seleccion-masiva__bloqueo">
+              <mat-icon>block</mat-icon>
+              {{ impacto().bloqueantes }}
+              {{ impacto().bloqueantes === 1 ? 'bloquea' : 'bloquean' }} el envío
+            </span>
+          }
+        </div>
+
+        <!--
+          El nivel. Los dos niveles de OHI son disjuntos —resolver en la cuenta
+          no toca las líneas y al revés—, así que «Donde aplique» es lo que se
+          quiere casi siempre y es el valor por omisión. Los otros dos se ofrecen
+          porque hay casos en que se quiere dejar la cabecera o las líneas, pero
+          entonces se dice qué se queda sin resolver.
+        -->
+        <div class="seleccion-masiva__nivel">
+          <mat-button-toggle-group [value]="facade.nivelResolucion()"
+                                   (change)="cambiarNivel($event.value)"
+                                   [disabled]="resolviendoEnMasa()"
+                                   aria-label="Nivel de resolución"
+                                   hideSingleSelectionIndicator>
+            <mat-button-toggle value="DONDE_APLIQUE"
+                               matTooltip="Resuelve el motivo en la cabecera y en las líneas, donde esté puesto">
+              Donde aplique
+            </mat-button-toggle>
+            <mat-button-toggle value="CUENTA"
+                               matTooltip="Solo el pendiente de la cabecera; las líneas se quedan">
+              Solo la cuenta
+            </mat-button-toggle>
+            <mat-button-toggle value="LINEAS"
+                               matTooltip="Solo los pendientes de las líneas; la cabecera se queda">
+              Solo las líneas
+            </mat-button-toggle>
+          </mat-button-toggle-group>
+
+          @if (impacto().seQuedan > 0) {
+            <p class="seleccion-masiva__resto sura-nota sura-nota--regla">
+              <mat-icon>info_outline</mat-icon>
+              <span>
+                Con este nivel
+                <strong>
+                  {{ impacto().seQuedan === 1
+                       ? 'queda 1 pendiente sin resolver'
+                       : 'quedan ' + impacto().seQuedan + ' pendientes sin resolver' }}
+                </strong>
+                de los motivos marcados: los dos niveles son independientes.
+              </span>
+            </p>
+          }
+          @if (impacto().operaciones > 1) {
+            <p class="seleccion-masiva__resto sura-nota">
+              <mat-icon>layers</mat-icon>
+              <span>
+                Son dos operaciones, una por nivel: el sistema de registro no resuelve
+                los dos a la vez. Puede tardar.
+              </span>
+            </p>
+          }
+        </div>
+
+        @if (sinEfecto()) {
+          <!--
+            Marcados pero sin efecto: pedir «solo la cuenta» sobre motivos que
+            únicamente están en las líneas no resolvería nada. El servicio lo
+            rechaza con un 400; aquí se desactiva antes de llegar.
+          -->
+          <p class="seleccion-masiva__resto sura-nota sura-nota--regla" role="status">
+            <mat-icon>do_not_disturb</mat-icon>
+            <span>
+              Ninguno de los motivos marcados está puesto a ese nivel: no hay nada
+              que resolver. Cambie el nivel o la selección.
+            </span>
+          </p>
+        }
+
+        <button mat-raised-button color="warn" id="btn-resolver-masivo-pend"
+                class="seleccion-masiva__confirmar"
+                [disabled]="resolviendoEnMasa() || sinEfecto() || confirmandoMasivo()"
+                (click)="abrirConfirmacionMasiva()">
+          @if (resolviendoEnMasa()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            Resolver {{ impacto().motivos }}
+            {{ impacto().motivos === 1 ? 'motivo' : 'motivos' }}…
+          }
+        </button>
+      }
+
+      @if (confirmandoMasivo()) {
+        <mat-card class="seleccion-masiva__confirmacion">
+          <mat-card-header>
+            <mat-card-title>Confirmar la resolución</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+            <!--
+              Se repite el alcance aquí a propósito, con la lista de motivos a la
+              vista: es el último punto antes de una operación irreversible que
+              arrastra todas las filas de cada motivo.
+            -->
+            <p class="seleccion-masiva__aviso sura-mensaje sura-mensaje--alerta">
+              <mat-icon>warning_amber</mat-icon>
+              <span>
+                Se van a resolver <strong>hasta {{ impacto().seResuelven }}</strong>
+                {{ impacto().seResuelven === 1 ? 'pendiente' : 'pendientes' }}
+                de {{ impacto().motivos }}
+                {{ impacto().motivos === 1 ? 'motivo' : 'motivos' }}
+                @if (impacto().lineas > 0) {
+                  en {{ impacto().lineas }}{{ impacto().lineas === 1 ? ' línea.' : ' líneas.' }}
+                } @else { . }
+                <strong>No se puede deshacer.</strong>
+              </span>
+            </p>
+
+            <ul class="seleccion-masiva__lista">
+              @for (motivo of motivosMarcados(); track motivo.codigo) {
+                <li>
+                  @if (motivo.bloqueante) {
+                    <mat-icon class="seleccion-masiva__icono-bloqueo">block</mat-icon>
+                  }
+                  <span class="seleccion-masiva__codigo">{{ motivo.codigo }}</span>
+                  @if (motivo.descripcion) { — {{ motivo.descripcion }} }
+                  <span class="seleccion-masiva__detalle">
+                    · {{ motivo.sinResolver }} sin resolver · {{ alcanceDe(motivo) }}
+                  </span>
+                </li>
+              }
+            </ul>
+
+            <form [formGroup]="formMasivo">
+              <mat-form-field appearance="outline" class="full-width">
+                <mat-label>Justificación</mat-label>
+                <textarea matInput formControlName="justificacion" rows="3"
+                          placeholder="Por qué se resuelven estos motivos…"></textarea>
+                @if (formMasivo.get('justificacion')?.hasError('required')) {
+                  <mat-error>La justificación es obligatoria</mat-error>
+                }
+                <mat-hint>Queda como nota en la cuenta y en la traza de auditoría</mat-hint>
+              </mat-form-field>
+            </form>
+          </mat-card-content>
+          <mat-card-actions align="end">
+            <button mat-button (click)="cancelarMasiva()" [disabled]="resolviendoEnMasa()">
+              Cancelar
+            </button>
+            <button mat-raised-button color="warn" id="btn-confirmar-masivo-pend"
+                    [disabled]="formMasivo.invalid || resolviendoEnMasa()"
+                    (click)="resolverMarcados()">
+              @if (resolviendoEnMasa()) {
+                <mat-spinner diameter="20"></mat-spinner>
+              } @else {
+                Resolver definitivamente
+              }
+            </button>
+          </mat-card-actions>
+        </mat-card>
+      }
+    </section>
+  }
+
   <div class="content-layout" [class.con-formulario]="pendienteSeleccionado() !== null">
-    
+
     <div class="table-section mat-elevation-z2">
-      @if (facade.loading()) {
+      @if (facade.loading() && facade.pendientes().length === 0) {
         <div class="loading-overlay">
           <mat-spinner diameter="40"></mat-spinner>
           <p>Cargando pendientes...</p>
         </div>
       } @else {
         <table mat-table [dataSource]="facade.pendientes()" aria-label="Pendientes">
-          
+
+          <!--
+            Marcar una fila marca SU MOTIVO, y con él todas sus filas: es lo
+            único que el sistema de registro sabe resolver. Las demás filas del
+            mismo motivo se marcan a la vez para que el auditor lo VEA, y la
+            barra de arriba cuenta también las que están en otras páginas. La
+            cabecera no lleva casilla a propósito: una casilla de cabecera en una
+            tabla se lee como «los de esta página», y lo que se ofrece es «los
+            motivos de la cuenta», que está escrito con letras en el botón.
+          -->
+          <ng-container matColumnDef="seleccion">
+            <th mat-header-cell *matHeaderCellDef class="col-seleccion"
+                aria-label="Selección de motivos"></th>
+            <td mat-cell *matCellDef="let p" class="col-seleccion">
+              <mat-checkbox [checked]="estaMarcado(p.codigo)"
+                            (change)="alternarMotivo(p.codigo)"
+                            [disabled]="resolviendoEnMasa()"
+                            [matTooltip]="'Marca el motivo ' + p.codigo
+                              + ' completo: todas sus filas de la cuenta, no solo esta'"
+                            [attr.aria-label]="'Marcar el motivo ' + p.codigo">
+              </mat-checkbox>
+            </td>
+          </ng-container>
+
           <ng-container matColumnDef="codigo">
             <th mat-header-cell *matHeaderCellDef>Código</th>
             <td mat-cell *matCellDef="let p">{{ p.codigo }}</td>
@@ -57,10 +522,20 @@
           <ng-container matColumnDef="estado">
             <th mat-header-cell *matHeaderCellDef>Estado</th>
             <td mat-cell *matCellDef="let p">
-              @if (p.resuelto) {
-                <span class="estado resuelto"><mat-icon>check_circle</mat-icon> Resuelto</span>
+              @if (p.bloqueante) {
+                <span class="estado bloqueante"
+                      matTooltip="Impide enviar la cuenta en el estado en que está">
+                  <mat-icon>block</mat-icon> Bloquea el envío
+                </span>
               } @else {
-                <span class="estado pendiente"><mat-icon>pending</mat-icon> Pendiente</span>
+                <span class="estado no-bloqueante"
+                      [matTooltip]="veredictoIncierto()
+                        ? 'El estado de la cuenta no está traducido: este veredicto es el criterio general, no una certeza'
+                        : (p.soloAdjudicacion
+                            ? 'Es de sola adjudicación: solo frena el envío cuando la cuenta está en adjudicación manual'
+                            : 'No frena el envío en el estado en que está la cuenta')">
+                  <mat-icon>pending</mat-icon> No bloquea
+                </span>
               }
             </td>
           </ng-container>
@@ -68,30 +543,125 @@
           <ng-container matColumnDef="acciones">
             <th mat-header-cell *matHeaderCellDef>Acciones</th>
             <td mat-cell *matCellDef="let p">
-              @if (!p.resuelto) {
-                <button mat-button color="primary" 
-                        [disabled]="pendienteSeleccionado()?.identificador === p.identificador"
-                        (click)="seleccionarParaResolver(p)">
-                  Resolver
-                </button>
-              }
+              <button mat-button color="primary"
+                      [disabled]="pendienteSeleccionado()?.identificador === p.identificador"
+                      (click)="seleccionarParaResolver(p)">
+                Resolver
+              </button>
             </td>
           </ng-container>
 
           <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
           <tr mat-row *matRowDef="let row; columns: displayedColumns;"
-              [class.seleccionada]="pendienteSeleccionado()?.identificador === row.identificador">
+              [class.seleccionada]="pendienteSeleccionado()?.identificador === row.identificador"
+              [class.motivo-marcado]="estaMarcado(row.codigo)"
+              [attr.aria-selected]="estaMarcado(row.codigo) || null">
           </tr>
-          
-          @if (facade.pendientes().length === 0) {
-            <tr class="mat-row">
+
+          <!--
+            `*matNoDataRow` y no un `@if`: `mat-table` proyecta en su propio
+            outlet y descarta los `<tr>` sueltos que se le escriban dentro.
+            Comprobado en el navegador contra una cuenta sin pendientes — la
+            tabla salía con la cabecera y nada debajo, sin el texto que explica
+            por qué está vacía.
+          -->
+          <tr class="mat-row" *matNoDataRow>
               <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns.length">
                 <mat-icon>task_alt</mat-icon>
-                <p>No hay pendientes para esta cuenta.</p>
+                @if (facade.hayAlgunFiltro()) {
+                  <p>
+                    Ningún pendiente
+                    @if (facade.motivoActivo(); as motivo) { con el motivo {{ motivo.codigo }} }
+                    @if (facade.filtroBloqueo() === 'BLOQUEANTES') { que bloquee el envío }
+                    @if (facade.filtroBloqueo() === 'NO_BLOQUEANTES') { que no bloquee el envío }.
+                  </p>
+                  <button mat-button color="primary" (click)="limpiarTodosLosFiltros()">
+                    Ver todos los pendientes
+                  </button>
+                } @else {
+                  <p>No hay pendientes para esta cuenta.</p>
+                }
               </td>
-            </tr>
-          }
+          </tr>
         </table>
+
+        <!--
+          PAGINACIÓN NUMERADA SOBRE UN SERVICIO KEYSET.
+          No es mat-paginator: el servicio no acepta desplazamientos, solo
+          cursores. El mismo patrón que el listado de líneas, con una diferencia
+          que impone el volumen: una cuenta puede tener 141 páginas de
+          pendientes, así que los saltos que exigirían encadenar demasiadas
+          peticiones se desactivan en vez de lanzarlas.
+        -->
+        @if (totalPaginas() !== null && totalPaginas()! > 1) {
+          <nav class="paginador" aria-label="Paginación de pendientes">
+
+            @if (rangoVisible(); as rango) {
+              <span class="paginador__rango">
+                {{ rango.desde }}–{{ rango.hasta }} de {{ rango.total }} pendientes
+              </span>
+            }
+
+            <div class="paginador__controles">
+              <button mat-icon-button id="btn-primera-pagina-pend"
+                      [disabled]="!hayAnterior() || ocupado()"
+                      (click)="primera()"
+                      matTooltip="Primera página" aria-label="Primera página">
+                <mat-icon>first_page</mat-icon>
+              </button>
+
+              <button mat-icon-button id="btn-pagina-anterior-pend"
+                      [disabled]="!hayAnterior() || ocupado()"
+                      (click)="anterior()"
+                      matTooltip="Página anterior" aria-label="Página anterior">
+                <mat-icon>chevron_left</mat-icon>
+              </button>
+
+              @for (numero of paginasVisibles(); track $index) {
+                @if (esNumero(numero)) {
+                  <button mat-button
+                          class="paginador__numero"
+                          [class.paginador__numero--activa]="numero === paginaActual()"
+                          [attr.id]="'btn-pagina-pend-' + numero"
+                          [attr.aria-current]="numero === paginaActual() ? 'page' : null"
+                          [disabled]="ocupado() || fueraDeAlcance(numero)"
+                          [matTooltip]="fueraDeAlcance(numero)
+                            ? 'Demasiado lejos para saltar: avance con «siguiente» o filtre por un motivo'
+                            : 'Ir a la página ' + numero"
+                          (click)="irAPagina(numero)">
+                    {{ numero }}
+                  </button>
+                } @else {
+                  <span class="paginador__corte" aria-hidden="true">…</span>
+                }
+              }
+
+              <button mat-icon-button id="btn-pagina-siguiente-pend"
+                      [disabled]="!haySiguiente() || ocupado()"
+                      (click)="siguiente()"
+                      matTooltip="Página siguiente" aria-label="Página siguiente">
+                <mat-icon>chevron_right</mat-icon>
+              </button>
+
+              <button mat-icon-button id="btn-ultima-pagina-pend"
+                      [disabled]="!puedeUltima() || ocupado()"
+                      (click)="ultima()"
+                      [matTooltip]="puedeUltima()
+                        ? 'Última página'
+                        : 'La última página está demasiado lejos para saltar'"
+                      aria-label="Última página">
+                <mat-icon>last_page</mat-icon>
+              </button>
+            </div>
+
+            @if (recorriendo()) {
+              <span class="paginador__aviso" role="status">
+                <mat-spinner diameter="16"></mat-spinner>
+                Encadenando cursores hasta esa página…
+              </span>
+            }
+          </nav>
+        }
       }
     </div>
 
@@ -102,12 +672,51 @@
             <mat-card-title>Resolver Pendiente</mat-card-title>
             <mat-card-subtitle>{{ pendiente.codigo }} - {{ pendiente.descripcion }}</mat-card-subtitle>
           </mat-card-header>
-          
+
           <mat-card-content>
+            <!--
+              Resolver no afecta solo a esta fila: OHI resuelve el motivo entero
+              de la cuenta. Se dice aquí, antes de confirmar, porque el alcance
+              real puede ser de cientos de líneas — y la cifra depende de si se
+              incluye la cabecera, así que sigue al selector de alcance.
+            -->
+            @if (alcanceReal(pendiente); as alcance) {
+              <p class="aviso-alcance" role="status">
+                <mat-icon>info_outline</mat-icon>
+                <span>
+                  Resuelve {{ alcance.seResuelven }}
+                  {{ alcance.seResuelven === 1 ? 'pendiente' : 'pendientes' }}
+                  de este motivo ({{ alcance.detalle }}).
+                  @if (alcance.seQuedan > 0) {
+                    <strong>
+                      Quedan {{ alcance.seQuedan }} sin resolver: este alcance no los toca.
+                    </strong>
+                  }
+                </span>
+              </p>
+            }
+
+            <!--
+              Los dos alcances de la resolución individual son disjuntos, así que
+              un motivo puesto en los dos niveles no se resuelve del todo con
+              ninguno de ellos. Se dice, y se señala la salida, en vez de dejar al
+              auditor resolviendo dos veces sin saber que hacen falta dos.
+            -->
+            @if (estaEnLosDosNiveles(pendiente)) {
+              <p class="aviso-alcance aviso-alcance--doble" role="status">
+                <mat-icon>layers</mat-icon>
+                <span>
+                  Este motivo está en la cabecera <em>y</em> en las líneas, y cada
+                  alcance toca solo uno de los dos. Para resolverlo del todo, márquelo
+                  arriba y use <strong>«Donde aplique»</strong>.
+                </span>
+              </p>
+            }
+
             <form [formGroup]="form">
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Justificación</mat-label>
-                <textarea matInput formControlName="justificacion" rows="4" 
+                <textarea matInput formControlName="justificacion" rows="4"
                           placeholder="Ingrese el motivo de la resolución..."></textarea>
                 @if (form.get('justificacion')?.hasError('required')) {
                   <mat-error>La justificación es obligatoria</mat-error>
@@ -117,8 +726,24 @@
               <mat-form-field appearance="outline" class="full-width">
                 <mat-label>Alcance de Resolución</mat-label>
                 <mat-select formControlName="alcance">
-                  <mat-option value="CUENTA_Y_LINEAS">Cuenta y Líneas</mat-option>
-                  <mat-option value="SOLO_LINEAS">Solo Líneas</mat-option>
+                  <!--
+                    Se rotula «Solo la cuenta» y no «Cuenta y Líneas»: el recurso
+                    al que va (`resolvepend`) está descrito por el sistema de
+                    registro como «at claim level» y no toca ninguna línea. El
+                    valor del enum se conserva porque es el contrato de la ruta
+                    individual; lo que cambia es dejar de prometer lo que no hace.
+                  -->
+                  <mat-option value="CUENTA_Y_LINEAS">Solo la cuenta (cabecera)</mat-option>
+                  <!--
+                    «Solo Líneas» va a `resolveclaimlinepend`, que por contrato no
+                    toca la cabecera: sobre una fila de nivel Cuenta la resolución
+                    responde 204 y el pendiente sigue ahí. Se desactiva en vez de
+                    dejar que el auditor lo intente sin explicación.
+                  -->
+                  <mat-option value="SOLO_LINEAS" [disabled]="pendiente.nivel === 'CABECERA'">
+                    Solo las líneas
+                    @if (pendiente.nivel === 'CABECERA') { — no aplica a un pendiente de cuenta }
+                  </mat-option>
                 </mat-select>
               </mat-form-field>
             </form>
@@ -126,7 +751,7 @@
 
           <mat-card-actions align="end">
             <button mat-button (click)="cancelarResolucion()" [disabled]="resolving()">Cancelar</button>
-            <button mat-raised-button color="primary" (click)="resolver()" 
+            <button mat-raised-button color="primary" (click)="resolver()"
                     [disabled]="form.invalid || resolving()">
               @if (resolving()) {
                 <mat-spinner diameter="20"></mat-spinner>

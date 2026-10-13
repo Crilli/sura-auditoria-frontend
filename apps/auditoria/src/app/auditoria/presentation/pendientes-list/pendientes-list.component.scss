@@ -61,6 +61,67 @@ table {
   
   &.resuelto { color: var(--sura-exito); }
   &.pendiente { color: var(--sura-error); }
+
+  // El que frena el envío va en rojo; el que no, en gris. La diferencia entre
+  // los dos es lo que decide si el auditor puede cerrar la cuenta hoy, así que
+  // no pueden parecerse.
+  &.bloqueante    { color: var(--sura-error); }
+  &.no-bloqueante { color: var(--sura-texto-suave); }
+}
+
+// ── Filtro por bloqueo del envío ─────────────────────────────────────────
+.filtro-bloqueo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sura-espacio-3);
+  margin-bottom: var(--sura-espacio-3);
+
+  .mat-button-toggle-checked {
+    background-color: var(--sura-azul-tenue);
+  }
+
+  mat-icon {
+    font-size: 1.125rem;
+    height: 1.125rem;
+    width: 1.125rem;
+    vertical-align: text-bottom;
+  }
+
+  &__nota {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    margin: 0;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+
+    mat-icon { color: var(--sura-azul-primario); }
+
+    // El aviso de «no lo sabemos» no puede parecerse al informativo.
+    &--aviso {
+      color: var(--sura-error);
+
+      mat-icon { color: var(--sura-error); }
+    }
+  }
+}
+
+.chip-bloqueante {
+  --mdc-chip-label-text-color: var(--sura-error);
+  --mdc-chip-elevated-container-color: var(--sura-error-fondo);
+
+  mat-icon {
+    font-size: 1rem;
+    height: 1rem;
+    width: 1rem;
+    margin-right: var(--sura-espacio-1);
+  }
+}
+
+.chip-aparte {
+  font-size: var(--sura-texto-sm);
+  color: var(--sura-texto-suave);
 }
 
 tr.seleccionada {
@@ -103,4 +164,100 @@ tr.seleccionada {
 .full-width {
   width: 100%;
   margin-bottom: 1rem;
+}
+
+// ── Filtro por motivo ────────────────────────────────────────────────────
+//
+// Va fuera de la tabla y antes que ella: es lo que decide qué se está mirando,
+// y leerlo después de la tabla sería leerlo tarde.
+.filtro-motivo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--sura-espacio-3);
+  margin-bottom: var(--sura-espacio-3);
+
+  &__selector {
+    flex: 1 1 28rem;
+    max-width: 44rem;
+  }
+
+  // El alcance («3 líneas», «de cabecera») es lo que decide si merece la pena
+  // filtrar por ese motivo, así que va en la propia opción.
+  &__alcance {
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+  }
+
+  // Marca de bloqueo dentro de la opción, antes del código.
+  &__bloqueo {
+    font-size: 1rem;
+    height: 1rem;
+    width: 1rem;
+    vertical-align: text-bottom;
+    color: var(--sura-error);
+  }
+
+  &__activo {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    padding-top: var(--sura-espacio-2);
+  }
+
+  &__detalle {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  // Mientras se recopila el agregado no hay selector que pintar: el recorrido
+  // de la cuenta tarda unos segundos en las grandes y el hueco en blanco
+  // parecía un fallo.
+  &__cargando {
+    margin-bottom: var(--sura-espacio-3);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+}
+
+// Resolver afecta al motivo entero, no a la fila: el aviso va dentro del
+// formulario, pegado a lo que se va a confirmar.
+.aviso-alcance {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sura-espacio-2);
+  margin-bottom: var(--sura-espacio-3);
+  padding: var(--sura-espacio-2) var(--sura-espacio-3);
+  border-radius: var(--sura-radio-8);
+  background-color: var(--sura-azul-tenue);
+  color: var(--sura-texto);
+  font-size: var(--sura-texto-sm);
+
+  mat-icon {
+    flex: 0 0 auto;
+    font-size: 1.125rem;
+    height: 1.125rem;
+    width: 1.125rem;
+    color: var(--sura-azul-primario);
+  }
+}
+
+// ── Resolución múltiple: solo lo que necesita la especificidad del componente ─
+//
+// El resto —`.seleccion-masiva` y `.resultado-masivo`— vive en la capa global
+// (`apps/shell/src/styles/_resolucion-masiva.scss`) porque el presupuesto de
+// `anyComponentStyle` es de 4 kB y este componente ya lleva los filtros, la
+// tabla y el panel individual. Aquí se quedan las dos reglas que compiten con
+// estilos propios de Material y por tanto necesitan el nivel de especificidad
+// que da el atributo `[_ngcontent-…]` de la vista: ver la nota de
+// `_paginador.scss`, donde perderlo dejó la página activa azul sobre azul.
+
+// La columna de selección es estrecha a propósito: la casilla no es el dato.
+.col-seleccion { width: 3rem; padding-right: 0; }
+
+// Una fila de un motivo marcado. Va por detrás de `.seleccionada`, que es la
+// fila del formulario individual y tiene prioridad visual. Compite con el fondo
+// que Material pone a `.mat-mdc-row`, así que tiene que quedarse aquí.
+tr.motivo-marcado:not(.seleccionada) > td {
+  background-color: var(--sura-azul-tenue);
 }

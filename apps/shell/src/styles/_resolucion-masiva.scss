@@ -1,0 +1,119 @@
+// ============================================================================
+// Resolución múltiple de pendientes
+// ============================================================================
+//
+// Vive en la capa global y no en el componente por el presupuesto de
+// `anyComponentStyle` (4 kB): `pendientes-list` ya gasta lo suyo en los filtros,
+// la tabla y el panel de resolución individual, y añadir esto aquí lo pasaba.
+//
+// **Los selectores van anidados bajo su clase raíz a propósito.** Al salir de un
+// componente se pierde el atributo `[_ngcontent-…]` que Angular añadía, y con él
+// un nivel de especificidad; el descendiente lo devuelve. Es la misma lección
+// que dejó escrita `_paginador.scss`, donde perderlo dejó la página activa
+// pintada en azul sobre azul.
+//
+// Las dos reglas que compiten de verdad con estilos propios de Material
+// —`.col-seleccion` y `tr.motivo-marcado`— se quedaron en el componente.
+
+// La unidad de selección es el motivo, no la fila: es lo único que el sistema de
+// registro sabe resolver.
+.seleccion-masiva {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sura-espacio-2);
+  margin-bottom: var(--sura-espacio-3);
+  padding: var(--sura-espacio-3);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-12);
+
+  .seleccion-masiva__acciones,
+  .seleccion-masiva__impacto,
+  .seleccion-masiva__nivel {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+  }
+
+  .seleccion-masiva__nivel {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .seleccion-masiva__cifra { font-size: var(--sura-texto-sm); }
+
+  .seleccion-masiva__bloqueo {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--sura-espacio-1);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-error);
+
+    mat-icon { font-size: 1rem; height: 1rem; width: 1rem; }
+  }
+
+  .seleccion-masiva__resto { margin: 0; }
+  .seleccion-masiva__confirmar { align-self: flex-start; }
+  .seleccion-masiva__confirmacion { margin-top: var(--sura-espacio-2); }
+  .seleccion-masiva__aviso { margin-bottom: var(--sura-espacio-3); }
+
+  // Los motivos que se van a resolver, enumerados: es el último sitio donde se
+  // pueden leer uno a uno antes de confirmar algo irreversible.
+  .seleccion-masiva__lista {
+    max-height: 12rem;
+    overflow-y: auto;
+    margin: 0 0 var(--sura-espacio-3);
+    padding-left: var(--sura-espacio-3);
+    font-size: var(--sura-texto-sm);
+
+    li { padding: var(--sura-espacio-1) 0; }
+  }
+
+  .seleccion-masiva__codigo  { font-weight: 600; }
+  .seleccion-masiva__detalle { color: var(--sura-texto-suave); }
+
+  .seleccion-masiva__icono-bloqueo {
+    font-size: 1rem;
+    height: 1rem;
+    width: 1rem;
+    color: var(--sura-error);
+    vertical-align: middle;
+  }
+}
+
+// El resultado no desaparece solo: un «se resolvieron 41 de 47» que se esfumara
+// a los tres segundos dejaría al auditor dando por hechas las seis que faltan.
+// Hereda de `.sura-mensaje`, así que aquí solo va lo que esa utilidad no da:
+// apilar en vertical y la lista de fallos.
+.resultado-masivo {
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: var(--sura-espacio-3);
+
+  .resultado-masivo__cabecera {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+  }
+
+  .resultado-masivo__cerrar { margin-left: auto; }
+
+  p {
+    margin: var(--sura-espacio-2) 0 0;
+    font-size: var(--sura-texto-sm);
+  }
+
+  .resultado-masivo__fallos {
+    margin: var(--sura-espacio-2) 0 0;
+    padding-left: var(--sura-espacio-3);
+    font-size: var(--sura-texto-sm);
+  }
+
+  .resultado-masivo__codigo {
+    font-family: var(--sura-fuente-mono, monospace);
+    font-weight: 600;
+    margin-right: var(--sura-espacio-1);
+  }
+
+  .resultado-masivo__referencias { color: var(--sura-texto-suave); }
+}

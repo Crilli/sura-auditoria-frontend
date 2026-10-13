@@ -1,0 +1,67 @@
+// ============================================================================
+// Paginador numerado sobre un servicio keyset
+// ============================================================================
+//
+// Vive en la capa global y no en un componente porque lo usan dos pantallas
+// —líneas y pendientes— y el presupuesto de `anyComponentStyle` es de 4 kB:
+// duplicarlo costaba el doble de bytes y, lo peor, dejaba dos paginadores que
+// podían separarse con el tiempo.
+//
+// No es `mat-paginator`: el servicio no acepta desplazamientos, solo cursores.
+//
+// **Los selectores van anidados bajo `.paginador` a propósito**, no con el `&__`
+// de BEM que los dejaría planos. Al traer esto desde un componente se pierde el
+// atributo `[_ngcontent-…]` que Angular añadía, y con él un nivel de
+// especificidad: medido en el navegador, la página activa pasó a pintarse en
+// azul sobre azul —ilegible— y los números a 64 px de ancho, porque ganaban los
+// estilos propios de `mat-button`. El descendiente devuelve ese nivel.
+
+.paginador {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sura-espacio-3);
+  padding: var(--sura-espacio-3) var(--sura-espacio-4);
+  background-color: var(--sura-gris-100);
+  border-top: 1px solid var(--sura-gris-300);
+
+  .paginador__rango {
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+    font-weight: var(--sura-peso-semibold);
+  }
+
+  .paginador__controles {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-1);
+    margin-inline: auto;
+  }
+
+  .paginador__numero {
+    min-width: 40px;
+    padding-inline: var(--sura-espacio-2);
+    color: var(--sura-texto-suave);
+    font-weight: var(--sura-peso-semibold);
+
+    &.paginador__numero--activa {
+      background-color: var(--sura-azul-institucional);
+      color: var(--sura-blanco);
+      pointer-events: none;
+    }
+  }
+
+  .paginador__corte {
+    padding-inline: var(--sura-espacio-1);
+    color: var(--sura-texto-tenue);
+  }
+
+  .paginador__aviso {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+}
