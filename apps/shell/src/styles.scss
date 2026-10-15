@@ -14,6 +14,10 @@
 // Igual que el paginador: fuera del componente por presupuesto de estilos, con
 // los selectores anidados para no perder el nivel de especificidad.
 @use './styles/resolucion-masiva';
+// Igual que el paginador: fuera del componente por presupuesto de estilos, con
+// los selectores anidados para no perder el nivel de especificidad.
+@use './styles/filtros-lineas';
+@use './styles/novedades';
 
 // ── Base ───────────────────────────────────────────────────────────────────
 * { box-sizing: border-box; }

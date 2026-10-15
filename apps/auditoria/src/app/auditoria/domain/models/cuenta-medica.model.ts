@@ -1,3 +1,4 @@
+import { NovedadModel } from './linea-cuenta.model';
 export type EstadoCuenta =
   | 'INICIAL'
   | 'DIGITACION'
@@ -83,6 +84,13 @@ export interface CuentaMedicaModel {
   version:               number;
   pendientesSinResolver: number;
   informacionFacturacion: InformacionFacturacionModel;
+  /**
+   * Novedades de la cabecera: la tabla que el sistema de registro enseña sobre
+   * la cuenta. Son de la misma forma que las de una línea —mismo catálogo,
+   * mismo vocabulario de orígenes— y por eso comparten modelo.
+   */
+  novedades: NovedadModel[];
+
 }
 
 /**
@@ -106,4 +114,29 @@ export interface EnviarCuentaRequest {
 export interface TiqueteResponse {
   codigoCuenta:         string;
   referenciaSeguimiento: string;
+}
+
+/** Un motivo del catálogo de desfinalización y anulación. */
+export interface MotivoModel {
+  codigo:      string;
+  descripcion: string;
+  /**
+   * Si al usarlo las líneas quedan bloqueadas y habrá que desbloquearlas
+   * después. Son 5 de los 16: hay que avisarlo **antes** de elegirlo.
+   */
+  bloqueaLineas:   boolean;
+  /** Si sin referencia de origen el sistema de registro lo rechaza. */
+  exigeReferencia: boolean;
+  /** `CUENTA_MEDICA`, `AUTORIZACION` o `AMBAS`. */
+  ambito:  string;
+  /** El permiso propio del motivo, cuando lo tiene. */
+  permiso: string | null;
+}
+
+/** Lo que se manda al ejecutar una acción. Todo opcional: seis no llevan nada. */
+export interface EjecutarAccionRequest {
+  motivos?: string[];
+  referencia?: string;
+  lineas?: number[];
+  codigoMensajeAnulacion?: string;
 }

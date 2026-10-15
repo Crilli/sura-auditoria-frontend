@@ -95,6 +95,11 @@
   --sura-ancho-md: 720px;
   --sura-ancho-lg: 960px;
   --sura-ancho-xl: 1248px;
+  // Para las pantallas que llevan una grilla ancha. El detalle de cuenta tiene
+  // diez columnas —número, atención, procedimiento, afiliado, tres importes,
+  // pendientes, estado y acciones— y a 1248 px los dos botones de acción se
+  // partían en dos renglones mientras sobraba pantalla a los lados.
+  --sura-ancho-2xl: 1600px;
 
   // ── Sombras ──────────────────────────────────────────────────────────────
   --sura-sombra-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);

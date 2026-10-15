@@ -1,0 +1,90 @@
+<h2 mat-dialog-title>{{ datos.etiqueta }}</h2>
+
+<mat-dialog-content>
+  @if (datos.irreversible) {
+    <p class="dialogo-accion__alerta">
+      <mat-icon>warning</mat-icon>
+      <span>
+        Anular deja la cuenta en un estado del que <strong>no se sale</strong>.
+        No hay forma de deshacerlo desde aquí ni desde el sistema de registro.
+      </span>
+    </p>
+  }
+
+  @if (datos.pideMotivos) {
+    <p class="dialogo-accion__intro">
+      Elija al menos un motivo. El sistema de registro comprueba el permiso
+      <strong>de cada uno por separado</strong>.
+    </p>
+
+    <ul class="dialogo-accion__motivos">
+      @for (m of datos.motivos; track m.codigo) {
+        <li>
+          <mat-checkbox [checked]="estaElegido(m.codigo)"
+                        (change)="alternar(m.codigo)">
+            <span class="motivo__nombre">{{ m.descripcion }}</span>
+            <span class="motivo__codigo">{{ m.codigo }}</span>
+          </mat-checkbox>
+          @if (m.bloqueaLineas || m.exigeReferencia) {
+            <span class="motivo__avisos">
+              @if (m.bloqueaLineas) {
+                <span class="motivo__aviso">deja las líneas bloqueadas</span>
+              }
+              @if (m.exigeReferencia) {
+                <span class="motivo__aviso">exige referencia</span>
+              }
+            </span>
+          }
+        </li>
+      }
+    </ul>
+
+    @if (bloquearaLineas()) {
+      <p class="dialogo-accion__alerta dialogo-accion__alerta--aviso">
+        <mat-icon>lock</mat-icon>
+        <span>
+          Con este motivo las líneas quedarán bloqueadas. Para volver a
+          editarlas habrá que usar después <strong>Desbloquear líneas</strong>.
+        </span>
+      </p>
+    }
+
+    @if (exigeReferencia()) {
+      <mat-form-field appearance="outline" subscriptSizing="dynamic" class="dialogo-accion__campo">
+        <mat-label>Referencia de origen</mat-label>
+        <input matInput
+               [ngModel]="referencia()"
+               (ngModelChange)="referencia.set($event)"
+               maxlength="30"
+               autocomplete="off">
+        <mat-hint>El motivo elegido la exige; sin ella se rechaza.</mat-hint>
+      </mat-form-field>
+    }
+  } @else {
+    <p class="dialogo-accion__intro">
+      Se va a ejecutar <strong>{{ datos.etiqueta }}</strong> sobre la cuenta
+      {{ datos.codigoCuenta }}.
+    </p>
+  }
+
+  @if (datos.irreversible) {
+    <mat-form-field appearance="outline" subscriptSizing="dynamic" class="dialogo-accion__campo">
+      <mat-label>Escriba el código de la cuenta para confirmar</mat-label>
+      <input matInput
+             [ngModel]="confirmacion()"
+             (ngModelChange)="confirmacion.set($event)"
+             [placeholder]="datos.codigoCuenta"
+             autocomplete="off">
+    </mat-form-field>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button (click)="cancelar()">Cancelar</button>
+  <button mat-flat-button
+          [color]="datos.irreversible ? 'warn' : 'primary'"
+          [disabled]="!puedeConfirmar()"
+          (click)="confirmar()">
+    {{ datos.etiqueta }}
+  </button>
+</mat-dialog-actions>

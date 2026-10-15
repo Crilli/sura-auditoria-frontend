@@ -13,6 +13,8 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatExpansionModule }       from '@angular/material/expansion';
 import { ActivatedRoute, Router }   from '@angular/router';
+import { CambioGlosaRequest, CambioNovedadRequest } from '../../domain/models/linea-cuenta.model';
+import { environment } from '@sura/environments';
 import { LineaFacade }              from '../../application/facades/linea.facade';
 import { ResumenLineaModel }        from '../../domain/models/linea-cuenta.model';
 import { ModoLinea }                from './modo-linea';
@@ -87,8 +89,15 @@ export class LineaEdicionComponent {
   private readonly snackBar = inject(MatSnackBar);
   readonly facade = inject(LineaFacade);
 
-  // Auditor desde el contexto de autenticación (simplificado)
-  private readonly auditor = 'auditor@sura.com.co';
+  /**
+   * Quién firma lo que se guarda.
+   *
+   * Sale de la configuración del entorno y no escrito aquí: había un
+   * `auditor@sura.com.co` a fuego que el entorno ya daba por retirado, y con él
+   * la traza firmaba con un auditor distinto según desde qué pantalla se
+   * guardara. Sigue siendo una identidad de desarrollo, no una autenticación.
+   */
+  private readonly auditor = environment.auditor;
 
   // ── Secciones plegables ──────────────────────────────────────────────────
   //
@@ -207,6 +216,38 @@ export class LineaEdicionComponent {
     this.siguiente.set(await this.facade.siguienteLinea(codigo, referencia));
   }
 
+  // ── Glosas pendientes de guardar ─────────────────────────────────────────
+  //
+  // Marcar una glosa no la aplica: se acumula aquí y viaja en el guardado de la
+  // línea, para que agregar una glosa y corregir un importe sean una sola
+  // operación con una sola versión y un solo recálculo.
+
+  readonly cambiosDeGlosa = signal<CambioGlosaRequest[]>([]);
+
+  anotarCambioDeGlosa(cambio: CambioGlosaRequest): void {
+    this.cambiosDeGlosa.update(actuales => [...actuales, cambio]);
+  }
+
+  deshacerCambioDeGlosa(cambio: CambioGlosaRequest): void {
+    this.cambiosDeGlosa.update(actuales => actuales.filter(c => !sonElMismo(c, cambio)));
+  }
+
+  // ── Novedades pendientes de guardar ──────────────────────────────────────
+  //
+  // Mismo criterio que las glosas, y por el mismo motivo. La diferencia está en
+  // el cuerpo: la novedad solo lleva el código, porque el texto y la severidad
+  // son del mensaje del catálogo.
+
+  readonly cambiosDeNovedad = signal<CambioNovedadRequest[]>([]);
+
+  anotarCambioDeNovedad(cambio: CambioNovedadRequest): void {
+    this.cambiosDeNovedad.update(actuales => [...actuales, cambio]);
+  }
+
+  deshacerCambioDeNovedad(cambio: CambioNovedadRequest): void {
+    this.cambiosDeNovedad.update(actuales => actuales.filter(c => !sonElMismo(c, cambio)));
+  }
+
   // ── Acciones ─────────────────────────────────────────────────────────────
 
   /** Guarda y se queda en la línea. */
@@ -219,7 +260,14 @@ export class LineaEdicionComponent {
     );
     this.avanzando.set(false);
 
-    if (ok) this.snackBar.open('Línea guardada', 'Cerrar', { duration: 2500 });
+    if (ok) {
+      // Los cambios ya están aplicados: si siguieran aquí, el siguiente guardado
+      // volvería a mandarlos y crearía las glosas y las novedades por
+      // segunda vez.
+      this.cambiosDeGlosa.set([]);
+      this.cambiosDeNovedad.set([]);
+      this.snackBar.open('Línea guardada', 'Cerrar', { duration: 2500 });
+    }
   }
 
   /**
@@ -236,6 +284,11 @@ export class LineaEdicionComponent {
     this.avanzando.set(false);
 
     if (!resultado.guardado) return;   // el error ya está en errorComando()
+
+    // Igual que en `guardar`: aplicados y fuera, para no repetirlos en la
+    // siguiente línea.
+    this.cambiosDeGlosa.set([]);
+    this.cambiosDeNovedad.set([]);
 
     if (!resultado.siguiente) {
       this.snackBar.open('Era la última línea de la cuenta', 'Cerrar', { duration: 3000 });
@@ -266,9 +319,33 @@ export class LineaEdicionComponent {
     return true;
   }
 
-  /** Cuerpo del PATCH con lo que hay ahora mismo en el formulario. */
+  /**
+   * Cuerpo del PATCH con lo que hay ahora mismo en el formulario.
+   *
+   * Los cambios de glosa van aparte del formulario reactivo: no son campos sino
+   * altas y bajas de una colección, y mezclarlos obligaría a reconstruir el
+   * `FormArray` en cada guardado para nada.
+   */
   private solicitudActual() {
-    return construirSolicitud(this.form.getRawValue());
+    let cuerpo = construirSolicitud(this.form.getRawValue());
+
+    if (this.cambiosDeGlosa().length > 0) {
+      cuerpo = {
+        ...cuerpo,
+        glosas: this.cambiosDeGlosa(),
+        // El servicio deriva el total de la suma del desglose y rechaza que
+        // lleguen los dos: si el formulario traía uno, se cae aquí.
+        valorGlosado: undefined,
+      };
+    }
+
+    // Las novedades no tienen con qué contradecirse: no llevan importe, así que
+    // no hay ningún campo del formulario que haya que anular al mandarlas.
+    if (this.cambiosDeNovedad().length > 0) {
+      cuerpo = { ...cuerpo, novedades: this.cambiosDeNovedad() };
+    }
+
+    return cuerpo;
   }
 
   /** Avanza a otra línea conservando el modo en el que se está trabajando. */
@@ -298,4 +375,18 @@ export class LineaEdicionComponent {
   private rutaDeLaCuenta(): ActivatedRoute {
     return this.route.parent ?? this.route;
   }
+}
+
+/**
+ * Si dos cambios de glosa son el mismo, para poder deshacer uno marcado.
+ *
+ * Las bajas se comparan por identificador; las altas, por su contenido, porque
+ * todavía no tienen identificador —lo asigna el sistema de registro al crearlas—.
+ */
+function sonElMismo<T extends CambioGlosaRequest | CambioNovedadRequest>(a: T, b: T): boolean {
+  if (a.operacion !== b.operacion) return false;
+  if (a.operacion === 'ELIMINAR' && b.operacion === 'ELIMINAR') {
+    return a.identificador === b.identificador;
+  }
+  return JSON.stringify(a) === JSON.stringify(b);
 }

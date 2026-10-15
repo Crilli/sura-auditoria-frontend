@@ -140,7 +140,30 @@
               } @else if (facade.acciones().length > 0) {
                 <ul class="acciones-disponibles__lista">
                   @for (accion of facade.acciones(); track accion) {
-                    <li class="sura-distintivo sura-distintivo--info">{{ etiquetaAccion(accion) }}</li>
+                    <li>
+                      @if (esEjecutable(accion)) {
+                        <button mat-stroked-button
+                                class="accion-boton"
+                                [class.accion-boton--grave]="esIrreversible(accion)"
+                                [disabled]="facade.ejecutandoAccion() !== null"
+                                (click)="ejecutar(cuenta, accion)">
+                          @if (esIrreversible(accion)) {
+                            <mat-icon>warning</mat-icon>
+                          }
+                          {{ facade.ejecutandoAccion() === accion
+                              ? 'Ejecutando…'
+                              : etiquetaAccion(accion) }}
+                        </button>
+                      } @else {
+                        <!-- Habilitada por el sistema de registro, pero con su
+                             propio camino en esta aplicación. Se dice cuál, en
+                             vez de dejar un botón muerto. -->
+                        <span class="sura-distintivo sura-distintivo--info accion-en-otro-sitio"
+                              [matTooltip]="aDondeLleva(accion)">
+                          {{ etiquetaAccion(accion) }}
+                        </span>
+                      }
+                    </li>
                   }
                 </ul>
               } @else {
@@ -296,6 +319,58 @@
             </div>
           </mat-expansion-panel>
         }
+
+        <!--
+          Novedades de la cabecera. Siempre presente, aunque la cuenta no tenga
+          ninguna: si no, no habría dónde pulsar «agregar» justo en las cuentas
+          donde más falta hace.
+        -->
+        <mat-expansion-panel [expanded]="panelNovedadesAbierto()"
+                             (opened)="panelNovedadesAbierto.set(true)"
+                             (closed)="panelNovedadesAbierto.set(false)">
+          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
+                                      aria-label="Novedades de la cuenta">
+            <mat-panel-title>
+              <mat-icon aria-hidden="true">campaign</mat-icon>
+              Novedades
+              @if (cuenta.novedades.length > 0) {
+                <span class="sura-contador">{{ cuenta.novedades.length }}</span>
+              }
+            </mat-panel-title>
+            <mat-panel-description>{{ resumenNovedades(cuenta.novedades) }}</mat-panel-description>
+          </mat-expansion-panel-header>
+
+          <div class="panel-cuerpo">
+            <sura-seccion-novedades
+                [novedades]="cuenta.novedades"
+                [esEdicion]="true"
+                [cambios]="facade.cambiosDeNovedad()"
+                (agregar)="facade.anotarCambioDeNovedad($event)"
+                (deshacer)="facade.deshacerCambioDeNovedad($event)" />
+
+            <!--
+              Botón propio: en la cabecera la novedad es lo único editable, así
+              que no hay un formulario mayor del que colgarse como en la línea.
+            -->
+            @if (facade.cambiosDeNovedad().length > 0) {
+              <div class="novedades-cuenta__acciones">
+                <button mat-flat-button color="primary"
+                        [disabled]="facade.guardandoNovedades()"
+                        (click)="guardarNovedades()">
+                  {{ facade.guardandoNovedades()
+                      ? 'Guardando…'
+                      : 'Guardar ' + facade.cambiosDeNovedad().length +
+                        (facade.cambiosDeNovedad().length === 1 ? ' cambio' : ' cambios') }}
+                </button>
+                <button mat-button
+                        [disabled]="facade.guardandoNovedades()"
+                        (click)="facade.cambiosDeNovedad.set([])">
+                  Descartar
+                </button>
+              </div>
+            }
+          </div>
+        </mat-expansion-panel>
       </mat-accordion>
 
     </div>

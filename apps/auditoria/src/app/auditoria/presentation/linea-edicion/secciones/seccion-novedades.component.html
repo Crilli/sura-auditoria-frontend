@@ -1,7 +1,311 @@
-<ul class="novedades">
-  @for (novedad of detalle().novedades; track novedad.id) {
-    <li [class.bloqueante]="novedad.severidad === 'BLOQUEANTE'">
-      <strong>{{ novedad.codigo }}</strong> — {{ novedad.descripcion }}
-    </li>
+<div class="novedades">
+
+  <!-- ── Puestas a mano ──────────────────────────────────────────────────── -->
+  @if (puestasAMano().length > 0) {
+    <h4 class="novedades__titulo">
+      <mat-icon>person</mat-icon> Puestas a mano
+    </h4>
+
+    <ul class="novedades__lista">
+      @for (n of puestasAMano(); track n.id) {
+        <li class="novedad novedad--manual"
+            [class.novedad--marcada]="estaMarcada(n.id)">
+          <div class="novedad__cabecera">
+            <strong class="novedad__codigo">{{ n.codigo ?? '—' }}</strong>
+            <span class="novedad__severidad"
+                  [class]="claseSeveridad(n.severidad)"
+                  [matTooltip]="consecuencia(n.severidad)">
+              {{ severidad(n.severidad) }}
+            </span>
+            @if (esEdicion()) {
+              <button mat-icon-button class="novedad__accion"
+                      [attr.aria-label]="estaMarcada(n.id)
+                        ? 'Deshacer la eliminación de la novedad ' + (n.codigo ?? '')
+                        : 'Eliminar la novedad ' + (n.codigo ?? '')"
+                      [matTooltip]="estaMarcada(n.id)
+                        ? 'Deshacer'
+                        : 'Quitar al guardar'"
+                      (click)="alternarEliminar(n)">
+                <mat-icon>{{ estaMarcada(n.id) ? 'undo' : 'delete_outline' }}</mat-icon>
+              </button>
+            }
+          </div>
+
+          <p class="novedad__texto">{{ n.descripcion }}</p>
+
+          <p class="novedad__pie">
+            @if (n.generico) {
+              <span class="novedad__concepto">
+                {{ n.generico.codigo }} · {{ n.generico.descripcion }}
+              </span>
+            }
+            @if (n.especifico) {
+              <span class="novedad__concepto">
+                {{ n.especifico.codigo }} · {{ n.especifico.descripcion }}
+              </span>
+            }
+            @if (n.autor) {
+              <span class="novedad__autor">
+                {{ n.autor }}@if (n.fecha) { · {{ n.fecha | date:'dd-MMM HH:mm' }} }
+              </span>
+            }
+          </p>
+
+          @if (estaMarcada(n.id)) {
+            <p class="novedad__aviso">Se quitará al guardar.</p>
+          }
+        </li>
+      }
+    </ul>
   }
-</ul>
+
+  <!-- ── Pendientes de crear ─────────────────────────────────────────────── -->
+  @if (altasConMensaje().length > 0) {
+    <ul class="novedades__lista">
+      @for (alta of altasConMensaje(); track alta.cambio.codigoNovedad) {
+        <li class="novedad novedad--nueva">
+          <div class="novedad__cabecera">
+            <strong class="novedad__codigo">{{ alta.cambio.codigoNovedad }}</strong>
+            @if (alta.mensaje) {
+              <span class="novedad__severidad"
+                    [class]="claseSeveridad(alta.mensaje.severidad)"
+                    [matTooltip]="consecuencia(alta.mensaje.severidad)">
+                {{ severidad(alta.mensaje.severidad) }}
+              </span>
+            }
+            <button mat-icon-button class="novedad__accion"
+                    [attr.aria-label]="'Quitar la novedad ' + alta.cambio.codigoNovedad
+                                       + ' de lo pendiente de crear'"
+                    matTooltip="Quitar de lo pendiente"
+                    (click)="quitarAlta(alta.cambio)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </div>
+
+          @if (alta.texto) {
+            <p class="novedad__texto">{{ alta.texto }}</p>
+          }
+          <p class="novedad__aviso novedad__aviso--nueva">Se creará al guardar.</p>
+        </li>
+      }
+    </ul>
+  }
+
+  <!-- ── Derivadas por el motor ──────────────────────────────────────────── -->
+  @if (delMotor().length > 0) {
+    <h4 class="novedades__titulo">
+      <mat-icon>settings</mat-icon> Derivadas por el motor
+    </h4>
+
+    <ul class="novedades__lista">
+      @for (n of delMotorVisibles(); track n.id) {
+        <li class="novedad novedad--motor">
+          <div class="novedad__cabecera">
+            <strong class="novedad__codigo">{{ n.codigo ?? '—' }}</strong>
+            <span class="novedad__severidad"
+                  [class]="claseSeveridad(n.severidad)"
+                  [matTooltip]="consecuencia(n.severidad)">
+              {{ severidad(n.severidad) }}
+            </span>
+            <span class="novedad__origen">{{ origen(n.origen) }}</span>
+            @if (n.esDelSistema) {
+              <span class="novedad__sistema"
+                    matTooltip="Mensaje propio del sistema, no de los que se ponen a mano">
+                De sistema
+              </span>
+            }
+            <!-- Sin botón de baja, y se dice por qué: el motor la volvería a
+                 levantar, y lo que objetó es la evidencia de la auditoría. -->
+            @if (esEdicion()) {
+              <mat-icon class="novedad__candado"
+                        [matTooltip]="razonNoBorrable(n)">lock</mat-icon>
+            }
+          </div>
+          <p class="novedad__texto">{{ n.descripcion }}</p>
+        </li>
+      }
+    </ul>
+
+    @if (motorOcultas() > 0) {
+      <button mat-button class="novedades__desplegar"
+              (click)="motorDesplegado.set(true)">
+        Ver las {{ motorOcultas() }} restantes del motor
+      </button>
+    } @else if (motorDesplegado() && delMotor().length > 3) {
+      <button mat-button class="novedades__desplegar"
+              (click)="motorDesplegado.set(false)">
+        Plegar las del motor
+      </button>
+    }
+  }
+
+  <!-- ── Estado vacío ────────────────────────────────────────────────────── -->
+  @if (novedades().length === 0 && altasConMensaje().length === 0) {
+    <p class="novedades__vacio">No hay novedades.</p>
+  }
+
+  <!-- ── Alta ────────────────────────────────────────────────────────────── -->
+  @if (esEdicion()) {
+    @if (!agregando()) {
+      <button mat-stroked-button class="novedades__agregar" (click)="abrirAlta()">
+        <mat-icon>add</mat-icon> Agregar novedad
+      </button>
+    } @else {
+      <div class="alta-novedad">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="alta-novedad__campo">
+          <mat-label>Buscar en el catálogo</mat-label>
+          <input matInput
+                 [ngModel]="busqueda()"
+                 (ngModelChange)="busqueda.set($event); elegido.set(null)"
+                 placeholder="código, texto o concepto"
+                 autocomplete="off">
+          <mat-icon matSuffix>search</mat-icon>
+          <mat-hint>
+            Al menos dos caracteres. El texto y la severidad los pone el catálogo.
+          </mat-hint>
+        </mat-form-field>
+
+        @if (cargandoCatalogo()) {
+          <p class="alta-novedad__estado">Cargando el catálogo…</p>
+        } @else if (falloCatalogo()) {
+          <p class="alta-novedad__estado alta-novedad__estado--error">
+            No se pudo cargar el catálogo de novedades. Vuelva a abrir el panel.
+          </p>
+        }
+
+        <!-- Resultados: el texto completo y la severidad a la vista, porque es
+             lo que decide si se elige ese código o otro. -->
+        @if (resultados().length > 0 && !elegido()) {
+          <ul class="alta-novedad__resultados">
+            @for (m of resultados(); track m.codigo) {
+              <li>
+                <button type="button" class="resultado" (click)="elegir(m)">
+                  <span class="resultado__cabecera">
+                    <strong>{{ m.codigo }}</strong>
+                    <span class="novedad__severidad" [class]="claseSeveridad(m.severidad)">
+                      {{ severidad(m.severidad) }}
+                    </span>
+                    @if (m.datosQuePide.length > 0) {
+                      <span class="resultado__pide">
+                        pide {{ m.datosQuePide.length }}
+                        {{ m.datosQuePide.length === 1 ? 'dato' : 'datos' }}
+                      </span>
+                    }
+                  </span>
+                  <span class="resultado__texto">{{ m.texto }}</span>
+                  @if (m.generico) {
+                    <span class="resultado__concepto">
+                      {{ m.generico.codigo }} · {{ m.generico.descripcion }}
+                      @if (m.especifico) {
+                        &nbsp;›&nbsp; {{ m.especifico.codigo }} · {{ m.especifico.descripcion }}
+                      }
+                    </span>
+                  }
+                </button>
+              </li>
+            }
+          </ul>
+          @if (resultadosOcultos() > 0) {
+            <p class="alta-novedad__estado">
+              Hay {{ resultadosOcultos() }} más. Acote la búsqueda.
+            </p>
+          }
+        } @else if (busqueda().length >= 2 && !elegido() && !cargandoCatalogo()) {
+          <p class="alta-novedad__estado">Ningún mensaje coincide.</p>
+        }
+
+        <!-- Confirmación: se enseña lo que va a leer el prestador y, si frena la
+             cuenta, se dice antes de confirmar y no después. -->
+        @if (elegido(); as m) {
+          <div class="alta-novedad__ficha"
+               [class.alta-novedad__ficha--frena]="m.frenaLaCuenta">
+            <div class="novedad__cabecera">
+              <strong class="novedad__codigo">{{ m.codigo }}</strong>
+              <span class="novedad__severidad" [class]="claseSeveridad(m.severidad)">
+                {{ severidad(m.severidad) }}
+              </span>
+            </div>
+            <!-- Mientras pida datos se enseña el texto como va quedando, no la
+                 plantilla: es lo que el auditor tiene que poder leer antes de
+                 confirmar. -->
+            <p class="novedad__texto">{{ textoPrevisto() }}</p>
+
+            @if (huecosAPedir().length > 0) {
+              <div class="alta-novedad__huecos">
+                <p class="alta-novedad__huecos-titulo">
+                  Este mensaje deja huecos en el texto. Complételos:
+                </p>
+                @for (hueco of huecosAPedir(); track hueco.indice) {
+                  <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                                  class="alta-novedad__hueco">
+                    <mat-label>{{ hueco.pista }}</mat-label>
+                    <input matInput
+                           [ngModel]="datos()[hueco.indice] || ''"
+                           (ngModelChange)="anotarDato(hueco.indice, $event)"
+                           [maxlength]="largoMaximoDato"
+                           autocomplete="off">
+                    <span matTextSuffix class="alta-novedad__hueco-indice">
+                      Valor {{ hueco.indice }}
+                    </span>
+                    <!-- El fragmento literal del catálogo. El rótulo de arriba
+                         lo adivinamos de la frase; esto es la frase. -->
+                    <mat-hint>{{ hueco.fragmento }}</mat-hint>
+                  </mat-form-field>
+                }
+              </div>
+            }
+
+            @if (m.generico) {
+              <p class="novedad__pie">
+                <span class="novedad__concepto">
+                  {{ m.generico.codigo }} · {{ m.generico.descripcion }}
+                </span>
+                @if (m.especifico) {
+                  <span class="novedad__concepto">
+                    {{ m.especifico.codigo }} · {{ m.especifico.descripcion }}
+                  </span>
+                }
+              </p>
+            }
+
+            @if (m.frenaLaCuenta) {
+              <p class="alta-novedad__alerta">
+                <mat-icon>warning</mat-icon>
+                {{ consecuencia(m.severidad) }}
+              </p>
+            }
+            @if (huecosPendientes().length > 0) {
+              <p class="alta-novedad__alerta alta-novedad__alerta--aviso">
+                <mat-icon>edit_note</mat-icon>
+                {{ huecosPendientes().length === 1
+                    ? 'Queda un hueco por completar: sin él, el prestador leería la llave tal cual.'
+                    : 'Quedan ' + huecosPendientes().length
+                      + ' huecos por completar: sin ellos, el prestador leería las llaves tal cual.' }}
+              </p>
+            }
+            @if (yaEstaEnLaLinea()) {
+              <p class="alta-novedad__alerta alta-novedad__alerta--aviso">
+                <mat-icon>info</mat-icon>
+                Esta línea ya tiene este código. Se creará otra igual.
+              </p>
+            }
+
+            <div class="alta-novedad__botones">
+              <button mat-flat-button color="primary"
+                      [disabled]="!puedeConfirmar()"
+                      (click)="confirmarAlta()">
+                Agregar al guardado
+              </button>
+              <button mat-button (click)="elegido.set(null)">Elegir otro</button>
+            </div>
+          </div>
+        }
+
+        <button mat-button class="alta-novedad__cancelar" (click)="cancelarAlta()">
+          Cancelar
+        </button>
+      </div>
+    }
+  }
+</div>

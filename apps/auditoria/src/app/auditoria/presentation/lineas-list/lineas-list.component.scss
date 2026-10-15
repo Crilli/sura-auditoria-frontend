@@ -33,6 +33,30 @@ table {
   width: 100%;
 }
 
+// Las acciones en un solo renglón.
+//
+// Son dos botones de icono de 40 px: con la columna repartida automáticamente
+// caía a 90 px y el segundo se iba a una segunda línea, estirando toda la fila.
+// `white-space: nowrap` impide el salto y el ancho mínimo reserva lo justo para
+// los dos más su separación.
+.mat-column-acciones {
+  width: 7.5rem;
+  min-width: 7.5rem;
+  white-space: nowrap;
+}
+
+// Las columnas de importe tampoco deben partir «COP 1,234,567» en dos.
+.mat-column-valorAutorizado,
+.mat-column-valorCubierto,
+.mat-column-valorGlosado {
+  white-space: nowrap;
+}
+
+// El número de línea y el estado son estrechos por naturaleza: fijarlos deja el
+// ancho sobrante para procedimiento y afiliado, que son los que lo necesitan.
+.mat-column-numeroLinea { width: 4rem; }
+.mat-column-pendientes  { width: 6.5rem; }
+
 .ok-icon {
   color: var(--sura-exito);
 }

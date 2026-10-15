@@ -2,7 +2,8 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
-import { AccionesDisponiblesModel, CuentaMedicaModel, EnviarCuentaRequest, TiqueteResponse } from '../../domain/models/cuenta-medica.model';
+import { AccionesDisponiblesModel, CuentaMedicaModel, EnviarCuentaRequest, TiqueteResponse, MotivoModel, EjecutarAccionRequest } from '../../domain/models/cuenta-medica.model';
+import { CambioNovedadRequest } from '../../domain/models/linea-cuenta.model';
 import { EstadoProcesoModel } from '../../domain/models/estado-proceso.model';
 import { environment } from '@sura/environments';
 
@@ -31,6 +32,39 @@ export class CuentaHttpAdapter extends CuentaRepository {
       solicitud,
       { headers }
     );
+  }
+
+  override guardarNovedades(
+    codigo: string,
+    versionEsperada: number,
+    novedades: CambioNovedadRequest[],
+    auditor: string
+  ): Observable<CuentaMedicaModel> {
+    const headers = new HttpHeaders({ 'X-Auditor': auditor });
+    return this.http.patch<CuentaMedicaModel>(
+      `${this.baseUrl}/${codigo}/novedades`,
+      { versionEsperada, novedades },
+      { headers }
+    );
+  }
+
+  override ejecutarAccion(
+    codigo: string,
+    accion: string,
+    solicitud: EjecutarAccionRequest,
+    auditor: string
+  ): Observable<CuentaMedicaModel> {
+    const headers = new HttpHeaders({ 'X-Auditor': auditor });
+    return this.http.post<CuentaMedicaModel>(
+      `${this.baseUrl}/${codigo}/acciones/${accion}`,
+      solicitud,
+      { headers }
+    );
+  }
+
+  override consultarMotivos(ambito?: string): Observable<MotivoModel[]> {
+    const url = `${environment.apiGatewayUrl}/api/v1/catalogos/motivos`;
+    return this.http.get<MotivoModel[]>(ambito ? `${url}?ambito=${ambito}` : url);
   }
 
   override consultarProceso(codigo: string): Observable<EstadoProcesoModel> {

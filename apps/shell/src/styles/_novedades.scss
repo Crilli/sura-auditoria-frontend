@@ -1,0 +1,379 @@
+// ============================================================================
+// Panel de novedades de la línea
+// ============================================================================
+//
+// Vive en la capa global por el presupuesto de `anyComponentStyle` (4 kB de
+// aviso, 8 kB de error): el panel pasó de una lista de solo lectura a dos listas
+// agrupadas, el distintivo de severidad, el buscador del catálogo y la ficha de
+// confirmación, y no cabe en el `.scss` del componente.
+//
+// **Los selectores van anidados bajo `.novedades` y `.alta-novedad` a
+// propósito.** Al salir del componente se pierde el atributo `[_ngcontent-…]`
+// que Angular añadía, y con él un nivel de especificidad frente a los estilos de
+// Material; el descendiente lo devuelve. Misma lección que dejaron escritas
+// `_paginador.scss` y `_filtros-lineas.scss`.
+
+.novedades {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sura-espacio-2);
+
+  // El rótulo de cada grupo. Es lo que separa lo que puso una persona de lo que
+  // levantó el motor, que es la distinción que decide qué se puede quitar.
+  .novedades__titulo {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-1);
+    margin: var(--sura-espacio-2) 0 0;
+    font-size: var(--sura-texto-sm);
+    font-weight: var(--sura-peso-semibold, 600);
+    color: var(--sura-texto-suave);
+    text-transform: uppercase;
+    letter-spacing: .02em;
+
+    .mat-icon {
+      font-size: 1rem;
+      width: 1rem;
+      height: 1rem;
+    }
+  }
+
+  .novedades__lista {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sura-espacio-2);
+  }
+
+  .novedades__vacio {
+    margin: 0;
+    padding: var(--sura-espacio-3);
+    background: var(--sura-gris-100);
+    border-radius: var(--sura-radio-8);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  .novedades__desplegar,
+  .novedades__agregar { align-self: flex-start; }
+
+  .novedades__agregar { margin-top: var(--sura-espacio-2); }
+
+  // ── Una novedad ───────────────────────────────────────────────────────────
+  .novedad {
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    border-left: 4px solid var(--sura-gris-400);
+    background: var(--sura-gris-100);
+    border-radius: 0 var(--sura-radio-8) var(--sura-radio-8) 0;
+  }
+
+  // Azul institucional: la puso una persona y se puede quitar.
+  .novedad--manual { border-left-color: var(--sura-azul-primario); }
+
+  // Gris: la levantó el motor. Sin acción posible.
+  .novedad--motor { border-left-color: var(--sura-gris-400); }
+
+  // Verde: todavía no existe, se creará al guardar.
+  .novedad--nueva {
+    border-left-color: var(--sura-exito, #2e7d32);
+    background: var(--sura-exito-fondo, #e8f5e9);
+  }
+
+  // Marcada para quitar: se tacha y se queda, para que se vea qué va a pasar.
+  .novedad--marcada {
+    opacity: .55;
+    .novedad__codigo,
+    .novedad__texto { text-decoration: line-through; }
+  }
+
+  .novedad__cabecera {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    flex-wrap: wrap;
+  }
+
+  .novedad__codigo {
+    color: var(--sura-azul-institucional);
+    font-size: var(--sura-texto-base);
+  }
+
+  .novedad__texto {
+    margin: var(--sura-espacio-1) 0 0;
+    font-size: var(--sura-texto-sm);
+    line-height: 1.45;
+  }
+
+  .novedad__pie {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sura-espacio-2);
+    margin: var(--sura-espacio-1) 0 0;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-tenue);
+  }
+
+  .novedad__concepto {
+    padding: 0 var(--sura-espacio-1);
+    background: var(--sura-gris-200);
+    border-radius: var(--sura-radio-8);
+  }
+
+  .novedad__autor { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+  // El origen del motor, en castellano. Los quince valores del vocabulario del
+  // sistema de registro se traducen en `origenes-novedad.ts`.
+  .novedad__origen {
+    padding: 0 var(--sura-espacio-1);
+    border: 1px solid var(--sura-gris-300);
+    border-radius: var(--sura-radio-8);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  // «Específico de Sistema?» del catálogo. Se pinta solo cuando es «Sí»: es un
+  // dato técnico, y una columna de «No» repetido 630 veces ocupa sitio sin
+  // decir nada. Cuando es «Sí» importa, porque explica por qué ese mensaje no
+  // se ofrece para ponerlo a mano.
+  .novedad__sistema {
+    padding: 0 var(--sura-espacio-1);
+    border: 1px dashed var(--sura-gris-400);
+    border-radius: var(--sura-radio-8);
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-tenue);
+  }
+
+  .novedad__accion { margin-left: auto; }
+
+  .novedad__candado {
+    margin-left: auto;
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+    color: var(--sura-texto-tenue);
+  }
+
+  .novedad__aviso {
+    margin: var(--sura-espacio-1) 0 0;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-error);
+  }
+
+  .novedad__aviso--nueva { color: var(--sura-exito, #2e7d32); }
+}
+
+// ── El distintivo de severidad ──────────────────────────────────────────────
+//
+// Con **texto y no solo color**: la diferencia entre que una novedad frene la
+// cuenta o solo informe es la que decide si se puede cerrar, y un matiz de color
+// no la comunica —ni a quien no distingue esos colores—. Se define fuera de
+// `.novedades` porque el buscador también lo usa.
+.novedad__severidad {
+  padding: 0 var(--sura-espacio-1);
+  border-radius: var(--sura-radio-8);
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-semibold, 600);
+  white-space: nowrap;
+}
+
+.novedad-severidad--informativa {
+  background: var(--sura-gris-200);
+  color: var(--sura-texto-suave);
+}
+
+.novedad-severidad--advertencia {
+  background: var(--sura-aviso-fondo, #fff8e1);
+  color: var(--sura-aviso, #a06800);
+}
+
+.novedad-severidad--bloqueante {
+  background: var(--sura-error-fondo);
+  color: var(--sura-error);
+}
+
+// La negación es más grave que la bloqueante: no frena, niega. Se distingue con
+// relleno pleno para que no se lea como «una bloqueante más».
+.novedad-severidad--negacion {
+  background: var(--sura-error);
+  color: #fff;
+}
+
+.novedad-severidad--desconocida {
+  background: var(--sura-gris-200);
+  color: var(--sura-texto-tenue);
+  font-style: italic;
+}
+
+// ── El alta ─────────────────────────────────────────────────────────────────
+.alta-novedad {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sura-espacio-2);
+  margin-top: var(--sura-espacio-2);
+  padding: var(--sura-espacio-3);
+  background: var(--sura-superficie, #fff);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-12);
+
+  .alta-novedad__campo { width: 100%; }
+
+  .alta-novedad__estado {
+    margin: 0;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  .alta-novedad__estado--error { color: var(--sura-error); }
+
+  // ── Resultados ────────────────────────────────────────────────────────────
+  //
+  // Lista propia y no un `mat-autocomplete`: el panel del autocompletar se
+  // proyecta en un overlay y recorta a una línea por opción, y aquí cada opción
+  // necesita tres renglones —código y severidad, el texto completo y la
+  // clasificación— porque el texto es justo lo que decide si se elige ese
+  // código o otro. Tampoco un `<datalist>` como en la glosa: allí hay 27
+  // opciones y aquí 631, y un datalist no enseña el texto largo.
+  .alta-novedad__resultados {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+    border: 1px solid var(--sura-gris-200);
+    border-radius: var(--sura-radio-8);
+
+    li + li { border-top: 1px solid var(--sura-gris-200); }
+  }
+
+  .resultado {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    border: 0;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font: inherit;
+
+    &:hover,
+    &:focus-visible { background: var(--sura-gris-100); }
+  }
+
+  .resultado__cabecera {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+
+    strong { color: var(--sura-azul-institucional); }
+  }
+
+  .resultado__texto {
+    font-size: var(--sura-texto-sm);
+    line-height: 1.4;
+  }
+
+  .resultado__concepto {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-tenue);
+  }
+
+  // Avisa de que ese mensaje deja huecos ANTES de elegirlo, para que no sea una
+  // sorpresa al llegar al formulario.
+  .resultado__pide {
+    padding: 0 var(--sura-espacio-1);
+    background: var(--sura-aviso-fondo, #fff8e1);
+    color: var(--sura-aviso, #a06800);
+    border-radius: var(--sura-radio-8);
+    font-size: var(--sura-texto-sm);
+    white-space: nowrap;
+  }
+
+  // ── Los huecos del texto ──────────────────────────────────────────────────
+  .alta-novedad__huecos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sura-espacio-2);
+    margin-top: var(--sura-espacio-3);
+    padding-top: var(--sura-espacio-3);
+    border-top: 1px dashed var(--sura-gris-300);
+  }
+
+  .alta-novedad__huecos-titulo {
+    margin: 0;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  .alta-novedad__hueco { width: 100%; }
+
+  // El índice del sistema de registro, en pequeño y al margen: no le dice nada
+  // al auditor —el rótulo del campo sale del texto que rodea al hueco— pero es
+  // lo único que permite cuadrar lo que se ve con lo que se guardó.
+  .alta-novedad__hueco-indice {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-tenue);
+    white-space: nowrap;
+  }
+
+  // ── Ficha de confirmación ─────────────────────────────────────────────────
+  //
+  // Existe para que la severidad se vea **antes** de confirmar: la trae el
+  // código y no la elige el auditor, y 203 de los 631 mensajes frenan la cuenta.
+  .alta-novedad__ficha {
+    padding: var(--sura-espacio-3);
+    background: var(--sura-gris-100);
+    border-radius: var(--sura-radio-8);
+    border-left: 4px solid var(--sura-azul-primario);
+  }
+
+  .alta-novedad__ficha--frena { border-left-color: var(--sura-error); }
+
+  .alta-novedad__alerta {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-1);
+    margin: var(--sura-espacio-2) 0 0;
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-error);
+
+    .mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+    }
+  }
+
+  .alta-novedad__alerta--aviso { color: var(--sura-aviso, #a06800); }
+
+  .alta-novedad__botones {
+    display: flex;
+    gap: var(--sura-espacio-2);
+    margin-top: var(--sura-espacio-3);
+  }
+
+  .alta-novedad__cancelar { align-self: flex-start; }
+}
+
+// En pantallas estrechas el autor deja de empujarse a la derecha: pegado al
+// borde y con los conceptos al lado se lee peor que debajo.
+@media (max-width: 700px) {
+  .novedades .novedad__autor { margin-left: 0; }
+}
+
+// ── El guardado propio de la cabecera ───────────────────────────────────────
+//
+// La cuenta no tiene formulario del que colgarse como la línea: la novedad es
+// lo único editable, así que el guardado es suyo y aparece solo cuando hay algo
+// marcado.
+.novedades-cuenta__acciones {
+  display: flex;
+  align-items: center;
+  gap: var(--sura-espacio-2);
+  margin-top: var(--sura-espacio-3);
+  padding-top: var(--sura-espacio-3);
+  border-top: 1px solid var(--sura-gris-200);
+}

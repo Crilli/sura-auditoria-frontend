@@ -1,0 +1,187 @@
+// ============================================================================
+// Barra de filtros del listado de líneas
+// ============================================================================
+//
+// Vive en la capa global y no en el componente por el presupuesto de
+// `anyComponentStyle` (4 kB): `lineas-list` ya gasta lo suyo en la tabla, las
+// celdas dobles y el paginador.
+//
+// **Los selectores van anidados bajo `.filtros-lineas` a propósito.** Al salir
+// de un componente se pierde el atributo `[_ngcontent-…]` que Angular añadía, y
+// con él un nivel de especificidad frente a los estilos propios de Material; el
+// descendiente lo devuelve. Es la misma lección que dejó escrita
+// `_paginador.scss`, donde perderlo dejó la página activa en azul sobre azul.
+//
+// La estructura es una pila de grupos, cada uno con su rótulo a la izquierda y
+// sus campos a la derecha. Antes eran siete campos seguidos envolviendo en una
+// sola fila: no se distinguía dónde acababa un criterio y empezaba el otro, y
+// los hints de dos renglones descuadraban la línea base de los de al lado.
+
+.filtros-lineas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sura-espacio-3);
+  margin-bottom: var(--sura-espacio-4);
+  padding: var(--sura-espacio-3) var(--sura-espacio-4) var(--sura-espacio-4);
+  background: var(--sura-superficie, #fff);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-12);
+
+  // ── Cabecera ──────────────────────────────────────────────────────────────
+  .filtros-lineas__cabecera {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    padding-bottom: var(--sura-espacio-2);
+    border-bottom: 1px solid var(--sura-gris-200);
+  }
+
+  .filtros-lineas__titulo {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-1);
+    margin: 0;
+    font-size: var(--sura-texto-base);
+    font-weight: var(--sura-peso-semibold, 600);
+    color: var(--sura-texto);
+
+    .mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      color: var(--sura-azul-primario);
+    }
+  }
+
+  // Sobre cuántas líneas se está filtrando: da la escala de lo que se acota.
+  .filtros-lineas__alcance {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  .filtros-lineas__limpiar { margin-left: auto; }
+
+  // ── Un grupo: rótulo a la izquierda, campos a la derecha ──────────────────
+  //
+  // El rótulo en columna propia y no como `mat-label` de cada campo porque lo
+  // que agrupa es la pregunta («¿cuándo se atendió?»), no el campo suelto.
+  .filtros-lineas__grupo {
+    display: grid;
+    grid-template-columns: 9.5rem 1fr;
+    align-items: start;
+    gap: var(--sura-espacio-3);
+  }
+
+  .filtros-lineas__etiqueta {
+    padding-top: var(--sura-espacio-2);
+    font-size: var(--sura-texto-sm);
+    font-weight: var(--sura-peso-semibold, 600);
+    color: var(--sura-texto-suave);
+  }
+
+  .filtros-lineas__campos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+  }
+
+  // Un rango es una sola idea: sus dos campos van pegados y separados del resto.
+  .filtros-lineas__campos--rango { gap: var(--sura-espacio-1); }
+
+  .filtros-lineas__hasta {
+    padding: 0 var(--sura-espacio-1);
+    color: var(--sura-texto-tenue);
+  }
+
+  // ── Campos ────────────────────────────────────────────────────────────────
+  .filtros-lineas__campo {
+    flex: 0 1 15rem;
+    min-width: 11rem;
+
+    &--ancho { flex-basis: 24rem; }
+    // Más ancho que antes: ahora lleva el botón del calendario como sufijo.
+    &--fecha { flex: 0 0 13.5rem; min-width: 13.5rem; }
+    &--monto { flex: 0 0 9.5rem;  min-width: 9.5rem; }
+  }
+
+  // `subscriptSizing="dynamic"` quita el hueco del hint cuando no hay hint, que
+  // es lo que dejaba los campos desalineados entre sí. Esto solo recorta el
+  // margen que Material deja igualmente debajo.
+  .mat-mdc-form-field-subscript-wrapper { margin-bottom: 0; }
+
+  // El conteo de cada opción: es lo que evita elegir un filtro que daría cero.
+  .filtros-lineas__conteo {
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+  }
+
+  // Chrome extiende su indicador de calendario a todo el ancho del campo pero no
+  // dibuja ningún icono, así que el campo se leía como de escritura manual. Se
+  // oculta y manda el botón del sufijo, que sí se ve y llama a `showPicker()`.
+  // La regla es `-webkit-`, así que Firefox —que no expone `showPicker` pero sí
+  // abre su calendario al pulsar el campo— no se queda sin forma de abrirlo.
+  input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+  }
+
+  // El campo de fecha se pulsa entero para abrir el calendario.
+  input[type="date"] { cursor: pointer; }
+
+  // Dato de apoyo al lado del rango: hasta dónde llega la cuenta de verdad.
+  .filtros-lineas__pista {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-tenue);
+    white-space: nowrap;
+  }
+
+  // Un solo afiliado: no hay nada que elegir, así que se dice quién es y ya.
+  .filtros-lineas__unico {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    margin: 0;
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    background: var(--sura-gris-100);
+    border-radius: var(--sura-radio-8);
+    font-size: var(--sura-texto-sm);
+
+    .mat-icon {
+      font-size: 1.125rem;
+      width: 1.125rem;
+      height: 1.125rem;
+      color: var(--sura-texto-tenue);
+    }
+
+    em { color: var(--sura-texto-suave); font-style: normal; }
+  }
+
+  // ── Criterios activos y avisos ────────────────────────────────────────────
+  .filtros-lineas__activos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    padding-top: var(--sura-espacio-2);
+    border-top: 1px solid var(--sura-gris-200);
+  }
+
+  .filtros-lineas__aviso { margin: 0; }
+}
+
+// En pantallas estrechas el rótulo pasa encima de sus campos: a dos columnas,
+// 9,5 rem de rótulo dejan los campos sin sitio.
+@media (max-width: 900px) {
+  .filtros-lineas .filtros-lineas__grupo {
+    grid-template-columns: 1fr;
+    gap: var(--sura-espacio-1);
+  }
+
+  .filtros-lineas .filtros-lineas__etiqueta { padding-top: 0; }
+}
+
+// El valor glosado se lee de un vistazo: es por donde empieza la auditoría.
+.valor-glosado {
+  color: var(--sura-error);
+  font-weight: 600;
+}

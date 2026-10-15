@@ -36,3 +36,45 @@
   font-size: var(--sura-texto-sm);
   color: var(--sura-texto-suave);
 }
+
+// ── Alta y baja de glosas ───────────────────────────────────────────────────
+
+// La marcada no desaparece: se tacha. Ver la nota de la plantilla.
+.glosa--marcada {
+  opacity: .55;
+  text-decoration: line-through;
+}
+
+// La que todavía no existe en el sistema de registro.
+.glosa--nueva {
+  border-left: 3px solid var(--sura-exito);
+  padding-left: var(--sura-espacio-2);
+}
+
+.glosa-accion { margin-left: auto; }
+
+.glosa-alta {
+  margin-top: var(--sura-espacio-3);
+  padding-top: var(--sura-espacio-3);
+  border-top: 1px solid var(--sura-gris-200);
+
+  &__titulo {
+    margin: 0 0 var(--sura-espacio-2);
+    font-size: var(--sura-texto-sm);
+    font-weight: 600;
+    color: var(--sura-texto-suave);
+  }
+
+  &__campos {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+  }
+
+  &__causal { flex: 0 1 12rem; }
+  &__valor  { flex: 0 1 9rem; }
+  &__texto  { flex: 1 1 18rem; }
+
+  &__total { margin-top: var(--sura-espacio-2); }
+}

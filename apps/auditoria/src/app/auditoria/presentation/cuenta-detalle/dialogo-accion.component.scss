@@ -1,0 +1,63 @@
+// Los estilos del diálogo son suyos y no de la capa global: no los comparte
+// nadie y caben de sobra en el presupuesto del componente.
+.dialogo-accion__intro { margin: 0 0 var(--sura-espacio-3); }
+
+.dialogo-accion__alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sura-espacio-2);
+  margin: 0 0 var(--sura-espacio-3);
+  padding: var(--sura-espacio-3);
+  background: var(--sura-error-fondo);
+  border-left: 4px solid var(--sura-error);
+  border-radius: 0 var(--sura-radio-8) var(--sura-radio-8) 0;
+  color: var(--sura-error);
+
+  .mat-icon { flex: none; }
+}
+
+// Lo que avisa pero no impide: el bloqueo de líneas es consecuencia, no peligro.
+.dialogo-accion__alerta--aviso {
+  background: var(--sura-aviso-fondo, #fff8e1);
+  border-left-color: var(--sura-aviso, #a06800);
+  color: var(--sura-aviso, #a06800);
+}
+
+.dialogo-accion__motivos {
+  list-style: none;
+  margin: 0 0 var(--sura-espacio-3);
+  padding: 0;
+  max-height: 18rem;
+  overflow-y: auto;
+
+  li {
+    padding: var(--sura-espacio-1) 0;
+    border-bottom: 1px solid var(--sura-gris-200);
+  }
+}
+
+.motivo__nombre { font-weight: var(--sura-peso-semibold, 600); }
+
+.motivo__codigo {
+  margin-left: var(--sura-espacio-2);
+  font-size: var(--sura-texto-sm);
+  color: var(--sura-texto-tenue);
+}
+
+// Las banderas del catálogo, debajo y en pequeño: son consecuencias de elegir
+// ese motivo, y verlas antes evita descubrirlas con la cuenta ya movida.
+.motivo__avisos {
+  display: block;
+  margin: 2px 0 0 2.25rem;
+}
+
+.motivo__aviso {
+  margin-right: var(--sura-espacio-2);
+  padding: 0 var(--sura-espacio-1);
+  background: var(--sura-aviso-fondo, #fff8e1);
+  color: var(--sura-aviso, #a06800);
+  border-radius: var(--sura-radio-8);
+  font-size: var(--sura-texto-sm);
+}
+
+.dialogo-accion__campo { width: 100%; margin-top: var(--sura-espacio-2); }

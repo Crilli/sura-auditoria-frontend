@@ -139,7 +139,12 @@
               </mat-panel-description>
             </mat-expansion-panel-header>
 
-            <sura-seccion-glosa [detalle]="linea" [esEdicion]="esEdicion()" />
+            <sura-seccion-glosa
+            [detalle]="linea"
+            [esEdicion]="esEdicion()"
+            [cambios]="cambiosDeGlosa()"
+            (agregar)="anotarCambioDeGlosa($event)"
+            (deshacer)="deshacerCambioDeGlosa($event)" />
           </mat-expansion-panel>
         }
 
@@ -160,7 +165,11 @@
           </mat-expansion-panel>
         }
 
-        @if (linea.novedades.length > 0) {
+        <!-- En edición el panel está siempre, aunque la línea no tenga ninguna:
+             si no, no hay dónde pulsar «agregar» justo en las líneas donde más
+             falta hace. En consulta se sigue ocultando cuando no hay nada que
+             leer. -->
+        @if (linea.novedades.length > 0 || esEdicion()) {
           <mat-expansion-panel [expanded]="panelNovedades()"
                                (opened)="panelNovedades.set(true)"
                                (closed)="panelNovedades.set(false)">
@@ -168,12 +177,18 @@
               <mat-panel-title>
                 <mat-icon aria-hidden="true">campaign</mat-icon>
                 Novedades
-                <span class="sura-contador">{{ linea.novedades.length }}</span>
+                @if (linea.novedades.length > 0) {
+                  <span class="sura-contador">{{ linea.novedades.length }}</span>
+                }
               </mat-panel-title>
-              <mat-panel-description>{{ resumenNovedades(linea) }}</mat-panel-description>
+              <mat-panel-description>{{ resumenNovedades(linea.novedades) }}</mat-panel-description>
             </mat-expansion-panel-header>
 
-            <sura-seccion-novedades [detalle]="linea" />
+            <sura-seccion-novedades [novedades]="linea.novedades"
+                                    [esEdicion]="esEdicion()"
+                                    [cambios]="cambiosDeNovedad()"
+                                    (agregar)="anotarCambioDeNovedad($event)"
+                                    (deshacer)="deshacerCambioDeNovedad($event)" />
           </mat-expansion-panel>
         }
 

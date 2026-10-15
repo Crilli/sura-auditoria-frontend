@@ -28,6 +28,24 @@
     a los tres segundos dejaría al auditor dando por hechas las seis que no se
     resolvieron. Se cierra pulsando.
   -->
+  <!--
+    Sin identidad configurada no se resuelve. Se dice arriba y una sola vez, en
+    vez de dejar los botones puestos y que fallen al pulsarlos: resolver es
+    irreversible y lo que falta es justamente poder decir quién lo hizo.
+  -->
+  @if (sinAuditor) {
+    <div class="sura-mensaje sura-mensaje--alerta" role="status">
+      <mat-icon>badge</mat-icon>
+      <span>
+        <strong>Resolver está deshabilitado: falta configurar quién audita.</strong>
+        Las resoluciones son irreversibles y alcanzan todas las filas del motivo,
+        así que tienen que quedar firmadas. Ponga su usuario en
+        <code>auditor</code>, dentro de
+        <code>apps/auditoria/src/environments/environment.ts</code>.
+      </span>
+    </div>
+  }
+
   @if (resultadoMasivo(); as resultado) {
     <div class="resultado-masivo sura-mensaje"
          [class.sura-mensaje--exito]="resultado.desenlace === 'COMPLETO'"
@@ -381,7 +399,10 @@
 
         <button mat-raised-button color="warn" id="btn-resolver-masivo-pend"
                 class="seleccion-masiva__confirmar"
-                [disabled]="resolviendoEnMasa() || sinEfecto() || confirmandoMasivo()"
+                [disabled]="sinAuditor || resolviendoEnMasa() || sinEfecto() || confirmandoMasivo()"
+                [matTooltip]="sinAuditor
+                  ? 'Falta configurar quién audita: la resolución tiene que quedar firmada'
+                  : 'Revisar y confirmar antes de resolver'"
                 (click)="abrirConfirmacionMasiva()">
           @if (resolviendoEnMasa()) {
             <mat-spinner diameter="20"></mat-spinner>
@@ -544,7 +565,11 @@
             <th mat-header-cell *matHeaderCellDef>Acciones</th>
             <td mat-cell *matCellDef="let p">
               <button mat-button color="primary"
-                      [disabled]="pendienteSeleccionado()?.identificador === p.identificador"
+                      [disabled]="sinAuditor
+                               || pendienteSeleccionado()?.identificador === p.identificador"
+                      [matTooltip]="sinAuditor
+                        ? 'Falta configurar quién audita: la resolución tiene que quedar firmada'
+                        : 'Resolver este motivo'"
                       (click)="seleccionarParaResolver(p)">
                 Resolver
               </button>

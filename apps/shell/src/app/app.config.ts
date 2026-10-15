@@ -8,11 +8,13 @@ import { APP_ROUTES } from './app.routes';
 // Puertos (tokens DI)
 import { CuentaRepository }    from '../../../auditoria/src/app/auditoria/domain/ports/cuenta.repository';
 import { LineaRepository }     from '../../../auditoria/src/app/auditoria/domain/ports/linea.repository';
+import { CatalogoNovedadesRepository } from '../../../auditoria/src/app/auditoria/domain/ports/catalogo-novedades.repository';
 import { PendienteRepository } from '../../../auditoria/src/app/auditoria/domain/ports/pendiente.repository';
 
 // Adaptadores HTTP (implementaciones concretas)
 import { CuentaHttpAdapter }    from '../../../auditoria/src/app/auditoria/infrastructure/adapters/cuenta-http.adapter';
 import { LineaHttpAdapter }     from '../../../auditoria/src/app/auditoria/infrastructure/adapters/linea-http.adapter';
+import { CatalogoNovedadesHttpAdapter } from '../../../auditoria/src/app/auditoria/infrastructure/adapters/catalogo-novedades-http.adapter';
 import { PendienteHttpAdapter } from '../../../auditoria/src/app/auditoria/infrastructure/adapters/pendiente-http.adapter';
 
 // Interceptor de autenticación (passthrough en desarrollo — reemplazar por el real)
@@ -60,6 +62,7 @@ export const appConfig: ApplicationConfig = {
     // ── Binding puerto → adaptador (Hexagonal Architecture) ──────────
     { provide: CuentaRepository,    useExisting: CuentaHttpAdapter },
     { provide: LineaRepository,     useExisting: LineaHttpAdapter },
+    { provide: CatalogoNovedadesRepository, useExisting: CatalogoNovedadesHttpAdapter },
     { provide: PendienteRepository, useExisting: PendienteHttpAdapter },
   ]
 };

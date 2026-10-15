@@ -16,6 +16,7 @@ import { MatCardModule } from '@angular/material/card';
 import { MatTooltipModule } from '@angular/material/tooltip';
 import { MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { environment } from '@sura/environments';
 import { PendienteFacade } from '../../application/facades/pendiente.facade';
 import { CuentaFacade } from '../../application/facades/cuenta.facade';
 import {
@@ -125,8 +126,23 @@ export class PendientesListComponent implements OnInit {
   readonly pendienteSeleccionado = signal<MotivoPendienteModel | null>(null);
   readonly resolving = signal<boolean>(false);
 
-  // Auditor simulado
-  private readonly auditor = 'auditor@sura.com.co';
+  /**
+   * Quién firma la resolución. Sale de la configuración, no de un literal.
+   *
+   * Mientras esté vacío no se resuelve nada: ver {@link sinAuditor}. Resolver es
+   * irreversible y arrastra todas las filas del motivo, así que dejarlo pasar sin
+   * identidad convierte la traza en inútil justo donde más falta hace.
+   */
+  private readonly auditor = environment.auditor;
+
+  /**
+   * No hay nadie a quien atribuir la operación, así que no se ofrece.
+   *
+   * Se bloquea en el cliente y además lo rechaza el servicio: la pantalla puede
+   * estar mal configurada, pero la cuenta no se toca sin firma en ninguno de los
+   * dos sitios.
+   */
+  readonly sinAuditor = !environment.auditor?.trim();
 
   form: FormGroup = this.fb.group({
     justificacion: ['', [Validators.required, Validators.maxLength(2000)]],
@@ -191,6 +207,7 @@ export class PendientesListComponent implements OnInit {
   // ── Resolución ────────────────────────────────────────────────────
 
   seleccionarParaResolver(pendiente: MotivoPendienteModel): void {
+    if (this.sinAuditor) return;
     this.pendienteSeleccionado.set(pendiente);
     this.form.reset({ alcance: 'CUENTA_Y_LINEAS' });
   }
@@ -317,6 +334,7 @@ export class PendientesListComponent implements OnInit {
   }
 
   abrirConfirmacionMasiva(): void {
+    if (this.sinAuditor) return;
     this.formMasivo.reset({ justificacion: '' });
     this.confirmandoMasivo.set(true);
     this.pendienteSeleccionado.set(null);

@@ -5,7 +5,12 @@ import { ListarLineasUseCase }          from '../use-cases/listar-lineas.use-cas
 import { ConsultarDetalleLineaUseCase } from '../use-cases/consultar-detalle-linea.use-case';
 import { GuardarLineaUseCase }          from '../use-cases/guardar-linea.use-case';
 import { ObtenerSiguienteLineaUseCase } from '../use-cases/obtener-siguiente-linea.use-case';
-import { ResumenLineaModel, DetalleLineaModel, GuardarLineaRequest } from '../../domain/models/linea-cuenta.model';
+import { ResumirFiltrosLineasUseCase }  from '../use-cases/resumir-filtros-lineas.use-case';
+import {
+  ResumenLineaModel, DetalleLineaModel, GuardarLineaRequest,
+  FiltroLineasModel, ResumenFiltrosLineasModel,
+  FILTRO_LINEAS_VACIO, exigeRecorrido, hayAlgunCriterio
+} from '../../domain/models/linea-cuenta.model';
 import { CursorPage, CursorRequest } from '../../../../../../../libs/data-access/http/src/lib/cursor-page.model';
 
 /** Desenlace de «guardar y pasar a la siguiente línea». */
@@ -23,9 +28,43 @@ export class LineaFacade {
   private readonly detalleUC = inject(ConsultarDetalleLineaUseCase);
   private readonly guardarUC = inject(GuardarLineaUseCase);
   private readonly siguienteUC = inject(ObtenerSiguienteLineaUseCase);
+  private readonly filtrosUC   = inject(ResumirFiltrosLineasUseCase);
 
   /** Tamaño de página fijo: es el máximo que acepta el servicio. */
   readonly TAMANO_PAGINA = 25;
+
+  /**
+   * Cuántas páginas se está dispuesto a encadenar para alcanzar un salto.
+   *
+   * El servicio es keyset: no sabe saltar a un desplazamiento, solo entrega el
+   * cursor de la siguiente, así que numerar páginas cuesta una petición por
+   * página intermedia. La cuenta mayor medida tiene 4.063 líneas, o sea **163
+   * páginas**: pulsar «última» serían 162 peticiones en serie contra el sistema
+   * de registro. Más allá de este tope el salto no se ofrece y se llega con
+   * «siguiente». Mismo criterio que la pantalla de pendientes.
+   */
+  readonly MAXIMO_PAGINAS_ENCADENADAS = 20;
+
+  /**
+   * Criterios de búsqueda, en un solo signal.
+   *
+   * Uno y no siete a propósito: con siete signals en los parámetros del recurso
+   * habría siete caminos de reinicio que mantener en sincronía, y lo que importa
+   * —que cualquier cambio vuelva a la página 1— es una sola regla.
+   */
+  private readonly _filtro = signal<FiltroLineasModel>(FILTRO_LINEAS_VACIO);
+  readonly filtro = this._filtro.asReadonly();
+
+  /**
+   * Cuántas veces se ha reiniciado la paginación.
+   *
+   * `recorrerHasta` encadena peticiones fuera del recurso y tarda segundos; si
+   * mientras tanto cambia el filtro, al volver escribiría los cursores y la
+   * página de un conjunto que ya no existe. Captura este número al empezar y no
+   * toca nada si ha cambiado. Sin filtros el hueco existía pero no se notaba;
+   * con ellos es un fallo real.
+   */
+  private readonly _generacion = signal<number>(0);
 
   // ── Signals de parámetros — rxResource reacciona automáticamente ─
   readonly codigoCuenta  = signal<string | null>(null);
@@ -63,14 +102,50 @@ export class LineaFacade {
       if (!codigo) return undefined;
       return {
         codigo,
-        cursor: this.cursorRequest()
+        cursor: this.cursorRequest(),
+        filtro: this._filtro()
       };
     },
-    stream: ({ params }) => this.listarUC.execute(params.codigo, params.cursor)
+    stream: ({ params }) => this.listarUC.execute(params.codigo, params.cursor, params.filtro)
   });
 
-  readonly lineas      = computed(() => (this._lineasResource.value() as CursorPage<ResumenLineaModel> | undefined)?.elementos     ?? []);
-  readonly cursorSig   = computed(() => (this._lineasResource.value() as CursorPage<ResumenLineaModel> | undefined)?.cursorSiguiente ?? null);
+  /**
+   * Con qué se puede acotar la cuenta. En su propia consulta porque recorre la
+   * cuenta entera —17 s en la mayor medida— y no cambia al paginar ni al
+   * filtrar: la tabla pinta sin esperarlo.
+   *
+   * El `intento` en los parámetros no es decorativo: `reload()` es un no-op que
+   * devuelve `false` si el recurso está `idle` o `loading`, así que cambiar un
+   * parámetro es la única forma fiable de relanzarlo.
+   */
+  private readonly _recargaFiltros = signal<number>(0);
+
+  private readonly _filtrosResource = rxResource({
+    params: () => {
+      const codigo = this.codigoCuenta();
+      return codigo ? { codigo, intento: this._recargaFiltros() } : undefined;
+    },
+    stream: ({ params }) => this.filtrosUC.execute(params.codigo)
+  });
+
+  readonly encuadre = computed<ResumenFiltrosLineasModel | null>(() =>
+    this._filtrosResource.hasValue()
+      ? (this._filtrosResource.value() as ResumenFiltrosLineasModel)
+      : null);
+  readonly cargandoEncuadre = computed(() => this._filtrosResource.isLoading());
+  readonly errorEncuadre    = computed(() => this._filtrosResource.error() as Error | null);
+
+  // `value()` no devuelve undefined cuando el recurso está en error: LANZA
+  // `ResourceValueError`. Sin el `hasValue()` delante, un GET caído no pinta el
+  // banner de error sino que revienta la plantilla entera. Con filtros ese
+  // camino se recorre mucho más, porque cada criterio es una consulta nueva.
+  private readonly _pagina = computed<CursorPage<ResumenLineaModel> | null>(() =>
+    this._lineasResource.hasValue()
+      ? (this._lineasResource.value() as CursorPage<ResumenLineaModel>)
+      : null);
+
+  readonly lineas      = computed(() => this._pagina()?.elementos      ?? []);
+  readonly cursorSig   = computed(() => this._pagina()?.cursorSiguiente ?? null);
   readonly totalLineas = computed(() => this._totalRegistros());
   readonly loading     = computed(() => this._lineasResource.isLoading());
   readonly listError   = computed(() => this._lineasResource.error() as Error | null);
@@ -82,7 +157,7 @@ export class LineaFacade {
     // registros (el servicio solo lo envía en la primera página) y el cursor con
     // el que se pedirá la página siguiente.
     effect(() => {
-      const pagina = this._lineasResource.value() as CursorPage<ResumenLineaModel> | undefined;
+      const pagina = this._pagina();
       if (!pagina) return;
 
       untracked(() => {
@@ -107,11 +182,84 @@ export class LineaFacade {
 
   cargarLineas(codigoCuenta: string): void {
     this.codigoCuenta.set(codigoCuenta);
+    this._filtro.set(FILTRO_LINEAS_VACIO);
+    this.reiniciarPaginacion();
+  }
+
+  /**
+   * Cambia uno o varios criterios y vuelve al principio.
+   *
+   * El reinicio no es cosmético: un cursor del conjunto anterior no significa
+   * nada en el nuevo, y la página 7 de un filtro con tres filas no existe.
+   */
+  aplicarFiltro(cambios: Partial<FiltroLineasModel>): void {
+    const siguiente = { ...this._filtro(), ...cambios };
+    // Quitar las claves vacías mantiene `hayAlgunFiltro` honesto y evita
+    // relanzar la consulta por un cambio que no cambia nada.
+    for (const [clave, valor] of Object.entries(siguiente)) {
+      if (valor === null || valor === undefined || valor === '') {
+        delete (siguiente as Record<string, unknown>)[clave];
+      }
+    }
+    if (JSON.stringify(siguiente) === JSON.stringify(this._filtro())) return;
+    this._filtro.set(siguiente);
+    this.reiniciarPaginacion();
+  }
+
+  quitarFiltro(campo: keyof FiltroLineasModel): void {
+    this.aplicarFiltro({ [campo]: null } as Partial<FiltroLineasModel>);
+  }
+
+  limpiarTodosLosFiltros(): void {
+    if (!this.hayAlgunFiltro()) return;
+    this._filtro.set(FILTRO_LINEAS_VACIO);
+    this.reiniciarPaginacion();
+  }
+
+  readonly hayAlgunFiltro = computed(() => hayAlgunCriterio(this._filtro()));
+
+  /**
+   * Si el filtro activo obliga al servicio a recorrer la cuenta.
+   *
+   * De aquí sale lo que la pantalla tiene que avisar: con catálogo o con valor
+   * glosado no hay total ni número de páginas —el sistema de registro no sabe
+   * filtrar por esos campos, así que su total contaría filas que después se
+   * descartan— y la navegación pasa a «siguiente/anterior».
+   */
+  readonly exigeRecorrido = computed(() => exigeRecorrido(this._filtro()));
+
+  recargarEncuadre(): void {
+    this._recargaFiltros.update(n => n + 1);
+  }
+
+  private reiniciarPaginacion(): void {
+    this._generacion.update(n => n + 1);
     this._cursores.set([undefined]);
     this._totalRegistros.set(null);
     this.paginaActual.set(1);
-    this.cursorRequest.set({ tamano: this.TAMANO_PAGINA }); // Reinicia a primera página
+    this.errorComando.set(null);
+    this.cursorRequest.set({ tamano: this.TAMANO_PAGINA });
   }
+
+  /**
+   * La página más lejana a la que se puede saltar sin pasarse del tope de
+   * encadenado. La vista la usa para no ofrecer saltos que costarían decenas de
+   * peticiones.
+   */
+  readonly ultimaPaginaAlcanzable = computed(() => {
+    const tope  = this._cursores().length + this.MAXIMO_PAGINAS_ENCADENADAS;
+    const total = this.totalPaginas();
+    return total === null ? tope : Math.min(tope, total);
+  });
+
+  alcanzable(numero: number): boolean {
+    return numero <= this.ultimaPaginaAlcanzable();
+  }
+
+  readonly puedeIrAUltima = computed(() => {
+    const total = this.totalPaginas();
+    return total !== null && total > this.paginaActual() && this.alcanzable(total);
+  });
 
   /**
    * Va a la página indicada (1 en adelante).
@@ -122,6 +270,8 @@ export class LineaFacade {
    * sabe saltar a un desplazamiento arbitrario.
    */
   async irAPagina(numero: number): Promise<void> {
+    // Un error de navegación anterior no debe sobrevivir a una que sí funciona.
+    this.errorComando.set(null);
     const total = this.totalPaginas();
     if (numero < 1 || numero === this.paginaActual()) return;
     if (total !== null && numero > total) return;
@@ -130,6 +280,12 @@ export class LineaFacade {
     if (numero === 1 || cursores[numero - 1] !== undefined) {
       this.paginaActual.set(numero);
       this.cursorRequest.set({ cursor: cursores[numero - 1], tamano: this.TAMANO_PAGINA });
+      return;
+    }
+    if (!this.alcanzable(numero)) {
+      this.errorComando.set(
+        `Para llegar a la página ${numero} hay que recorrer las anteriores. ` +
+        `Avance con «siguiente» o acote la búsqueda.`);
       return;
     }
     await this.recorrerHasta(numero);
@@ -148,29 +304,42 @@ export class LineaFacade {
     const codigo = this.codigoCuenta();
     if (!codigo) return;
 
+    // Se fijan al empezar: si cambian por el camino, lo recorrido ya no vale.
+    const generacion = this._generacion();
+    const filtro     = this._filtro();
+
     this.recorriendo.set(true);
     try {
       const cursores = [...this._cursores()];
       let indice = cursores.length - 1;   // última página con cursor conocido
+      let agotado = false;
 
       while (indice < destino - 1) {
         const cursor = cursores[indice];
-        if (cursor === undefined && indice > 0) break;   // no hay más páginas
+        if (cursor === undefined && indice > 0) { agotado = true; break; }
 
         const pagina = await lastValueFrom(
-          this.listarUC.execute(codigo, { cursor, tamano: this.TAMANO_PAGINA })
+          this.listarUC.execute(codigo, { cursor, tamano: this.TAMANO_PAGINA }, filtro)
         );
+
+        // Entre dos saltos pudo cambiar el filtro o recargarse la cuenta.
+        if (generacion !== this._generacion()) return;
+
         cursores[indice + 1] = pagina.cursorSiguiente ?? undefined;
-        if (!pagina.cursorSiguiente) break;
+        if (!pagina.cursorSiguiente) { agotado = true; break; }
         indice++;
       }
 
+      if (generacion !== this._generacion()) return;
       this._cursores.set(cursores);
 
       const cursorDestino = cursores[destino - 1];
       if (destino === 1 || cursorDestino !== undefined) {
         this.paginaActual.set(destino);
         this.cursorRequest.set({ cursor: cursorDestino, tamano: this.TAMANO_PAGINA });
+      } else if (agotado) {
+        this.errorComando.set(
+          `La página ${destino} ya no existe: la lista se ha acortado. Vuelva a cargarla.`);
       }
     } catch {
       this.errorComando.set('No fue posible avanzar hasta la página solicitada');

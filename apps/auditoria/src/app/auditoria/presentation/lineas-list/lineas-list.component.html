@@ -7,6 +7,269 @@
     }
   </div>
 
+  <!--
+    Filtros. Las opciones salen del agregado de la cuenta (GET /lineas/filtros),
+    no de la página a la vista: con el listado paginado, agrupar aquí solo vería
+    veinticinco filas y ofrecería un afiliado escondiendo los demás.
+
+    Van agrupados por la pregunta que responden —a quién se atendió, cuándo, qué
+    se hizo y qué se glosó— en vez de en una fila corrida: con siete campos
+    seguidos no se distingue dónde empieza un criterio y acaba el siguiente.
+  -->
+  <section class="filtros-lineas" aria-labelledby="filtros-lineas-titulo">
+
+    <header class="filtros-lineas__cabecera">
+      <h3 id="filtros-lineas-titulo" class="filtros-lineas__titulo">
+        <mat-icon>filter_alt</mat-icon>
+        Filtrar líneas
+      </h3>
+
+      @if (encuadre(); as e) {
+        <span class="filtros-lineas__alcance">
+          sobre {{ e.totalLineas }} {{ e.totalLineas === 1 ? 'línea' : 'líneas' }}
+        </span>
+      } @else if (cargandoEncuadre()) {
+        <span class="filtros-lineas__alcance">recopilando opciones…</span>
+      }
+
+      @if (hayAlgunFiltro()) {
+        <button mat-button color="primary" class="filtros-lineas__limpiar"
+                (click)="limpiarTodosLosFiltros()">
+          <mat-icon>filter_alt_off</mat-icon>
+          Quitar todos
+        </button>
+      }
+    </header>
+
+    <!-- Quién. Con un solo afiliado no hay nada que elegir: se dice quién es. -->
+    <div class="filtros-lineas__grupo">
+      <span class="filtros-lineas__etiqueta">Afiliado</span>
+      <div class="filtros-lineas__campos">
+        @if (esMultiafiliado()) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                          class="filtros-lineas__campo filtros-lineas__campo--ancho">
+            <mat-label>Cédula del afiliado</mat-label>
+            <mat-select [value]="filtro().cedula ?? null" [disabled]="ocupado()"
+                        (selectionChange)="filtrarPorAfiliado($event.value)">
+              <mat-option [value]="null">Todos los afiliados</mat-option>
+              @for (a of encuadre()!.afiliados; track a.cedula) {
+                <mat-option [value]="a.cedula">
+                  {{ a.cedula }}
+                  @if (a.nombre) { — {{ a.nombre }} }
+                  <span class="filtros-lineas__conteo">· {{ a.lineas }}</span>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        } @else if (afiliadoUnico(); as unico) {
+          <p class="filtros-lineas__unico">
+            <mat-icon>person</mat-icon>
+            <span>
+              <strong>{{ unico.cedula }}</strong>
+              @if (unico.nombre) { · {{ unico.nombre }} }
+              <em>— todas las líneas son suyas</em>
+            </span>
+          </p>
+        }
+      </div>
+    </div>
+
+    <!--
+      Cuándo. Fechas con `input type="date"` nativo y no con el datepicker de
+      Material: es la decisión que ya tomó el proyecto (no hay adaptador ni
+      librería de fechas, y el nativo ya entrega aaaa-mm-dd). El rango se acota a
+      lo que la cuenta tiene, para no ofrecer días sin ninguna atención.
+    -->
+    <div class="filtros-lineas__grupo">
+      <span class="filtros-lineas__etiqueta">Fecha de atención</span>
+      <div class="filtros-lineas__campos filtros-lineas__campos--rango">
+        <!--
+          El calendario se abre con el botón, no tecleando: el `input type="date"`
+          ya trae selector propio, pero Chrome no dibuja ningún icono que lo
+          anuncie y el campo parecía de escritura manual. Se pulsa también sobre
+          el propio campo, que es donde la gente pincha primero.
+        -->
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="filtros-lineas__campo filtros-lineas__campo--fecha">
+          <mat-label>Desde</mat-label>
+          <input matInput type="date" #desde [value]="filtro().desde ?? ''"
+                 [min]="encuadre()?.primeraAtencion" [max]="encuadre()?.ultimaAtencion"
+                 [disabled]="ocupado()"
+                 (click)="abrirCalendario(desde)"
+                 (change)="filtrarPorFecha('desde', $any($event.target).value)">
+          <button matIconSuffix mat-icon-button type="button"
+                  [disabled]="ocupado()"
+                  (click)="abrirCalendario(desde)"
+                  matTooltip="Abrir el calendario" aria-label="Abrir el calendario">
+            <mat-icon>calendar_month</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <span class="filtros-lineas__hasta" aria-hidden="true">—</span>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="filtros-lineas__campo filtros-lineas__campo--fecha">
+          <mat-label>Hasta</mat-label>
+          <input matInput type="date" #hasta [value]="filtro().hasta ?? ''"
+                 [min]="filtro().desde ?? encuadre()?.primeraAtencion"
+                 [max]="encuadre()?.ultimaAtencion"
+                 [disabled]="ocupado()"
+                 (click)="abrirCalendario(hasta)"
+                 (change)="filtrarPorFecha('hasta', $any($event.target).value)">
+          <button matIconSuffix mat-icon-button type="button"
+                  [disabled]="ocupado()"
+                  (click)="abrirCalendario(hasta)"
+                  matTooltip="Abrir el calendario" aria-label="Abrir el calendario">
+            <mat-icon>calendar_month</mat-icon>
+          </button>
+        </mat-form-field>
+
+        @if (encuadre(); as e) {
+          @if (e.primeraAtencion) {
+            <span class="filtros-lineas__pista">
+              la cuenta va del {{ e.primeraAtencion }} al {{ e.ultimaAtencion }}
+            </span>
+          }
+        }
+      </div>
+    </div>
+
+    <!-- Qué se hizo. -->
+    <div class="filtros-lineas__grupo">
+      <span class="filtros-lineas__etiqueta">Prestación</span>
+      <div class="filtros-lineas__campos">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="filtros-lineas__campo">
+          <mat-label>Código de autorización</mat-label>
+          <input matInput [value]="filtro().autorizacion ?? ''" [disabled]="ocupado()"
+                 placeholder="Empieza por…"
+                 (change)="filtrarPorTexto('autorizacion', $any($event.target).value)">
+          <mat-icon matSuffix matTooltip="Busca por el principio del código">search</mat-icon>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="filtros-lineas__campo">
+          <mat-label>Código de prestación</mat-label>
+          <input matInput [value]="filtro().prestacion ?? ''" [disabled]="ocupado()"
+                 placeholder="Empieza por…"
+                 (change)="filtrarPorTexto('prestacion', $any($event.target).value)">
+          <mat-icon matSuffix matTooltip="Busca por el principio del código">search</mat-icon>
+        </mat-form-field>
+
+        <!--
+          Las opciones son las que esta cuenta tiene, con su conteo: así no se
+          ofrece un catálogo que daría cero filas, y «Propio» aparece una sola
+          vez aunque por debajo sean varios códigos, uno por prestador.
+        -->
+        @if (encuadre(); as e) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                          class="filtros-lineas__campo">
+            <mat-label>Catálogo</mat-label>
+            <mat-select [value]="filtro().catalogo ?? null" [disabled]="ocupado()"
+                        (selectionChange)="filtrarPorCatalogo($event.value)">
+              <mat-option [value]="null">Todos los catálogos</mat-option>
+              @for (c of e.catalogos; track c.codigo) {
+                <mat-option [value]="c.codigo">
+                  {{ c.etiqueta }}
+                  <span class="filtros-lineas__conteo">· {{ c.lineas }}</span>
+                </mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+        }
+      </div>
+    </div>
+
+    <!-- Qué se glosó. La pregunta corriente es «¿qué está glosado?», no un rango. -->
+    <div class="filtros-lineas__grupo">
+      <span class="filtros-lineas__etiqueta">Valor glosado</span>
+      <div class="filtros-lineas__campos filtros-lineas__campos--rango">
+        <mat-button-toggle-group [value]="soloGlosadas() ? 'GLOSADAS' : 'TODAS'"
+                                 [disabled]="ocupado()"
+                                 (change)="alternarSoloGlosadas($event.value === 'GLOSADAS')"
+                                 aria-label="Valor glosado" hideSingleSelectionIndicator>
+          <mat-button-toggle value="TODAS">Todas</mat-button-toggle>
+          <mat-button-toggle value="GLOSADAS" [disabled]="sinGlosas()"
+                             [matTooltip]="sinGlosas()
+                               ? 'Ninguna línea de esta cuenta tiene glosa'
+                               : 'Solo las líneas con glosa'">
+            Solo glosadas
+            @if (encuadre(); as e) { ({{ e.lineasConGlosa }}) }
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+
+        @if (encuadre()?.glosaMaxima; as maxima) {
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                          class="filtros-lineas__campo filtros-lineas__campo--monto">
+            <mat-label>Desde</mat-label>
+            <input matInput type="number" min="0" [max]="maxima"
+                   [value]="filtro().glosaDesde ?? ''" [disabled]="ocupado()"
+                   (change)="filtrarPorGlosa('glosaDesde', $any($event.target).value)">
+            <span matTextPrefix>$&nbsp;</span>
+          </mat-form-field>
+
+          <span class="filtros-lineas__hasta" aria-hidden="true">—</span>
+
+          <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                          class="filtros-lineas__campo filtros-lineas__campo--monto">
+            <mat-label>Hasta</mat-label>
+            <input matInput type="number" min="0" [max]="maxima"
+                   [value]="filtro().glosaHasta ?? ''" [disabled]="ocupado()"
+                   (change)="filtrarPorGlosa('glosaHasta', $any($event.target).value)">
+            <span matTextPrefix>$&nbsp;</span>
+          </mat-form-field>
+
+          <span class="filtros-lineas__pista">
+            la mayor es {{ maxima | currency:'COP':'symbol':'1.0-0' }}
+          </span>
+        }
+      </div>
+    </div>
+
+    @if (criteriosActivos().length > 0) {
+      <div class="filtros-lineas__activos" role="status">
+        @for (c of criteriosActivos(); track c.campo) {
+          <mat-chip highlighted color="primary">
+            {{ c.texto }}
+            <button matChipRemove [attr.aria-label]="'Quitar ' + c.texto"
+                    (click)="quitarFiltro(c.campo)">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </mat-chip>
+        }
+      </div>
+    }
+
+    <!--
+      El aviso que convierte una limitación en información. El sistema de
+      registro no sabe filtrar por catálogo ni por valor glosado —se midió: su
+      consulta falla—, así que esas páginas se arman recorriendo la cuenta. De
+      ahí que no haya número total de páginas: el total que él devolvería cuenta
+      filas que luego se descartan.
+    -->
+    @if (exigeRecorrido()) {
+      <p class="filtros-lineas__aviso sura-nota sura-nota--regla" role="status">
+        <mat-icon>info_outline</mat-icon>
+        <span>
+          El catálogo y el valor glosado no se pueden buscar en el sistema de
+          registro, así que estas páginas se arman recorriendo la cuenta:
+          <strong>no hay número total de páginas</strong> y se avanza con
+          «siguiente». La búsqueda sí recorre la cuenta entera, no solo lo que se ve.
+        </span>
+      </p>
+    }
+
+    @if (errorEncuadre()) {
+      <div class="error-banner">
+        <mat-icon>filter_alt_off</mat-icon>
+        <span>
+          No se pudieron recopilar las opciones de filtrado. Los filtros de texto
+          y fecha siguen funcionando.
+        </span>
+      </div>
+    }
+  </section>
+
   @if (loading()) {
     <div class="loading-overlay">
       <mat-spinner diameter="48"></mat-spinner>
@@ -36,6 +299,25 @@
           nuevas la empujaría fuera de la pantalla; el texto va recortado y
           completo en el tooltip.
         -->
+        <!--
+          Fecha de atención y código de autorización. Están porque se filtra por
+          ellos: sin verlos, el auditor no puede comprobar por qué una fila salió.
+        -->
+        <ng-container matColumnDef="atencion">
+          <th mat-header-cell *matHeaderCellDef>Atención</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ row.fechaInicio ?? '—' }}</span>
+              @if (row.codigoAutorizacion) {
+                <span class="celda-doble__secundario"
+                      [matTooltip]="'Autorización ' + row.codigoAutorizacion">
+                  Aut. {{ row.codigoAutorizacion }}
+                </span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="codigoProcedimiento">
           <th mat-header-cell *matHeaderCellDef>Procedimiento</th>
           <td mat-cell *matCellDef="let row">
@@ -73,6 +355,19 @@
         <ng-container matColumnDef="valorCubierto">
           <th mat-header-cell *matHeaderCellDef>V. Cubierto</th>
           <td mat-cell *matCellDef="let row">{{ row.valorCubierto | currency:'COP':'symbol':'1.0-0' }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="valorGlosado">
+          <th mat-header-cell *matHeaderCellDef>V. Glosado</th>
+          <td mat-cell *matCellDef="let row">
+            @if (row.valorGlosado) {
+              <span class="valor-glosado">
+                {{ row.valorGlosado | currency:'COP':'symbol':'1.0-0' }}
+              </span>
+            } @else {
+              —
+            }
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="pendientes">
@@ -130,14 +425,25 @@
         <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
         <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 
-        @if (isEmpty()) {
-          <tr class="mat-row">
-            <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns.length">
-              <mat-icon>inbox</mat-icon>
+        <!--
+          `*matNoDataRow` y no un `@if`: `mat-table` proyecta en su propio outlet
+          y descarta los `<tr>` sueltos que se le escriban dentro, así que este
+          aviso no se pintaba nunca. Con los filtros puestos «sin resultados»
+          deja de ser un caso raro y pasa a ser frecuente.
+        -->
+        <tr class="mat-row" *matNoDataRow>
+          <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns.length">
+            <mat-icon>inbox</mat-icon>
+            @if (hayAlgunFiltro()) {
+              <p>Ninguna línea cumple los filtros puestos.</p>
+              <button mat-button color="primary" (click)="limpiarTodosLosFiltros()">
+                Quitar todos los filtros
+              </button>
+            } @else {
               <p>No hay líneas para esta cuenta.</p>
-            </td>
-          </tr>
-        }
+            }
+          </td>
+        </tr>
       </table>
 
       <!--
@@ -192,10 +498,22 @@
             <mat-icon>chevron_right</mat-icon>
           </button>
 
+          <!--
+            `puedeIrAUltima()` y no `haySiguiente()`: con un filtro que obliga a
+            recorrer no hay total, así que tampoco hay una «última» conocida, y
+            un botón habilitado que al pulsarlo no hace nada es peor que uno
+            apagado. También se apaga cuando la última está tan lejos que
+            llegar costaría decenas de peticiones encadenadas.
+          -->
           <button mat-icon-button id="btn-ultima-pagina"
-                  [disabled]="!haySiguiente() || ocupado()"
+                  [disabled]="!puedeUltima() || ocupado()"
                   (click)="ultima()"
-                  matTooltip="Última página" aria-label="Última página">
+                  [matTooltip]="puedeUltima()
+                    ? 'Última página'
+                    : (exigeRecorrido()
+                        ? 'Con este filtro no se sabe cuántas páginas hay: avance con «siguiente»'
+                        : 'La última página está demasiado lejos para saltar')"
+                  aria-label="Última página">
             <mat-icon>last_page</mat-icon>
           </button>
         </div>

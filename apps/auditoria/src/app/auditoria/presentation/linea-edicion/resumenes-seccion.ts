@@ -1,4 +1,4 @@
-import { DetalleLineaModel } from '../../domain/models/linea-cuenta.model';
+import { DetalleLineaModel, NovedadModel } from '../../domain/models/linea-cuenta.model';
 
 /**
  * Los resúmenes que van en la cabecera de cada sección plegable, para poder
@@ -27,11 +27,31 @@ export function resumenDiagnosticos(l: DetalleLineaModel): string {
   return resto > 0 ? `${texto} · y ${resto} más` : texto;
 }
 
-export function resumenNovedades(l: DetalleLineaModel): string {
-  const bloqueantes = l.novedades.filter(n => n.severidad === 'BLOQUEANTE').length;
-  return bloqueantes > 0
-    ? `${l.novedades.length} · ${bloqueantes} bloqueante${bloqueantes > 1 ? 's' : ''}`
-    : `${l.novedades.length}`;
+/**
+ * Resumen de las novedades para la cabecera del panel.
+ *
+ * Dice **cuántas puso una persona y cuántas el motor**, porque es lo que decide
+ * qué se puede tocar, y cuántas frenan la cuenta. Antes solo contaba las de
+ * severidad `BLOQUEANTE`, y además nunca llegaba a contar ninguna: el servicio
+ * mandaba la severidad de un carácter y la traducción esperaba palabras, así que
+ * todas llegaban como desconocidas.
+ *
+ * <p>Recibe la lista y no el detalle de la línea: la cabecera de la cuenta tiene
+ * las suyas y el resumen es el mismo.
+ */
+export function resumenNovedades(novedades: NovedadModel[]): string {
+  if (novedades.length === 0) return 'ninguna';
+
+  const aMano  = novedades.filter(n => n.laPusoUnaPersona).length;
+  const motor  = novedades.length - aMano;
+  const frenan = novedades.filter(
+    n => n.severidad === 'BLOQUEANTE' || n.severidad === 'NEGACION').length;
+
+  const partes: string[] = [];
+  if (aMano)  partes.push(`${aMano} a mano`);
+  if (motor)  partes.push(`${motor} del motor`);
+  if (frenan) partes.push(`${frenan} que ${frenan === 1 ? 'frena' : 'frenan'} la cuenta`);
+  return partes.join(' · ');
 }
 
 export function resumenPendientes(l: DetalleLineaModel): string {

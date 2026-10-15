@@ -1,23 +1,115 @@
-@if (esEdicion()) {
-  <p class="sura-nota" role="note">
-    <mat-icon aria-hidden="true">lock</mat-icon>
-    Las glosas se añaden y se quitan por filas: {{ motivos.lista }}
-    El importe total sí se edita, en «Valores y cantidades».
-  </p>
-}
-
+<!--
+  Las glosas marcadas no desaparecen de la lista: se tachan. Que el auditor vea
+  lo que va a quitar hasta que guarde es lo que le permite deshacerlo, y además
+  deja claro que todavía no ha pasado nada.
+-->
 <ul class="glosas">
   @for (glosa of detalle().glosas; track glosa.identificador) {
-    <li>
+    <li [class.glosa--marcada]="estaMarcada(glosa.identificador)">
       <div class="glosa-cabecera">
         <strong>{{ glosa.generico }}</strong>
         @if (glosa.especifico) { · {{ glosa.especifico }} }
         <span class="glosa-valor">{{ glosa.valor | currency:'COP':'symbol':'1.0-0' }}</span>
+
+        @if (esEdicion()) {
+          <button mat-icon-button type="button" class="glosa-accion"
+                  (click)="alternarEliminar(glosa.identificador)"
+                  [matTooltip]="estaMarcada(glosa.identificador)
+                    ? 'Conservar esta glosa'
+                    : 'Quitar esta glosa al guardar'"
+                  [attr.aria-label]="estaMarcada(glosa.identificador)
+                    ? 'Conservar la glosa' : 'Quitar la glosa'">
+            <mat-icon>{{ estaMarcada(glosa.identificador) ? 'undo' : 'delete_outline' }}</mat-icon>
+          </button>
+        }
       </div>
       @if (glosa.texto) { <p class="glosa-texto">{{ glosa.texto }}</p> }
       @if (glosa.codigoNotaCredito) {
         <span class="sura-dato-secundario">Nota crédito: {{ glosa.codigoNotaCredito }}</span>
       }
+      @if (estaMarcada(glosa.identificador)) {
+        <span class="sura-dato-secundario">Se quitará al guardar.</span>
+      }
+    </li>
+  }
+
+  <!-- Las que todavía no existen en el sistema de registro, en el mismo sitio. -->
+  @for (alta of altasPendientes(); track alta.codigoGlosa + alta.valor) {
+    <li class="glosa--nueva">
+      <div class="glosa-cabecera">
+        <strong>{{ alta.generico || alta.codigoGlosa }}</strong>
+        @if (alta.especifico) { · {{ alta.especifico }} }
+        <span class="glosa-valor">{{ alta.valor | currency:'COP':'symbol':'1.0-0' }}</span>
+        <button mat-icon-button type="button" class="glosa-accion"
+                (click)="quitarAlta(alta)"
+                matTooltip="Descartar esta glosa nueva" aria-label="Descartar">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      @if (alta.texto) { <p class="glosa-texto">{{ alta.texto }}</p> }
+      <span class="sura-dato-secundario">Nueva · {{ alta.codigoGlosa }} · se creará al guardar.</span>
     </li>
   }
 </ul>
+
+@if (esEdicion()) {
+  <div class="glosa-alta">
+    <h4 class="glosa-alta__titulo">Agregar una glosa</h4>
+
+    <div class="glosa-alta__campos">
+      <!--
+        El causal se elige de una lista, pero se puede escribir uno que no esté:
+        el sistema de registro no publica catálogo de códigos y el nuestro es
+        solo lo que se ha visto en los datos. Ver catalogo-glosas.ts.
+      -->
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                      class="glosa-alta__causal">
+        <mat-label>Causal</mat-label>
+        <input matInput [ngModel]="causal()" (ngModelChange)="causal.set($event)"
+               list="causales-glosa" placeholder="208-1" maxlength="30">
+        <mat-hint>Elija uno o escriba el código</mat-hint>
+      </mat-form-field>
+
+      <datalist id="causales-glosa">
+        @for (c of catalogo; track c.codigo) {
+          <option [value]="c.codigo">{{ c.generico }} · {{ c.especifico }}</option>
+        }
+      </datalist>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                      class="glosa-alta__valor">
+        <mat-label>Valor</mat-label>
+        <input matInput type="number" min="0" [ngModel]="valor()"
+               (ngModelChange)="valor.set($event)">
+        <span matTextPrefix>$&nbsp;</span>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                      class="glosa-alta__texto">
+        <mat-label>Texto para el prestador</mat-label>
+        <input matInput [ngModel]="texto()" (ngModelChange)="texto.set($event)"
+               maxlength="1000" placeholder="Opcional">
+      </mat-form-field>
+
+      <button mat-stroked-button color="primary" type="button"
+              [disabled]="!puedeAgregar()" (click)="confirmarAlta()">
+        <mat-icon>add</mat-icon>
+        Agregar
+      </button>
+    </div>
+
+    <!--
+      El total de la línea lo deriva el servicio de la suma del desglose, así que
+      conviene enseñar en qué va a quedar antes de guardar: si no, el auditor
+      marca cambios y se entera del importe después.
+    -->
+    <p class="glosa-alta__total sura-nota" role="status">
+      <mat-icon aria-hidden="true">functions</mat-icon>
+      <span>
+        Al guardar, el valor glosado de la línea quedará en
+        <strong>{{ totalResultante() | currency:'COP':'symbol':'1.0-0' }}</strong>.
+        Se calcula sumando el desglose: no se edita a mano.
+      </span>
+    </p>
+  </div>
+}

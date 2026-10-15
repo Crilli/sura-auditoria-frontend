@@ -17,9 +17,12 @@
   }
 }
 
+// Más ancho que el resto de pantallas a propósito: aquí vive la grilla de
+// líneas, que es el contenido más ancho de la aplicación. Con el tope general
+// las acciones de cada fila se partían en dos renglones.
 .detalle-container {
   padding: var(--sura-espacio-4);
-  max-width: var(--sura-ancho-xl);
+  max-width: var(--sura-ancho-2xl);
   margin-inline: auto;
 }
 
@@ -229,3 +232,22 @@
 @media (max-width: 640px) {
   .dato .valor { font-size: var(--sura-texto-lg); }
 }
+
+// ── Las acciones, ya pulsables ──────────────────────────────────────────────
+//
+// Botón para las que se ejecutan aquí y distintivo para las que tienen su
+// propio camino: un botón que no hace lo que dice es peor que no tenerlo.
+.acciones-disponibles__lista li { display: inline-flex; }
+
+.accion-boton {
+  --mdc-outlined-button-label-text-color: var(--sura-azul-primario);
+}
+
+// Lo irreversible se marca, pero no se esconde: anular está habilitado por el
+// sistema de registro y ocultarlo obligaría a salir de la aplicación.
+.accion-boton--grave {
+  --mdc-outlined-button-label-text-color: var(--sura-error);
+  --mdc-outlined-button-outline-color: var(--sura-error);
+}
+
+.accion-en-otro-sitio { cursor: help; }
