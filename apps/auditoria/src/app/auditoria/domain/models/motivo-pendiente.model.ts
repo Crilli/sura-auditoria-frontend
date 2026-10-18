@@ -87,6 +87,14 @@ export interface ResolverEnMasaRequest {
   motivos:       string[];
   justificacion: string;
   nivel:         NivelResolucion;
+  /**
+   * A qué líneas acotar la resolución. **Ausente o vacía = todas las aplicables**, que es
+   * el contrato del sistema de registro.
+   *
+   * Por eso la pantalla no puede ofrecer el botón con la selección vacía: acabaría
+   * resolviendo el motivo en toda la cuenta, que es lo contrario de lo que se pidió.
+   */
+  lineas?:       number[];
 }
 
 /** Qué no se pudo resolver, tal como lo reportó el sistema de registro. */
@@ -116,4 +124,28 @@ export interface ResolucionMasivaModel {
   /** Identificadores de las operaciones en el sistema de registro. */
   referencias:  string[];
   fallos:       FalloResolucionModel[];
+}
+
+/**
+ * Un motivo del **catálogo** de pendientes: los que existen, no los que una cuenta tiene.
+ *
+ * Tres catálogos que el documento del MVP llama todos «motivos» y no son el mismo: este, el
+ * de desfinalización (`/catalogos/motivos`) y el de mensajes (`/catalogos/novedades`).
+ * Ofrecer el que no es daría una lista que el servicio rechazaría entera.
+ */
+export interface MotivoPendienteCatalogoModel {
+  codigo:           string;
+  descripcion:      string;
+  /**
+   * El indicador del sistema de registro. **No** es «bloqueante»: bloquear depende del par
+   * motivo-estado y el catálogo no conoce ninguna cuenta.
+   */
+  soloAdjudicacion: boolean;
+}
+
+/** Cuerpo del POST /api/v1/cuentas/{codigo}/pendientes/agregar */
+export interface AgregarPendienteRequest {
+  motivo: string;
+  /** Ausente o vacía = la cabecera de la cuenta, **no** «todas las líneas». */
+  lineas?: number[];
 }

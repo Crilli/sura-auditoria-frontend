@@ -1,13 +1,14 @@
-import { Injectable, inject, signal, computed, effect, untracked } from '@angular/core';
+import { Injectable, inject, signal, computed, effect, untracked, WritableSignal } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
-import { lastValueFrom } from 'rxjs';
+import { Subscription, catchError, exhaustMap, lastValueFrom, map, of, take, timer } from 'rxjs';
 import { ListarPendientesUseCase }         from '../use-cases/listar-pendientes.use-case';
 import { ResumirMotivosPendientesUseCase } from '../use-cases/resumir-motivos-pendientes.use-case';
 import { ResolverPendienteUseCase }        from '../use-cases/resolver-pendiente.use-case';
 import { ResolverPendientesEnMasaUseCase } from '../use-cases/resolver-pendientes-en-masa.use-case';
+import { SeguirResolucionUseCase }         from '../use-cases/seguir-resolucion.use-case';
 import {
   MotivoPendienteModel, ResumenMotivoModel, ResolverPendienteRequest, FiltroBloqueo,
-  NivelResolucion, ResolucionMasivaModel
+  NivelResolucion, ResolucionMasivaModel, FalloResolucionModel
 } from '../../domain/models/motivo-pendiente.model';
 import { CursorPage, CursorRequest } from '../../../../../../../libs/data-access/http/src/lib/cursor-page.model';
 
@@ -18,6 +19,7 @@ export class PendienteFacade {
   private readonly motivosUC  = inject(ResumirMotivosPendientesUseCase);
   private readonly resolverUC = inject(ResolverPendienteUseCase);
   private readonly masivoUC   = inject(ResolverPendientesEnMasaUseCase);
+  private readonly seguirUC   = inject(SeguirResolucionUseCase);
 
   /** Tamaño de página fijo: es el máximo que acepta el servicio. */
   readonly TAMANO_PAGINA = 25;
@@ -56,6 +58,14 @@ export class PendienteFacade {
    * bloquea cuando la decisión de envío piensa lo contrario.
    */
   readonly filtroBloqueo = signal<FiltroBloqueo>('TODOS');
+
+  /**
+   * Si se miran también los ya resueltos.
+   *
+   * Por omisión no: una vez resuelto, el motivo desaparecía de la vista y así seguía viéndolo
+   * el auditor. Lo que cambia es que ahora puede mirar atrás si lo pide.
+   */
+  readonly incluirResueltos = signal(false);
 
   // ── Paginación numerada sobre un servicio keyset ──────────────────
   // Mismo mecanismo que LineaFacade: `_cursores[i]` es el cursor con el que se
@@ -128,11 +138,13 @@ export class PendienteFacade {
         codigo,
         cursor:  this.cursorRequest(),
         motivo:  this.motivoFiltrado(),
-        bloqueo: this.filtroBloqueo()
+        bloqueo: this.filtroBloqueo(),
+        resueltos: this.incluirResueltos()
       };
     },
     stream: ({ params }) =>
-      this.listarUC.execute(params.codigo, params.cursor, params.motivo, params.bloqueo)
+      this.listarUC.execute(params.codigo, params.cursor, params.motivo, params.bloqueo,
+                            params.resueltos)
   });
 
   /**
@@ -236,6 +248,7 @@ export class PendienteFacade {
     this.codigoCuenta.set(codigoCuenta);
     this.motivoFiltrado.set(null);
     this.filtroBloqueo.set('TODOS');
+    this.incluirResueltos.set(false);
     // La selección sí se suelta al cambiar de cuenta: los códigos de motivo se
     // repiten entre cuentas, así que arrastrarlos marcaría en la cuenta nueva
     // motivos que nadie eligió ahí.
@@ -265,6 +278,18 @@ export class PendienteFacade {
    * Cambia el filtro por bloqueo. Reinicia por lo mismo que el de motivo: el
    * cursor de un conjunto no significa nada en otro.
    */
+  /**
+   * Mirar atrás, o dejar de hacerlo.
+   *
+   * Reinicia la paginación por lo mismo que los otros criterios: el conjunto es otro, y la
+   * página 7 del anterior no significa nada en el nuevo.
+   */
+  alternarResueltos(incluir: boolean): void {
+    if (incluir === this.incluirResueltos()) return;
+    this.incluirResueltos.set(incluir);
+    this.reiniciarPaginacion();
+  }
+
   filtrarPorBloqueo(bloqueo: FiltroBloqueo): void {
     if (bloqueo === this.filtroBloqueo()) return;
     this.filtroBloqueo.set(bloqueo);
@@ -535,6 +560,10 @@ export class PendienteFacade {
 
       this.resultadoMasivo.set(resultado);
       this.desmarcarTodos();
+      // En curso no es el final: se sigue sin bloquear la pantalla (OPE-06).
+      if (resultado.desenlace === 'EN_CURSO' && resultado.referencias.length > 0) {
+        this.seguirResolucion(codigo, resultado.referencias, resultado.fallos);
+      }
 
       // Si el motivo por el que se filtraba era uno de los resueltos, el filtro
       // se queda sin objeto y dejaría una tabla vacía con el selector apuntando
@@ -553,6 +582,160 @@ export class PendienteFacade {
     } finally {
       this.resolviendoEnMasa.set(false);
     }
+  }
+
+  // ── Seguimiento de una resolución en curso (OPE-06) ──────────────────────
+  //
+  // La resolución responde en pocos segundos aunque el sistema de registro no haya
+  // terminado. Desde aquí se pregunta cómo va, cada pocos segundos y sin bloquear nada: el
+  // auditor puede seguir trabajando, incluso en otra pestaña de la cuenta. Vive en la raíz
+  // para que el seguimiento sobreviva a la navegación.
+  //
+  // Se sigue **por cuenta**: el auditor puede lanzar una en una cuenta, abrir otra y lanzar
+  // otra allí. Si hubiera un solo seguimiento, el segundo cortaría el primero y esa cuenta
+  // se quedaría sin recargar y con el botón de resolver encendido sobre una operación viva.
+
+  /** Cada cuánto se pregunta. Las de una cuenta pequeña acaban en unos 5 s. */
+  readonly INTERVALO_SEGUIMIENTO_MS = 2000;
+  /** Cuántas veces como mucho: cinco minutos. Pasado eso se dice y se ofrece reintentar. */
+  readonly MAXIMO_CONSULTAS = 150;
+  /** Fallos seguidos de la consulta antes de rendirse. Uno suelto no significa nada. */
+  readonly MAXIMO_FALLOS_SEGUIDOS = 3;
+
+  private readonly seguimientos = new Map<string, Subscription>();
+
+  /** Las resoluciones que se están siguiendo, por cuenta. */
+  private readonly _enCurso = signal<ReadonlyMap<string, SeguimientoResolucion>>(new Map());
+
+  /**
+   * La última que terminó en cada cuenta, con su desenlace. La observan las pantallas que
+   * tienen que recargarse —la grilla de líneas, por ejemplo— sin depender de que esta esté
+   * abierta.
+   */
+  private readonly _terminadas = signal<ReadonlyMap<string, ResolucionTerminada>>(new Map());
+
+  /**
+   * Las que se dejaron de seguir sin saber cómo acabaron: tope de tiempo o fallos seguidos.
+   * Llevan las referencias para poder volver a preguntar. Nunca se ofrece relanzar: resolver
+   * no es idempotente, y la operación ya está en el sistema de registro.
+   */
+  private readonly _sinConfirmar = signal<ReadonlyMap<string, SeguimientoSinConfirmar>>(new Map());
+
+  /** La resolución que se está siguiendo en esa cuenta, si hay una. */
+  resolucionEnCursoDe(codigoCuenta: string | null): SeguimientoResolucion | null {
+    return codigoCuenta ? this._enCurso().get(codigoCuenta) ?? null : null;
+  }
+
+  /** La última que terminó en esa cuenta mientras se seguía. */
+  resolucionTerminadaDe(codigoCuenta: string | null): ResolucionTerminada | null {
+    return codigoCuenta ? this._terminadas().get(codigoCuenta) ?? null : null;
+  }
+
+  /** La que se dejó de seguir sin confirmar en esa cuenta. */
+  seguimientoSinConfirmarDe(codigoCuenta: string | null): SeguimientoSinConfirmar | null {
+    return codigoCuenta ? this._sinConfirmar().get(codigoCuenta) ?? null : null;
+  }
+
+  /** Si hay una resolución en curso en esa cuenta: no se deja lanzar otra encima. */
+  hayResolucionEnCurso(codigoCuenta: string | null): boolean {
+    return this.resolucionEnCursoDe(codigoCuenta) !== null;
+  }
+
+  /**
+   * Empieza a seguir unas referencias. Si esa cuenta ya tenía otra, la sustituye; las de
+   * otras cuentas siguen.
+   *
+   * `fallosDeLanzamiento` son los que ya trajo la respuesta del lanzamiento —un nivel que no
+   * llegó a salir, líneas sin lanzar—: el seguimiento solo pregunta por las operaciones que
+   * sí salieron, así que sin guardarlos aquí el desenlace final los perdería y diría
+   * «completo» con un nivel sin resolver.
+   */
+  seguirResolucion(codigoCuenta: string, referencias: string[],
+                   fallosDeLanzamiento: FalloResolucionModel[] = []): void {
+    this.dejarDeSeguir(codigoCuenta);
+    this.quitar(this._sinConfirmar, codigoCuenta);
+    const seguimiento: SeguimientoResolucion = {
+      codigoCuenta, referencias, consultas: 0, fallosDeLanzamiento };
+    this.poner(this._enCurso, codigoCuenta, seguimiento);
+    let fallosSeguidos = 0;
+
+    const suscripcion = timer(this.INTERVALO_SEGUIMIENTO_MS, this.INTERVALO_SEGUIMIENTO_MS).pipe(
+      take(this.MAXIMO_CONSULTAS),
+      // exhaustMap: si una consulta tarda más que el intervalo, se salta el tic en vez de
+      // amontonar peticiones.
+      exhaustMap(() => this.seguirUC.execute(codigoCuenta, referencias).pipe(
+        map(resultado => ({ resultado, error: null as Error | null })),
+        catchError((error: Error) => of({ resultado: null, error })))),
+    ).subscribe({
+      next: ({ resultado, error }) => {
+        const actual = this._enCurso().get(codigoCuenta);
+        if (actual) this.poner(this._enCurso, codigoCuenta, { ...actual, consultas: actual.consultas + 1 });
+        if (error || !resultado) {
+          if (++fallosSeguidos >= this.MAXIMO_FALLOS_SEGUIDOS) {
+            this.sinConfirmar(seguimiento,
+              error?.message ?? 'No se pudo consultar el estado de la operación');
+          }
+          return;
+        }
+        fallosSeguidos = 0;
+        if (resultado.desenlace !== 'EN_CURSO') {
+          this.terminar(codigoCuenta, conFallosDeLanzamiento(resultado, fallosDeLanzamiento));
+        }
+      },
+      complete: () => {
+        if (this.seguimientos.get(codigoCuenta) === suscripcion) {
+          this.sinConfirmar(seguimiento,
+            'El sistema de registro sigue trabajando después de cinco minutos');
+        }
+      },
+    });
+    this.seguimientos.set(codigoCuenta, suscripcion);
+  }
+
+  /** Vuelve a preguntar por la resolución que se dejó sin confirmar en esa cuenta. */
+  volverAConsultar(codigoCuenta: string | null = this.codigoCuenta()): void {
+    const pendiente = this.seguimientoSinConfirmarDe(codigoCuenta);
+    if (pendiente) {
+      this.seguirResolucion(pendiente.codigoCuenta, pendiente.referencias, pendiente.fallosDeLanzamiento);
+    }
+  }
+
+  private terminar(codigoCuenta: string, resultado: ResolucionMasivaModel): void {
+    this.dejarDeSeguir(codigoCuenta);
+    this.quitar(this._enCurso, codigoCuenta);
+    this.poner(this._terminadas, codigoCuenta, { codigoCuenta, resultado, instante: Date.now() });
+    // El aviso y la lista solo se tocan si el auditor sigue en esa cuenta.
+    if (this.codigoCuenta() === codigoCuenta) {
+      this.resultadoMasivo.set(resultado);
+      this._recargaMotivos.update(n => n + 1);
+      this.reiniciarPaginacion();
+    }
+  }
+
+  private sinConfirmar(seguimiento: SeguimientoResolucion, motivo: string): void {
+    const { codigoCuenta } = seguimiento;
+    this.dejarDeSeguir(codigoCuenta);
+    this.quitar(this._enCurso, codigoCuenta);
+    this.poner(this._sinConfirmar, codigoCuenta, { ...seguimiento, consultas: 0, motivo });
+  }
+
+  private dejarDeSeguir(codigoCuenta: string): void {
+    const suscripcion = this.seguimientos.get(codigoCuenta);
+    this.seguimientos.delete(codigoCuenta);
+    suscripcion?.unsubscribe();
+  }
+
+  private poner<T>(mapa: WritableSignal<ReadonlyMap<string, T>>, clave: string, valor: T): void {
+    mapa.update(actual => new Map(actual).set(clave, valor));
+  }
+
+  private quitar<T>(mapa: WritableSignal<ReadonlyMap<string, T>>, clave: string): void {
+    if (!mapa().has(clave)) return;
+    mapa.update(actual => {
+      const siguiente = new Map(actual);
+      siguiente.delete(clave);
+      return siguiente;
+    });
   }
 
   /**
@@ -592,4 +775,42 @@ export class PendienteFacade {
       return false;
     }
   }
+}
+
+/** Una resolución que se está siguiendo. */
+export interface SeguimientoResolucion {
+  codigoCuenta: string;
+  referencias:  string[];
+  /** Cuántas veces se ha preguntado ya. */
+  consultas:    number;
+  /** Lo que ya falló al lanzar: entra en el desenlace final. */
+  fallosDeLanzamiento: FalloResolucionModel[];
+}
+
+/** Una que se dejó de seguir sin saber cómo acabó. */
+export type SeguimientoSinConfirmar = SeguimientoResolucion & { motivo: string };
+
+/** Una resolución que terminó mientras se seguía. */
+export interface ResolucionTerminada {
+  codigoCuenta: string;
+  resultado:    ResolucionMasivaModel;
+  /** Para distinguir dos terminadas seguidas de la misma cuenta. */
+  instante:     number;
+}
+
+/**
+ * El desenlace de lo que se siguió, con lo que ya había fallado al lanzar.
+ *
+ * Un fallo de lanzamiento significa que algo pedido no se resolvió: lo completo pasa a
+ * parcial. Lo fallido sigue fallido —no salió bien ni lo lanzado ni lo demás—.
+ */
+export function conFallosDeLanzamiento(resultado: ResolucionMasivaModel,
+                                       fallos: FalloResolucionModel[]): ResolucionMasivaModel {
+  if (fallos.length === 0) return resultado;
+  return {
+    ...resultado,
+    desenlace:    resultado.desenlace === 'FALLIDO' ? 'FALLIDO' : 'PARCIAL',
+    todoResuelto: false,
+    fallos:       [...fallos, ...resultado.fallos],
+  };
 }

@@ -46,12 +46,31 @@
     </div>
   }
 
+  <!-- Se dejó de seguir sin saber cómo acabó (OPE-06): se ofrece volver a PREGUNTAR,
+       nunca volver a lanzar. -->
+  @if (sinConfirmarAqui(); as pendiente) {
+    <div class="resultado-masivo sura-mensaje sura-mensaje--alerta" role="alert">
+      <div class="resultado-masivo__cabecera">
+        <mat-icon>help_outline</mat-icon>
+        <strong>No se pudo confirmar cómo acabó la resolución</strong>
+      </div>
+      <p>
+        {{ pendiente.motivo }}. La operación está en el sistema de registro y va a terminar
+        igual: <strong>no la repita</strong>. Operación: {{ pendiente.referencias.join(', ') }}.
+      </p>
+      <button mat-button color="primary" id="btn-volver-a-consultar" (click)="facade.volverAConsultar(codigoCuenta)">
+        Volver a consultar
+      </button>
+    </div>
+  }
+
   @if (resultadoMasivo(); as resultado) {
     <div class="resultado-masivo sura-mensaje"
          [class.sura-mensaje--exito]="resultado.desenlace === 'COMPLETO'"
          [class.sura-mensaje--alerta]="resultado.desenlace === 'PARCIAL'"
          [class.sura-mensaje--error]="resultado.desenlace === 'FALLIDO'"
-         [class.sura-mensaje--info]="resultado.desenlace === 'EN_CURSO'"
+         [class.sura-mensaje--info]="resultado.desenlace === 'EN_CURSO' && resultado.fallos.length === 0"
+         [class.sura-mensaje--alerta]="resultado.desenlace === 'EN_CURSO' && resultado.fallos.length > 0"
          role="alert">
       <div class="resultado-masivo__cabecera">
         <mat-icon>
@@ -80,11 +99,23 @@
             sigue trabajando. Se dice explícitamente que no se repita, porque
             resolver no es idempotente y reintentar readjudicaría dos veces.
           -->
-          <p>
+          <p class="resultado-masivo__en-curso">
+            @if (enCursoAqui()) {
+              <mat-spinner diameter="16"></mat-spinner>
+            }
             El sistema de registro aceptó la operación y sigue trabajando en ella.
-            <strong>No la repita</strong>: volver a lanzarla readjudicaría la cuenta
-            otra vez. Recargue los pendientes en un momento para ver el resultado.
+            Puede seguir trabajando: <strong>la lista se actualizará sola</strong> cuando
+            termine. <strong>No la repita</strong>: volver a lanzarla readjudicaría la cuenta
+            otra vez.
           </p>
+          <!-- Una parte sigue en curso y otra no salió: lo que sigue no se repite, pero los
+               motivos de los fallos de abajo sí hay que volver a resolverlos cuando termine. -->
+          @if (resultado.fallos.length > 0) {
+            <p>
+              Parte de la operación <strong>no se lanzó</strong>: cuando termine lo que sigue
+              en curso, vuelva a resolver solo los motivos que aparecen abajo.
+            </p>
+          }
         }
         @default {
           <p>
@@ -187,6 +218,18 @@
         </mat-button-toggle>
       </mat-button-toggle-group>
 
+        <!--
+          Mirar atrás. Por omisión apagado: una vez resuelto, el motivo desaparecía de la
+          vista, y así es como el auditor lo ha visto siempre. Lo que cambia es que ahora
+          puede pedirlo.
+        -->
+        <mat-checkbox [checked]="facade.incluirResueltos()"
+                      [disabled]="facade.loading()"
+                      (change)="facade.alternarResueltos($event.checked)"
+                      matTooltip="Trae también los motivos que ya se resolvieron">
+          Ver también los resueltos
+        </mat-checkbox>
+
       @if (todoBloquea()) {
         <p class="filtro-bloqueo__nota" role="status">
           <mat-icon>info_outline</mat-icon>
@@ -247,6 +290,20 @@
           <span class="filtro-motivo__detalle">
             {{ alcanceDe(motivo) }} · {{ motivo.sinResolver }} sin resolver
           </span>
+          @if (motivo.lineasAfectadas > 0) {
+            <!--
+              El circuito que faltaba: de aquí a las líneas, ya filtradas. Antes el auditor
+              leía «Línea #37» en un chip de texto y tenía que cambiar de pestaña y paginar
+              a ojo; con un motivo grande no podía ni enumerarlas.
+            -->
+            <button mat-button color="primary"
+                    [matTooltip]="'Abre el listado de líneas filtrado por ' + motivo.codigo"
+                    (click)="verLineasDelMotivo(motivo.codigo)">
+              <mat-icon>list_alt</mat-icon>
+              Ver las {{ motivo.lineasAfectadas }}
+              {{ motivo.lineasAfectadas === 1 ? 'línea afectada' : 'líneas afectadas' }}
+            </button>
+          }
         </div>
       }
     </section>
@@ -375,8 +432,8 @@
             <p class="seleccion-masiva__resto sura-nota">
               <mat-icon>layers</mat-icon>
               <span>
-                Son dos operaciones, una por nivel: el sistema de registro no resuelve
-                los dos a la vez. Puede tardar.
+                Son dos operaciones, una por nivel, y salen a la vez. No hace falta esperar:
+                la lista se actualizará sola cuando terminen.
               </span>
             </p>
           }
@@ -399,10 +456,12 @@
 
         <button mat-raised-button color="warn" id="btn-resolver-masivo-pend"
                 class="seleccion-masiva__confirmar"
-                [disabled]="sinAuditor || resolviendoEnMasa() || sinEfecto() || confirmandoMasivo()"
+                [disabled]="sinAuditor || resolviendoEnMasa() || sinEfecto() || confirmandoMasivo() || enCursoAqui()"
                 [matTooltip]="sinAuditor
                   ? 'Falta configurar quién audita: la resolución tiene que quedar firmada'
-                  : 'Revisar y confirmar antes de resolver'"
+                  : (enCursoAqui()
+                      ? 'Hay una resolución en curso en esta cuenta: espere a que termine'
+                      : 'Revisar y confirmar antes de resolver')"
                 (click)="abrirConfirmacionMasiva()">
           @if (resolviendoEnMasa()) {
             <mat-spinner diameter="20"></mat-spinner>
@@ -461,7 +520,8 @@
                 @if (formMasivo.get('justificacion')?.hasError('required')) {
                   <mat-error>La justificación es obligatoria</mat-error>
                 }
-                <mat-hint>Queda como nota en la cuenta y en la traza de auditoría</mat-hint>
+                <!-- OHI no publica cómo crear notas ligadas a la cuenta (BTN-05, OPE-02): solo la traza. -->
+                <mat-hint>Queda en la traza de auditoría</mat-hint>
               </mat-form-field>
             </form>
           </mat-card-content>
@@ -531,12 +591,21 @@
           <ng-container matColumnDef="nivel">
             <th mat-header-cell *matHeaderCellDef>Nivel</th>
             <td mat-cell *matCellDef="let p">
-              <mat-chip [color]="p.nivel === 'CABECERA' ? 'primary' : 'accent'">
-                {{ etiquetaNivel(p.nivel) }}
-                @if (p.numeroLinea) {
-                  #{{ p.numeroLinea }}
-                }
-              </mat-chip>
+              <!--
+                Con referencia de línea el chip es un enlace a esa línea, para corregirla.
+                Hasta ahora era texto: esta plantilla no tenía ningún routerLink.
+              -->
+              @if (p.referenciaLinea) {
+                <a mat-chip-option
+                   [routerLink]="['/auditoria', codigoCuenta, 'lineas', p.referenciaLinea, 'editar']"
+                   [matTooltip]="'Abrir la línea ' + p.numeroLinea + ' para corregirla'">
+                  {{ etiquetaNivel(p.nivel) }} #{{ p.numeroLinea }}
+                </a>
+              } @else {
+                <mat-chip [color]="p.nivel === 'CABECERA' ? 'primary' : 'accent'">
+                  {{ etiquetaNivel(p.nivel) }}
+                </mat-chip>
+              }
             </td>
           </ng-container>
 

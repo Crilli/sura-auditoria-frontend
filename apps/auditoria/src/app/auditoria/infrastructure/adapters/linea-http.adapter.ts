@@ -4,9 +4,10 @@ import { Observable } from 'rxjs';
 import { LineaRepository } from '../../domain/ports/linea.repository';
 import {
   ResumenLineaModel, DetalleLineaModel, GuardarLineaRequest,
-  FiltroLineasModel, ResumenFiltrosLineasModel
+  FiltroLineasModel, ResumenFiltrosLineasModel,
+  CambiosEnLoteRequest, ResultadoEnLoteModel
 } from '../../domain/models/linea-cuenta.model';
-import { CursorPage, CursorRequest } from '../../../../../../../libs/data-access/http/src/lib/cursor-page.model';
+import { OffsetPage, OffsetRequest } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 import { environment } from '@sura/environments';
 
 @Injectable({ providedIn: 'root' })
@@ -16,30 +17,47 @@ export class LineaHttpAdapter extends LineaRepository {
   private readonly baseUrl = `${environment.apiGatewayUrl}/api/v1/cuentas`;
 
   /**
-   * ✅ Paginación KEYSET — SIEMPRE envía tamano.
-   * Cursor undefined = primera página (no se envía el param).
-   * PROHIBIDO: GET /lineas sin tamano.
+   * ✅ Paginación por DESPLAZAMIENTO — SIEMPRE envía pagina y tamano.
+   *
+   * `pagina` cuenta desde cero y el servicio la traduce a desplazamiento
+   * multiplicando por el tamaño. PROHIBIDO: GET /lineas sin tamano.
    */
   override listar(
     codigoCuenta: string,
-    cursorReq: CursorRequest,
+    peticion: OffsetRequest,
     filtro?: FiltroLineasModel
-  ): Observable<CursorPage<ResumenLineaModel>> {
-    let params = new HttpParams().set('tamano', cursorReq.tamano.toString());
-    if (cursorReq.cursor) {
-      params = params.set('cursor', cursorReq.cursor);
+  ): Observable<OffsetPage<ResumenLineaModel>> {
+    let params = new HttpParams()
+      .set('tamano', peticion.tamano.toString())
+      .set('pagina', Math.max(0, peticion.pagina).toString());
+    if (peticion.orden) {
+      params = params.set('orden', peticion.orden)
+                     .set('sentido', peticion.sentido ?? 'asc');
     }
     // Cada criterio solo si tiene valor: así la URL del listado sin filtrar
     // sigue siendo la de siempre y no se mandan parámetros vacíos que el
     // servicio tendría que interpretar.
+    // El servicio llama «secuencia» a lo que el modelo llama numeroLinea: es el único
+    // criterio cuyo nombre no coincide, y traducirlo aquí evita renombrar el modelo.
+    const nombreEnElServicio: Record<string, string> = { numeroLinea: 'secuencia' };
     for (const [clave, valor] of Object.entries(filtro ?? {})) {
       if (valor !== null && valor !== undefined && valor !== '') {
-        params = params.set(clave, String(valor));
+        params = params.set(nombreEnElServicio[clave] ?? clave, String(valor));
       }
     }
-    return this.http.get<CursorPage<ResumenLineaModel>>(
+    return this.http.get<OffsetPage<ResumenLineaModel>>(
       `${this.baseUrl}/${codigoCuenta}/lineas`,
       { params }
+    );
+  }
+
+  /** 204 ⇒ no hay siguiente: Angular lo entrega como `null`. */
+  override consultarSiguiente(
+    codigoCuenta: string,
+    referencia: number
+  ): Observable<ResumenLineaModel | null> {
+    return this.http.get<ResumenLineaModel | null>(
+      `${this.baseUrl}/${codigoCuenta}/lineas/${referencia}/siguiente`
     );
   }
 
@@ -66,6 +84,25 @@ export class LineaHttpAdapter extends LineaRepository {
       `${this.baseUrl}/${codigoCuenta}/lineas/${referencia}`,
       solicitud,
       { headers }
+    );
+  }
+
+  /**
+   * POST /api/v1/cuentas/{codigo}/lineas/lote
+   *
+   * Responde **200 también cuando es parcial**: la petición fue correcta y algo se aplicó
+   * —y es irreversible—, así que un código de error haría que la pantalla diera por no hecho
+   * lo que sí ocurrió. El desenlace y los fallos por línea vienen en el cuerpo.
+   */
+  override aplicarEnLote(
+    codigoCuenta: string,
+    solicitud: CambiosEnLoteRequest,
+    auditor: string
+  ): Observable<ResultadoEnLoteModel> {
+    return this.http.post<ResultadoEnLoteModel>(
+      `${this.baseUrl}/${codigoCuenta}/lineas/lote`,
+      solicitud,
+      { headers: new HttpHeaders({ 'X-Auditor': auditor }) }
     );
   }
 }

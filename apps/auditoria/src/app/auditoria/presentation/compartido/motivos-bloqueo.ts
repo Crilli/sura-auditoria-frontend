@@ -18,5 +18,7 @@ export const MOTIVOS_BLOQUEO = {
   catalogo:   'Requiere selector de catálogo, pendiente.',
   lista:      'Requiere editor de filas, pendiente.',
   tarifacion: 'Resultado de la tarifación: sale de las cláusulas del convenio.',
-  derivado:   'Se deriva del código de la prestación.'
+  derivado:   'Se deriva del código de la prestación.',
+  /** El glosado es la suma del desglose y OHI no lo recalcula: suelto descuadraría. */
+  desglose:   'Es la suma del desglose de glosa: se edita abriendo la línea.'
 } as const;

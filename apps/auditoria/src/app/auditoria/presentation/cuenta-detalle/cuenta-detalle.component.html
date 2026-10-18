@@ -1,7 +1,12 @@
-<div class="detalle-container">
+<div class="detalle-container" [style.--alto-barra-cuenta]="ALTO_BARRA_PX + 'px'">
 
-  <!-- Siempre visible, incluso durante la carga o si la cuenta no existe. -->
-  <div class="barra-superior">
+  <!--
+    Barra fija (BTN-11): se queda pegada arriba mientras el auditor baja por la grilla, así que
+    enviar, la historia o volver al inicio nunca obligan a subir. Ocupa su propio sitio —no flota
+    encima de nada— y lleva solo lo que se usa a cada rato; lo secundario va en el menú.
+    «Inicio» está siempre, incluso durante la carga o si la cuenta no existe.
+  -->
+  <div class="barra-cuenta" role="region" aria-label="Barra de la cuenta">
     <button mat-button
             type="button"
             class="inicio"
@@ -10,8 +15,81 @@
             matTooltip="Volver a la búsqueda de cuentas"
             aria-label="Volver al inicio">
       <mat-icon>home</mat-icon>
-      Inicio
+      <span class="inicio__rotulo">Inicio</span>
     </button>
+
+    @if (facade.cuenta(); as cuenta) {
+      <!-- Solo cuando la franja de resumen ya no se ve: arriba del todo sería repetirla. -->
+      @if (resumenFueraDeVista()) {
+        <div class="barra-cuenta__resumen" id="barra-resumen">
+          <span class="barra-cuenta__codigo"><span class="barra-cuenta__prefijo">Cuenta </span>{{ cuenta.codigo }}</span>
+          <span class="estado-badge barra-cuenta__estado">{{ cuenta.estado }}</span>
+          <span class="barra-cuenta__dato">
+            No reconocido
+            <strong class="valor--diferencia">{{ diferencia(cuenta) | currency:'COP':'symbol':'1.0-0' }}</strong>
+          </span>
+        </div>
+      }
+
+      <div class="barra-cuenta__acciones">
+        <!--
+          Apagado pero alcanzable con el tabulador (`disabledInteractive`): así el tooltip describe
+          al propio botón y el lector de pantalla lee el motivo, y tras enviar el diálogo puede
+          devolverle el foco aunque ya no se pueda enviar. El clic se frena en el componente.
+        -->
+        <button mat-flat-button color="primary"
+                type="button"
+                id="btn-enviar"
+                disabledInteractive
+                [disabled]="!!motivoParaNoEnviar(cuenta)"
+                [matTooltip]="motivoParaNoEnviar(cuenta) ?? ''"
+                [matTooltipDisabled]="!motivoParaNoEnviar(cuenta)"
+                (click)="abrirDialogoEnviar(cuenta)">
+          <mat-icon>send</mat-icon>
+          Enviar
+        </button>
+
+        <button mat-icon-button
+                type="button"
+                id="btn-menu-cuenta"
+                [matMenuTriggerFor]="menuCuenta"
+                (menuClosed)="alCerrarMenu()"
+                matTooltip="Más opciones de la cuenta"
+                aria-label="Más opciones de la cuenta">
+          <mat-icon>menu</mat-icon>
+        </button>
+        <!-- El motivo no es una opción del menú: se le cuelga como descripción para que se lea. -->
+        <mat-menu #menuCuenta="matMenu" xPosition="before"
+                  [aria-describedby]="motivoParaNoEnviar(cuenta) ? 'motivo-no-enviar' : ''">
+          <!--
+            La historia es una consulta puntual —«¿quién la desfinalizó y cuándo?»—: un panel
+            permanente le quitaría sitio a lo que sí se mira a diario, y así se consulta solo
+            cuando se pide.
+          -->
+          <button mat-menu-item id="menu-historia" (click)="abrirHistoria(cuenta)">
+            <mat-icon>history</mat-icon>
+            <span>Historia de la cuenta</span>
+          </button>
+          @if (versionVigente(); as v) {
+            <button mat-menu-item id="menu-version" (click)="abrirVersionVigente(cuenta)">
+              <mat-icon>description</mat-icon>
+              <span>Versión transmitida V{{ v.numero }}</span>
+            </button>
+          }
+          <!--
+            Un atajo, no una mudanza: las acciones siguen en «Datos de la cuenta» (decisión del
+            2026-10-17 sobre BTN-01 y BTN-09). Abre ese bloque y lo trae a la vista.
+          -->
+          <button mat-menu-item id="menu-acciones" (click)="irALasAcciones()">
+            <mat-icon>tune</mat-icon>
+            <span>Acciones habilitadas</span>
+          </button>
+          @if (motivoParaNoEnviar(cuenta); as motivo) {
+            <div class="menu-helper-text" id="motivo-no-enviar">{{ motivo }}</div>
+          }
+        </mat-menu>
+      </div>
+    }
   </div>
 
   @if (facade.loading()) {
@@ -36,7 +114,7 @@
         El resto de la cabecera vive en acordeones para que las pestañas de
         trabajo (Líneas / Pendientes / Seguimiento) queden sobre el pliegue.
       -->
-      <div class="header-resumen">
+      <div class="header-resumen" #resumen>
         <div class="titulo">
           <h1>Cuenta {{ cuenta.codigo }}</h1>
           <span class="estado-badge">{{ cuenta.estado }}</span>
@@ -63,31 +141,6 @@
             </span>
           </div>
         </div>
-
-        <!-- Menú de Acciones (Hamburguesa) -->
-        <div class="header-acciones">
-          <button mat-icon-button [matMenuTriggerFor]="accionesMenu" aria-label="Acciones de la cuenta">
-            <mat-icon>more_vert</mat-icon>
-          </button>
-          <mat-menu #accionesMenu="matMenu">
-            <button mat-menu-item
-                    (click)="abrirDialogoEnviar(cuenta)"
-                    [disabled]="facade.accionesCargando() || !puedeEnviar(cuenta)">
-              <mat-icon color="primary">send</mat-icon>
-              <span>Enviar Cuenta</span>
-            </button>
-
-            @if (facade.accionesCargando()) {
-              <div class="menu-helper-text">
-                Consultando qué acciones están habilitadas…
-              </div>
-            } @else if (!puedeEnviar(cuenta) && cuenta.pendientesSinResolver > 0) {
-              <div class="menu-helper-text">
-                Resuelva todos los pendientes para enviar.
-              </div>
-            }
-          </mat-menu>
-        </div>
       </div>
 
       <!--
@@ -96,10 +149,13 @@
       -->
       <mat-accordion multi class="header-detalle">
 
-        <mat-expansion-panel [expanded]="panelCuentaAbierto()"
+        <mat-expansion-panel #panelCuenta
+                             id="panel-datos-cuenta"
+                             [expanded]="panelCuentaAbierto()"
                              (opened)="panelCuentaAbierto.set(true)"
                              (closed)="panelCuentaAbierto.set(false)">
-          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
+          <mat-expansion-panel-header #cabeceraPanelCuenta
+                                      collapsedHeight="44px" expandedHeight="44px"
                                       aria-label="Datos de la cuenta">
             <mat-panel-title>
               <mat-icon aria-hidden="true">description</mat-icon>
@@ -107,7 +163,9 @@
             </mat-panel-title>
             <mat-panel-description>
               {{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}
-              · v{{ cuenta.version }}
+              <!-- La versión de negocio, no el contador de bloqueo. El «v488» que había aquí
+                   era el segundo, y se leía como si fuera la versión de la cuenta. -->
+              @if (versionVigente(); as v) { · transmitida V{{ v.numero }} }
             </mat-panel-description>
           </mat-expansion-panel-header>
 
@@ -121,8 +179,38 @@
                 <dt>Estado</dt>
                 <dd>{{ cuenta.estado }}</dd>
               </div>
+              <!--
+                Dos números que antes compartían rótulo y no tienen nada que ver:
+                · la VERSIÓN es la del documento transmitido —nace cada vez que la cuenta se
+                  desfinaliza y vuelve a cerrarse—, y es la que le importa al auditor. Se rotula
+                  «última transmitida» y no «vigente» porque el histórico solo guarda lo que ya
+                  se transmitió: medido en CM-94421, la respuesta a glosa abrió la V6 y el
+                  histórico llega a la V5, porque la V6 es la que se está trabajando;
+                · la REVISIÓN es el contador de bloqueo optimista del sistema de registro, que
+                  sube con cada escritura. Se conserva porque explica los conflictos de
+                  versión al guardar, pero ya no se llama «Versión».
+              -->
               <div>
-                <dt>Versión</dt>
+                <dt>Última versión transmitida</dt>
+                <dd>
+                  @if (versionVigente(); as v) {
+                    <button mat-button color="primary" class="enlace-version"
+                            (click)="abrirVersionVigente(cuenta)"
+                            [matTooltip]="'Ver la versión ' + v.numero + ' tal como se transmitió'">
+                      V{{ v.numero }}
+                    </button>
+                    @if (versiones().length > 1) {
+                      <span class="dato-secundario">de {{ versiones().length }}</span>
+                    }
+                  } @else {
+                    <span matTooltip="La cuenta todavía no se ha transmitido">Sin transmitir</span>
+                  }
+                </dd>
+              </div>
+              <div>
+                <dt matTooltip="Contador de bloqueo optimista: sube con cada cambio guardado">
+                  Revisión
+                </dt>
                 <dd>{{ cuenta.version }}</dd>
               </div>
               <div>
@@ -194,9 +282,19 @@
                 <section class="grupo">
                   <h3 class="grupo__titulo">Identificación y trámite</h3>
                   <dl class="detalle-cabecera">
+                    <!--
+                      Nombre arriba y NIT debajo, y no «NOMBRE (NIT)» en una línea: el NIT se
+                      copia para buscar en otros sistemas y seleccionarlo suelto es más fácil.
+                      Si el padrón no devolvió el nombre se pinta solo el NIT, sin renglón vacío.
+                    -->
                     <div>
-                      <dt>Prestador (NIT)</dt>
-                      <dd>{{ factura.prestadorFacturacionNit ?? '—' }}</dd>
+                      <dt>Prestador</dt>
+                      <dd>
+                        {{ factura.prestadorFacturacionNombre ?? factura.prestadorFacturacionNit ?? '—' }}
+                        @if (factura.prestadorFacturacionNombre && factura.prestadorFacturacionNit) {
+                          <span class="sura-dato-secundario">NIT {{ factura.prestadorFacturacionNit }}</span>
+                        }
+                      </dd>
                     </div>
                     <div>
                       <dt>N° Factura</dt>
@@ -211,8 +309,17 @@
                       <dd>{{ factura.tipoServicio ?? '—' }}</dd>
                     </div>
                     <div>
-                      <dt>Pagar a prestador (NIT)</dt>
-                      <dd>{{ factura.pagarAPrestadorNit ?? '—' }}</dd>
+                      <dt>Pagar a prestador</dt>
+                      <dd>
+                        {{ factura.pagarAPrestadorNombre ?? factura.pagarAPrestadorNit ?? '—' }}
+                        @if (factura.pagarAPrestadorNombre && factura.pagarAPrestadorNit) {
+                          <span class="sura-dato-secundario">NIT {{ factura.pagarAPrestadorNit }}</span>
+                        }
+                        @if (factura.pagarAPrestadorNit && factura.prestadorFacturacionNit
+                             && factura.pagarAPrestadorNit !== factura.prestadorFacturacionNit) {
+                          <span class="sura-dato-secundario cuenta-detalle__cobra-otro">cobra otro prestador</span>
+                        }
+                      </dd>
                     </div>
                   </dl>
                 </section>
@@ -333,9 +440,7 @@
             <mat-panel-title>
               <mat-icon aria-hidden="true">campaign</mat-icon>
               Novedades
-              @if (cuenta.novedades.length > 0) {
-                <span class="sura-contador">{{ cuenta.novedades.length }}</span>
-              }
+              <span class="sura-contador">{{ cuenta.novedades.length }}</span>
             </mat-panel-title>
             <mat-panel-description>{{ resumenNovedades(cuenta.novedades) }}</mat-panel-description>
           </mat-expansion-panel-header>
@@ -375,17 +480,73 @@
 
     </div>
 
-    <nav mat-tab-nav-bar [tabPanel]="tabPanel">
-      <a mat-tab-link routerLink="lineas" routerLinkActive #rlaLineas="routerLinkActive" [active]="rlaLineas.isActive">
+    <!--
+      Lo que el prestador respondió a las glosas. Solo lectura: así se acordó el alcance.
+      Va en la cabecera y no en una pestaña aparte porque viene en la misma consulta —no
+      cuesta una llamada— y porque son pocas filas: lo medido son una o dos por cuenta.
+    -->
+    @if (cuenta.respuestasGlosa.length) {
+      <mat-expansion-panel class="panel-seccion">
+        <mat-expansion-panel-header>
+          <mat-panel-title>
+            <mat-icon>forum</mat-icon>
+            Respuesta a glosa
+            <span class="badge">{{ cuenta.respuestasGlosa.length }}</span>
+          </mat-panel-title>
+        </mat-expansion-panel-header>
+
+        <table class="tabla-simple">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Versión que abrió</th>
+              <th>Llegada</th>
+              <th>Vence</th>
+              <th class="num">Valor</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (r of cuenta.respuestasGlosa; track r.secuencia) {
+              <tr>
+                <td>{{ r.secuencia }}</td>
+                <td>{{ r.versionAbierta || '—' }}</td>
+                <td>{{ r.fechaLlegada | date:'dd/MM/yyyy' }}</td>
+                <td>
+                  @if (r.fechaVencimiento) {
+                    {{ r.fechaVencimiento | date:'dd/MM/yyyy' }}
+                    <!-- El veredicto lo da el servidor: con dos relojes, el aviso aparecería
+                         y desaparecería sin que nada hubiera cambiado. -->
+                    @if (r.vencida) { <strong class="vencida">· vencida</strong> }
+                  } @else { — }
+                </td>
+                <td class="num">{{ r.valor | currency:'COP':'symbol':'1.0-0' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </mat-expansion-panel>
+    }
+
+    <!-- Se pegan debajo de la barra al bajar (BTN-11): cambiar de pestaña tampoco obliga a subir. -->
+    <nav mat-tab-nav-bar #pestanas [tabPanel]="tabPanel" class="pestanas-cuenta">
+      <a mat-tab-link routerLink="lineas" routerLinkActive #rlaLineas="routerLinkActive" [active]="rlaLineas.isActive"
+         (click)="alCambiarDePestana()">
         Líneas
-      </a>
-      <a mat-tab-link routerLink="pendientes" routerLinkActive #rlaPendientes="routerLinkActive" [active]="rlaPendientes.isActive">
-        Pendientes
-        @if (cuenta.pendientesSinResolver > 0) {
-          <span class="badge">{{ cuenta.pendientesSinResolver }}</span>
+        @if (totalLineas() !== null) {
+          <span class="badge">{{ totalLineas() }}</span>
         }
       </a>
-      <a mat-tab-link routerLink="proceso" routerLinkActive #rlaProceso="routerLinkActive" [active]="rlaProceso.isActive">
+      <a mat-tab-link routerLink="pendientes" routerLinkActive #rlaPendientes="routerLinkActive" [active]="rlaPendientes.isActive"
+         (click)="alCambiarDePestana()">
+        Pendientes
+        <!--
+          El cero se muestra. «No hay pendientes» es información, y además es la única forma
+          de distinguirlo de «todavía no se sabe»: antes, sin pendientes, no había distintivo.
+        -->
+        <span class="badge">{{ cuenta.pendientesSinResolver }}</span>
+      </a>
+      <a mat-tab-link routerLink="proceso" routerLinkActive #rlaProceso="routerLinkActive" [active]="rlaProceso.isActive"
+         (click)="alCambiarDePestana()">
         Seguimiento
       </a>
     </nav>

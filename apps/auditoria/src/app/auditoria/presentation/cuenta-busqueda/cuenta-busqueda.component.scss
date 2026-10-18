@@ -1,24 +1,22 @@
+// Columna, no fila: antes era un flex centrado para una tarjeta sola, y al aparecer los
+// resultados se colocaban AL LADO de la tarjeta. El ancho es el mismo que el de la ficha de
+// la cuenta (2xl), para que al abrir un resultado los bordes no salten de sitio.
 .busqueda-container {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
   padding: var(--sura-espacio-5) var(--sura-espacio-3);
+  max-width: var(--sura-ancho-2xl);
+  margin-inline: auto;
   min-height: 100%;
 }
 
 .busqueda-card {
   width: 100%;
-  max-width: var(--sura-ancho-sm);
   padding: var(--sura-espacio-4);
   background: var(--sura-blanco);
   border: 1px solid var(--sura-gris-300);
   border-radius: var(--sura-radio-16);
   box-shadow: var(--sura-sombra-sm);
-}
-
-.campo-busqueda {
-  width: 100%;
-  margin-bottom: var(--sura-espacio-3);
 }
 
 .error-banner {
@@ -51,3 +49,52 @@
 }
 
 .busqueda-card .mat-mdc-card-content { padding: 0; }
+
+// ── Formulario en línea y resultados ────────────────────────────────────────
+.busqueda-form {
+  display: flex;
+  mat-form-field { flex: 1 1 16rem; max-width: 24rem; }
+  flex-wrap: wrap;
+  gap: var(--sura-espacio-3);
+  align-items: flex-start;
+}
+.aviso { color: var(--sura-rojo, #c62828); margin: var(--sura-espacio-2) 0 0; }
+
+.resultados {
+  margin-top: var(--sura-espacio-4);
+  padding: var(--sura-espacio-4);
+  background: var(--sura-blanco);
+  border: 1px solid var(--sura-gris-300);
+  border-radius: var(--sura-radio-16);
+}
+.resultados__cabecera { margin-bottom: var(--sura-espacio-2); }
+.resultados__vacio { margin-top: var(--sura-espacio-4); text-align: center; }
+
+.resultados__tabla, .versiones__tabla {
+  width: 100%;
+  border-collapse: collapse;
+  th, td { padding: var(--sura-espacio-2); text-align: left; vertical-align: top; }
+  th { font-size: 0.8rem; color: rgba(0, 0, 0, 0.6); border-bottom: 1px solid var(--sura-gris-300); }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+}
+.resultado { cursor: pointer; border-bottom: 1px solid var(--sura-gris-200, #eee); }
+.resultado:hover, .resultado:focus { background: var(--sura-gris-100, #f6f7f9); outline: none; }
+.dato-secundario { display: block; font-size: 0.8rem; color: rgba(0, 0, 0, 0.55); }
+
+.versiones > td { padding-top: 0; }
+.versiones__tabla { background: var(--sura-gris-100, #f6f7f9); border-radius: 8px; }
+.versiones--vigente { font-weight: 600; }
+.etiqueta-vigente {
+  margin-left: var(--sura-espacio-1);
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  background: var(--sura-azul-claro, #e3f2fd);
+}
+.resultados__paginador {
+  display: flex; gap: var(--sura-espacio-3); align-items: center; justify-content: flex-end;
+  margin-top: var(--sura-espacio-3);
+}
+
+.version { cursor: pointer; }
+.version:hover, .version:focus { background: rgba(0, 0, 0, 0.04); outline: none; }

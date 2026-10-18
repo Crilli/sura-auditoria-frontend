@@ -10,11 +10,12 @@
 
 .edicion-container {
   padding: var(--sura-espacio-4);
-  // Igual que la ficha de la cuenta que lo envuelve (cuenta-detalle usa xl).
-  // Con lg el detalle se quedaba 288px más estrecho que su propio contenedor,
-  // y desde que la línea muestra treinta campos eso ya no daba de sí.
-  max-width: var(--sura-ancho-xl);
-  margin-inline: auto;
+  // Sin tope propio: ocupa el panel de pestañas, igual que la grilla de líneas.
+  // El límite exterior ya lo pone la ficha de la cuenta que lo envuelve
+  // (cuenta-detalle, --sura-ancho-2xl). Antes este contenedor se fijaba en xl
+  // —1248px— y se centraba: cuando la ficha pasó a 2xl se quedó 289px más
+  // estrecho que la grilla y desplazado respecto a la cabecera, y al entrar a
+  // una línea los bordes no casaban con los de la pantalla anterior.
   background: var(--sura-blanco);
   border-radius: var(--sura-radio-16);
   border: 1px solid var(--sura-gris-300);

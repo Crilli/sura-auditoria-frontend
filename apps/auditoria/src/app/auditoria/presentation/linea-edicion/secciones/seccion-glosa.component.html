@@ -7,6 +7,9 @@
   @for (glosa of detalle().glosas; track glosa.identificador) {
     <li [class.glosa--marcada]="estaMarcada(glosa.identificador)">
       <div class="glosa-cabecera">
+        <!-- El causal va delante: es lo que el auditor eligió y lo que reconoce. Las
+             descripciones explican el causal, pero no lo identifican. -->
+        @if (glosa.codigoGlosa) { <code class="glosa-codigo">{{ glosa.codigoGlosa }}</code> }
         <strong>{{ glosa.generico }}</strong>
         @if (glosa.especifico) { · {{ glosa.especifico }} }
         <span class="glosa-valor">{{ glosa.valor | currency:'COP':'symbol':'1.0-0' }}</span>
@@ -24,8 +27,13 @@
         }
       </div>
       @if (glosa.texto) { <p class="glosa-texto">{{ glosa.texto }}</p> }
-      @if (glosa.codigoNotaCredito) {
-        <span class="sura-dato-secundario">Nota crédito: {{ glosa.codigoNotaCredito }}</span>
+      @if (glosa.codigoNotaCredito || glosa.valorNotaCredito !== null) {
+        <span class="sura-dato-secundario">
+          Nota crédito{{ glosa.codigoNotaCredito ? ' ' + glosa.codigoNotaCredito : '' }}
+          @if (glosa.valorNotaCredito !== null) {
+            · {{ glosa.valorNotaCredito | currency:'COP':'symbol':'1.0-0' }}
+          }
+        </span>
       }
       @if (estaMarcada(glosa.identificador)) {
         <span class="sura-dato-secundario">Se quitará al guardar.</span>

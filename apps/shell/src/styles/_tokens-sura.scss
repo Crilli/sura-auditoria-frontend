@@ -49,6 +49,9 @@
   --sura-exito-fondo:  #def6de;
   --sura-alerta:       #ed8b00;
   --sura-alerta-fondo: #fff5ec;
+  // Para TEXTO de alerta: el naranja de marca no llega a 4,5:1 en letra pequeña (2,5:1 sobre
+  // blanco). Se queda para bordes e iconos.
+  --sura-alerta-texto: #7a5b00;
   --sura-error:        #d12d35;
   --sura-error-fondo:  #fff4f3;
   --sura-info:         #0033a0;

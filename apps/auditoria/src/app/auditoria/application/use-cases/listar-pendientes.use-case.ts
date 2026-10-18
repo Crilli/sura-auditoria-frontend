@@ -12,8 +12,10 @@ export class ListarPendientesUseCase {
     codigoCuenta: string,
     cursor: CursorRequest,
     motivo?: string | null,
-    bloqueo?: FiltroBloqueo
+    bloqueo?: FiltroBloqueo,
+    incluirResueltos?: boolean
   ): Observable<CursorPage<MotivoPendienteModel>> {
-    return this.repository.listarSinResolver(codigoCuenta, cursor, motivo, bloqueo);
+    return this.repository.listarSinResolver(codigoCuenta, cursor, motivo, bloqueo,
+                                             incluirResueltos);
   }
 }

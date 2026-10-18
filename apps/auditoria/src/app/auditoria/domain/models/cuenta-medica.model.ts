@@ -44,6 +44,12 @@ export type AccionCuenta =
  */
 export interface InformacionFacturacionModel {
   prestadorFacturacionNit:  string | null;
+  /**
+   * Razón social del que factura. Puede ser `null`: el NIT viene de la cuenta y el nombre
+   * del padrón de prestadores, que es otra consulta y puede no tenerlo. Que falte el nombre
+   * no invalida nada — el NIT sigue estando.
+   */
+  prestadorFacturacionNombre: string | null;
   numeroFactura:            string | null;
   numeroRadicado:           string | null;
   fechaRadicacion:          string | null; // ISO 8601
@@ -65,6 +71,8 @@ export interface InformacionFacturacionModel {
   observacionesInternas:    string | null;
   observacionesExternas:    string | null;
   pagarAPrestadorNit:       string | null;
+  /** Razón social del que cobra. Ver `prestadorFacturacionNombre`. */
+  pagarAPrestadorNombre:    string | null;
 }
 
 /**
@@ -84,6 +92,13 @@ export interface CuentaMedicaModel {
   version:               number;
   pendientesSinResolver: number;
   informacionFacturacion: InformacionFacturacionModel;
+  /**
+   * Lo que el prestador respondió a las glosas, en orden de llegada. Solo lectura.
+   *
+   * Viaja en la cabecera porque viene en la misma consulta al sistema de registro: pedirla
+   * aparte sería una llamada de más para un dato que ya está en la mano.
+   */
+  respuestasGlosa: RespuestaAGlosaModel[];
   /**
    * Novedades de la cabecera: la tabla que el sistema de registro enseña sobre
    * la cuenta. Son de la misma forma que las de una línea —mismo catálogo,
@@ -139,4 +154,99 @@ export interface EjecutarAccionRequest {
   referencia?: string;
   lineas?: number[];
   codigoMensajeAnulacion?: string;
+}
+
+/**
+ * Una respuesta del prestador a las glosas de la cuenta.
+ *
+ * `versionAbierta` es la versión que esta respuesta abrió, con la forma `CM-94421-V4`. Sale
+ * de aquí y no del histórico de versiones: viene en la misma respuesta.
+ *
+ * `vencida` lo calcula el servidor y no la pantalla para que no haya dos relojes.
+ */
+export interface RespuestaAGlosaModel {
+  secuencia:        string;
+  versionAbierta:   string;
+  valor:            number;
+  fechaLlegada:     string;
+  fechaVencimiento: string | null;
+  vencida:          boolean;
+}
+
+/**
+ * Un hito de la historia de la cuenta.
+ *
+ * No confundir con «Seguimiento», que es el estado del envío asíncrono. Esto es por dónde ha
+ * pasado la cuenta desde que llegó.
+ */
+export interface HitoModel {
+  tipo:             'CAMBIO_DE_ESTADO' | 'DESFINALIZACION';
+  /** El estado, o el código del motivo de la desfinalización. */
+  etiqueta:         string;
+  /** El texto del motivo; `null` en un cambio de estado. */
+  detalle:          string | null;
+  autor:            string;
+  /** Para separar lo que movió el motor de lo que movió una persona. */
+  loHizoElSistema:  boolean;
+  ocurridoEn:       string;
+}
+
+/**
+ * Criterios del buscador. Al menos uno: sin ninguno, el servicio responde 400 —buscar sin
+ * criterio devolvería las once mil cuentas del entorno, y eso no es una búsqueda—.
+ */
+export interface FiltroCuentasModel {
+  /** Exacto. Una misma factura puede estar radicada varias veces, y se ven todas. */
+  factura?:  string | null;
+  /** Por prefijo: quien lo teclea suele tener solo el principio. */
+  radicado?: string | null;
+}
+
+/**
+ * Una versión de negocio de una cuenta.
+ *
+ * **No** es el contador de bloqueo optimista que la cabecera llamaba «Versión»: ésta es la del
+ * documento transmitido, la que nace cada vez que la cuenta se desfinaliza y vuelve a cerrarse.
+ * Su estado viene del histórico y está en español, así que no coincide con el de la cuenta viva.
+ */
+export interface VersionCuentaModel {
+  numero:       number;
+  fechaEntrada: string | null;
+  valor:        number | null;
+  estado:       string | null;
+  estadoDesde:  string | null;
+}
+
+/** Una cuenta en la lista de resultados del buscador, con sus versiones debajo. */
+export interface ResumenCuentaModel {
+  codigo:          string;
+  numeroFactura:   string | null;
+  fechaRadicacion: string | null;
+  prestadorNit:    string | null;
+  prestadorNombre: string | null;
+  valorFactura:    number | null;
+  /** Ya traducido, o el literal del sistema de registro si el diccionario no lo conoce. */
+  estado:          string;
+  /** Vacío cuando la cuenta todavía no se ha transmitido. */
+  versiones:       VersionCuentaModel[];
+}
+
+/**
+ * Una versión tal como quedó al transmitirse: una **foto**, no la cuenta viva. Sus importes son
+ * los de esa versión y pueden no parecerse a los de hoy.
+ */
+export interface FotoVersionModel {
+  codigo:            string;
+  numero:            number;
+  fechaEntrada:      string | null;
+  numeroFactura:     string | null;
+  prestador:         string | null;
+  valorFactura:      number | null;
+  totalCargado:      number | null;
+  totalAutorizado:   number | null;
+  totalCubierto:     number | null;
+  totalGlosado:      number | null;
+  totalNotasCredito: number | null;
+  estadoActual:      string | null;
+  historial:         { estado: string; desde: string }[];
 }

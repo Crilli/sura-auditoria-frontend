@@ -1,0 +1,53 @@
+<h2 mat-dialog-title>
+  <mat-icon>history</mat-icon>
+  Historia de {{ datos.codigoCuenta }}
+</h2>
+
+<mat-dialog-content>
+  <!--
+    Se dice qué es antes de la lista. «Historia» y «Seguimiento» suenan igual y no lo son, y
+    quien abre esto por primera vez necesita saber cuál de las dos preguntas está viendo.
+  -->
+  <p class="historia__que-es">
+    Por dónde ha pasado la cuenta: sus cambios de estado y sus desfinalizaciones con el motivo.
+    No es el seguimiento del envío.
+  </p>
+
+  @if (cargando()) {
+    <div class="historia__cargando" role="status">
+      <mat-spinner diameter="32"></mat-spinner>
+      <span>Consultando la historia…</span>
+    </div>
+  } @else if (error(); as mensaje) {
+    <div class="historia__error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ mensaje }}</span>
+      <button mat-button color="primary" (click)="consultar()">Reintentar</button>
+    </div>
+  } @else if (hitos().length === 0) {
+    <p role="status">Esta cuenta no registra cambios de estado.</p>
+  } @else {
+    <ol class="historia">
+      @for (h of hitos(); track h.ocurridoEn + h.etiqueta) {
+        <li [class.historia--desfinalizacion]="h.tipo === 'DESFINALIZACION'">
+          <span class="historia__fecha">{{ h.ocurridoEn | date:'dd/MM/yyyy HH:mm' }}</span>
+          <span class="historia__que">
+            @if (h.tipo === 'DESFINALIZACION') {
+              <mat-icon class="historia__icono">undo</mat-icon>
+              Desfinalizada:
+            }
+            <strong>{{ h.etiqueta }}</strong>
+            @if (h.detalle) { — {{ h.detalle }} }
+          </span>
+          <!-- El motor y una persona se distinguen: el sistema de registro escribe un
+               identificador opaco cuando fue alguien, y eso no se lee. -->
+          <span class="historia__quien">{{ h.loHizoElSistema ? 'el sistema' : h.autor }}</span>
+        </li>
+      }
+    </ol>
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cerrar</button>
+</mat-dialog-actions>

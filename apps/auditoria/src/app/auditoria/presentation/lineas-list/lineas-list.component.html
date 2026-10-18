@@ -226,6 +226,63 @@
       </div>
     </div>
 
+    <!--
+      Por qué el motor objetó la línea. Es la pregunta con la que el auditor abre la cuenta:
+      no «enséñame las líneas» sino «enséñame las que están paradas y por qué».
+      Los tres criterios se empujan al sistema de registro, así que estas páginas SÍ traen
+      total y se pueden numerar; ver el aviso de más abajo, que no aplica aquí.
+    -->
+    <div class="filtros-lineas__grupo">
+      <span class="filtros-lineas__etiqueta">Novedades y pendientes</span>
+      <div class="filtros-lineas__campos">
+        <mat-button-toggle-group [value]="filtro().conNovedad ? 'CON' : 'TODAS'"
+                                 [disabled]="ocupado()"
+                                 (change)="alternarConNovedad($event.value === 'CON')"
+                                 aria-label="Campos con novedad" hideSingleSelectionIndicator>
+          <mat-button-toggle value="TODAS">Todas</mat-button-toggle>
+          <mat-button-toggle value="CON"
+                             matTooltip="Solo las líneas que el motor objetó">
+            Con novedad
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="filtros-lineas__campo">
+          <mat-label>Motivo de pendiente</mat-label>
+          <mat-select [value]="filtro().motivoPendiente ?? ''" [disabled]="ocupado()"
+                      (selectionChange)="filtrarPorMotivo($event.value)">
+            <mat-option value="">Cualquiera</mat-option>
+            @for (m of motivosDeLaCuenta(); track m.codigo) {
+              <mat-option [value]="m.codigo">
+                {{ m.descripcion || m.codigo }} ({{ m.lineasAfectadas }})
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+
+        <!--
+          Bloquear no es propiedad del motivo sino del par motivo-estado: el mismo motivo
+          frena o no según el estado de la cuenta. Por eso el servicio resuelve el veredicto
+          y aquí solo se elige qué se quiere ver, con el mismo vocabulario que la pestaña
+          de pendientes.
+        -->
+        <mat-button-toggle-group [value]="filtro().bloqueo ?? 'TODOS'"
+                                 [disabled]="ocupado()"
+                                 (change)="filtrarPorBloqueo($event.value)"
+                                 aria-label="Si frena la cuenta" hideSingleSelectionIndicator>
+          <mat-button-toggle value="TODOS">Todos</mat-button-toggle>
+          <mat-button-toggle value="BLOQUEANTES"
+                             matTooltip="Las líneas con un pendiente que frena la cuenta">
+            Solo bloqueantes
+          </mat-button-toggle>
+          <mat-button-toggle value="NO_BLOQUEANTES"
+                             matTooltip="Las que tienen pendientes que no frenan">
+            No bloqueantes
+          </mat-button-toggle>
+        </mat-button-toggle-group>
+      </div>
+    </div>
+
     @if (criteriosActivos().length > 0) {
       <div class="filtros-lineas__activos" role="status">
         @for (c of criteriosActivos(); track c.campo) {
@@ -270,7 +327,243 @@
     }
   </section>
 
-  @if (loading()) {
+    <!--
+      La barra solo existe cuando hay algo marcado: una barra con todos los botones
+      apagados es ruido que además insinúa que hay algo que hacer.
+    -->
+    @if (haySeleccion()) {
+      <section class="seleccion-masiva" role="status">
+        <div class="seleccion-masiva__resumen">
+          <strong>{{ cuantasSeleccionadas() }}</strong>
+          {{ cuantasSeleccionadas() === 1 ? 'línea seleccionada' : 'líneas seleccionadas' }}
+          @if (seleccionTodoElFiltro()) {
+            <span class="seleccion-masiva__detalle">
+              · todas las que cumplen el filtro — las acciones piden marcarlas una a una
+            </span>
+          } @else if (totalDelFiltro(); as total) {
+            @if (total > cuantasSeleccionadas()) {
+              <button mat-button color="primary" (click)="seleccionarTodoElFiltro()">
+                Seleccionar las {{ total }} que cumplen el filtro
+              </button>
+            }
+          }
+          <button mat-button (click)="limpiarSeleccion()">Quitar la selección</button>
+        </div>
+
+        <div class="seleccion-masiva__acciones">
+          <!--
+            Desbloquear acotado: el contrato ya lo admitía de punta a punta y nadie lo
+            usaba. Ojo con el freno: sin lista, el sistema de registro desbloquea TODAS
+            las líneas de la cuenta, así que este botón no puede existir sin selección.
+          -->
+          <button mat-stroked-button
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+                  [matTooltip]="seleccionTodoElFiltro()
+                    ? 'Marque las líneas una a una: «todas las que cumplen el filtro» no viaja como lista'
+                    : 'Desbloquea solo las líneas marcadas'"
+                  (click)="desbloquearSeleccion()">
+            <mat-icon>lock_open</mat-icon>
+            Desbloquear {{ cuantasSeleccionadas() }}
+          </button>
+
+          <!--
+            Resolver actúa sobre el motivo por el que se está filtrando: es el circuito
+            «filtro por motivo → marco las líneas → lo resuelvo ahí». Sin motivo a la
+            vista no se ofrece, porque no habría cuál resolver.
+          -->
+          @if (filtro().motivoPendiente; as motivo) {
+            <button mat-flat-button color="primary"
+                    [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || resolucionEnCursoAqui()"
+                    [matTooltip]="seleccionTodoElFiltro()
+                      ? 'Marque las líneas una a una: «todas las que cumplen el filtro» no viaja como lista'
+                      : (resolucionEnCursoAqui()
+                          ? 'Hay una resolución en curso en esta cuenta: espere a que termine'
+                          : 'Resuelve ' + motivo + ' solo en las líneas marcadas')"
+                    (click)="resolverMotivoEnSeleccion(motivo)">
+              <mat-icon>task_alt</mat-icon>
+              Resolver {{ motivo }} en {{ cuantasSeleccionadas() }}
+            </button>
+          }
+
+          <button mat-stroked-button
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+                  [class.activo]="formularioAbierto() === 'glosa'"
+                  matTooltip="Aplica la misma glosa a las líneas marcadas"
+                  (click)="abrirFormulario('glosa')">
+            <mat-icon>request_quote</mat-icon>
+            Aplicar glosa
+          </button>
+
+          <button mat-stroked-button
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+                  [class.activo]="formularioAbierto() === 'mensaje'"
+                  matTooltip="Añade el mismo mensaje a las líneas marcadas"
+                  (click)="abrirFormulario('mensaje')">
+            <mat-icon>add_comment</mat-icon>
+            Añadir mensaje
+          </button>
+
+          <button mat-stroked-button
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+                  [class.activo]="formularioAbierto() === 'quitarMensaje'"
+                  matTooltip="Quita un mensaje puesto a mano de las líneas marcadas"
+                  (click)="abrirFormulario('quitarMensaje')">
+            <mat-icon>comments_disabled</mat-icon>
+            Quitar mensaje
+          </button>
+
+          <button mat-stroked-button
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+                  [class.activo]="formularioAbierto() === 'pendiente'"
+                  matTooltip="Pone un motivo de pendiente en las líneas marcadas"
+                  (click)="abrirFormulario('pendiente')">
+            <mat-icon>pending_actions</mat-icon>
+            Añadir pendiente
+          </button>
+        </div>
+
+        <!--
+          El formulario va aquí y no en un diálogo: lo que se está haciendo es una operación
+          sobre lo que está a la vista, y sacar al auditor de la grilla le quita de delante
+          justo lo que tiene que comprobar antes de confirmar.
+        -->
+        @if (formularioAbierto() === 'glosa') {
+          <div class="seleccion-masiva__formulario">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Causal</mat-label>
+              <mat-select [value]="causalGlosa()"
+                          (selectionChange)="causalGlosa.set($event.value)">
+                @for (c of catalogoGlosas; track c.codigo) {
+                  <mat-option [value]="c.codigo">{{ c.codigo }} — {{ c.generico }} · {{ c.especifico }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Valor por línea</mat-label>
+              <input matInput type="number" min="1" [value]="valorGlosa() ?? ''"
+                     (input)="valorGlosa.set($any($event.target).valueAsNumber)">
+              <span matTextPrefix>$&nbsp;</span>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Texto (opcional)</mat-label>
+              <input matInput [value]="textoGlosa()"
+                     (input)="textoGlosa.set($any($event.target).value)">
+            </mat-form-field>
+
+            <button mat-flat-button color="primary"
+                    [disabled]="!puedeAplicarGlosa() || ejecutando()"
+                    (click)="aplicarGlosaALaSeleccion()">
+              Glosar {{ cuantasSeleccionadas() }} línea(s)
+            </button>
+          </div>
+          <p class="seleccion-masiva__aviso">
+            El valor es <strong>por línea</strong>. El total glosado de cada una lo recalcula
+            el servicio sumando su desglose.
+          </p>
+        }
+
+        @if (formularioAbierto() === 'mensaje') {
+          <div class="seleccion-masiva__formulario">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mensaje del catálogo</mat-label>
+              <mat-select [value]="codigoMensaje()"
+                          (selectionChange)="codigoMensaje.set($event.value)">
+                @for (m of catalogoNovedades(); track m.codigo) {
+                  <mat-option [value]="m.codigo">
+                    {{ m.codigo }} — {{ m.texto }}
+                    @if (m.frenaLaCuenta) { <strong>· frena la cuenta</strong> }
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <button mat-flat-button color="primary"
+                    [disabled]="!codigoMensaje() || ejecutando()"
+                    (click)="aplicarMensajeALaSeleccion()">
+              Añadir a {{ cuantasSeleccionadas() }} línea(s)
+            </button>
+          </div>
+        }
+
+        @if (formularioAbierto() === 'quitarMensaje') {
+          <div class="seleccion-masiva__formulario">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Mensaje a quitar</mat-label>
+              <mat-select [value]="codigoMensaje()"
+                          (selectionChange)="codigoMensaje.set($event.value)">
+                @for (m of mensajesQuitables(); track m.codigo) {
+                  <mat-option [value]="m.codigo">
+                    {{ m.codigo }} · en {{ m.enCuantas }} de las marcadas
+                  </mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <button mat-flat-button color="warn"
+                    [disabled]="!codigoMensaje() || ejecutando()"
+                    (click)="quitarMensajeDeLaSeleccion()">
+              Quitar
+            </button>
+          </div>
+          <p class="seleccion-masiva__aviso">
+            Solo se ofrecen los mensajes <strong>puestos a mano</strong>. Los del motor no se
+            quitan: borrarlos no se rehace, y el sistema de registro no lo impide.
+          </p>
+          @if (mensajesQuitables().length === 0) {
+            <p class="seleccion-masiva__aviso" role="status">
+              Las líneas marcadas no tienen ningún mensaje puesto a mano.
+            </p>
+          }
+        }
+
+        @if (formularioAbierto() === 'pendiente') {
+          <div class="seleccion-masiva__formulario">
+            <mat-form-field appearance="outline" subscriptSizing="dynamic">
+              <mat-label>Motivo de pendiente</mat-label>
+              <mat-select [value]="codigoMotivoPendiente()"
+                          (selectionChange)="codigoMotivoPendiente.set($event.value)">
+                @for (m of catalogoPendientes(); track m.codigo) {
+                  <mat-option [value]="m.codigo">{{ m.codigo }} — {{ m.descripcion }}</mat-option>
+                }
+              </mat-select>
+            </mat-form-field>
+
+            <button mat-flat-button color="primary"
+                    [disabled]="!codigoMotivoPendiente() || ejecutando()"
+                    (click)="agregarPendienteALaSeleccion()">
+              Poner en {{ cuantasSeleccionadas() }} línea(s)
+            </button>
+          </div>
+          <p class="seleccion-masiva__aviso">
+            Poner un pendiente <strong>frena la cuenta</strong>: es lo contrario de resolver.
+            El sistema de registro no admite repetir un motivo que la línea ya tiene, ni
+            siquiera si el que hay está resuelto.
+          </p>
+        }
+
+      </section>
+    }
+
+    <!--
+      Fuera de la barra a propósito: casi todas las operaciones terminan desmarcando, y la
+      barra desaparece con la selección. Dentro de ella, el «se aplicó a 12 líneas» o el
+      aviso de que terminó una resolución se borrarían en el mismo instante de aparecer.
+    -->
+    @if (errorSeleccion(); as error) {
+      <p class="seleccion-masiva__aviso" role="alert" id="error-seleccion">{{ error }}</p>
+    }
+    @if (avisoSeleccion(); as aviso) {
+      <p class="seleccion-masiva__aviso" role="status" id="aviso-seleccion">
+        {{ aviso }}
+        <button mat-button type="button" (click)="avisoSeleccion.set(null)">Cerrar</button>
+      </p>
+    }
+
+  <!-- Tras un guardado en la fila la página se refresca con la grilla a la vista: el
+       spinner grande es solo para cuando todavía no hay nada que enseñar. -->
+  @if (loading() && !facade.refrescando()) {
     <div class="loading-overlay">
       <mat-spinner diameter="48"></mat-spinner>
       <p>Cargando líneas del servidor...</p>
@@ -284,12 +577,47 @@
     </div>
   }
 
-  @if (!loading()) {
+  @if (avisoFila(); as aviso) {
+    <div class="aviso-fila" [class.aviso-fila--error]="aviso.tipo === 'error'" role="alert">
+      <mat-icon>{{ aviso.tipo === 'conflicto' ? 'sync_problem' : 'error_outline' }}</mat-icon>
+      <span>Línea {{ numeroDeLaFilaEnEdicion() }}: {{ aviso.texto }}</span>
+    </div>
+  }
+
+  @if (!loading() || facade.refrescando()) {
     <div class="table-wrapper mat-elevation-z2">
+      @if (facade.refrescando()) {
+        <mat-progress-bar mode="indeterminate" class="refresco"
+                          aria-label="Actualizando la página con lo que recalculó el motor"></mat-progress-bar>
+      }
       <table mat-table [dataSource]="lineas()" aria-label="Líneas de cuenta médica">
 
+        <!--
+          La casilla de cabecera marca **la página**, no la cuenta. Con 25 filas a la vista
+          de 212 (o de 4.063), que la misma casilla significara «todas» sería prometer un
+          alcance que no tiene. «Todas las que cumplen el filtro» es otra intención y vive
+          en la barra de acciones, con su número delante.
+        -->
+        <ng-container matColumnDef="seleccion">
+          <th mat-header-cell *matHeaderCellDef>
+            <mat-checkbox [checked]="paginaEnteraMarcada()"
+                          [indeterminate]="paginaMarcadaAMedias()"
+                          (change)="alternarPagina($event.checked)"
+                          aria-label="Marcar las líneas de esta página"></mat-checkbox>
+          </th>
+          <td mat-cell *matCellDef="let row">
+            <mat-checkbox [checked]="estaSeleccionada(row.referencia)"
+                          (change)="alternarSeleccion(row.referencia)"
+                          [attr.aria-label]="'Marcar la línea ' + row.numeroLinea"></mat-checkbox>
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="numeroLinea">
-          <th mat-header-cell *matHeaderCellDef>#</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <button type="button" class="cabecera-orden" (click)="ordenarPor('numero_linea')">
+              # {{ flechaDe('numero_linea') }}
+            </button>
+          </th>
           <td mat-cell *matCellDef="let row">{{ row.numeroLinea }}</td>
         </ng-container>
 
@@ -304,7 +632,11 @@
           ellos: sin verlos, el auditor no puede comprobar por qué una fila salió.
         -->
         <ng-container matColumnDef="atencion">
-          <th mat-header-cell *matHeaderCellDef>Atención</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <button type="button" class="cabecera-orden" (click)="ordenarPor('fecha_atencion')">
+              Atención {{ flechaDe('fecha_atencion') }}
+            </button>
+          </th>
           <td mat-cell *matCellDef="let row">
             <div class="celda-doble">
               <span class="celda-doble__principal">{{ row.fechaInicio ?? '—' }}</span>
@@ -319,7 +651,11 @@
         </ng-container>
 
         <ng-container matColumnDef="codigoProcedimiento">
-          <th mat-header-cell *matHeaderCellDef>Procedimiento</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <button type="button" class="cabecera-orden" (click)="ordenarPor('codigo_prestacion')">
+              Procedimiento {{ flechaDe('codigo_prestacion') }}
+            </button>
+          </th>
           <td mat-cell *matCellDef="let row">
             <div class="celda-doble">
               <span class="celda-doble__principal">{{ row.codigoProcedimiento }}</span>
@@ -334,7 +670,11 @@
         </ng-container>
 
         <ng-container matColumnDef="codigoAfiliado">
-          <th mat-header-cell *matHeaderCellDef>Afiliado</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <button type="button" class="cabecera-orden" (click)="ordenarPor('cedula_afiliado')">
+              Afiliado {{ flechaDe('cedula_afiliado') }}
+            </button>
+          </th>
           <td mat-cell *matCellDef="let row">
             <div class="celda-doble">
               <span class="celda-doble__principal">{{ row.codigoAfiliado }}</span>
@@ -347,18 +687,82 @@
           </td>
         </ng-container>
 
+        <!--
+          Cargado e IVA entran como celdas de dos renglones y no como cuatro columnas
+          sueltas: el documento pide 17 campos y la tabla ya iba con scroll horizontal.
+          Es el mismo patrón que ya usan Atención y Procedimiento.
+        -->
+        <ng-container matColumnDef="valorCargado">
+          <th mat-header-cell *matHeaderCellDef>
+            <button type="button" class="cabecera-orden" (click)="ordenarPor('valor_cargado')">
+              V. Cargado {{ flechaDe('valor_cargado') }}
+            </button>
+          </th>
+          <td mat-cell *matCellDef="let row">
+            @if (enEdicion(row) && formularioFila) {
+              <ng-container *ngTemplateOutlet="parDeCampos;
+                context: { row, valor: 'valorCargado', unidades: 'unidadesCargadas', rotulo: 'cargado' }">
+              </ng-container>
+            } @else {
+              <div class="celda-doble">
+                <span class="celda-doble__principal">
+                  {{ row.valorCargado === null ? '—' : (row.valorCargado | currency:'COP':'symbol':'1.0-0') }}
+                </span>
+                @if (row.unidadesCargadas !== null) {
+                  <span class="celda-doble__secundario">{{ row.unidadesCargadas }} und.</span>
+                }
+              </div>
+            }
+          </td>
+        </ng-container>
+
         <ng-container matColumnDef="valorAutorizado">
           <th mat-header-cell *matHeaderCellDef>V. Autorizado</th>
-          <td mat-cell *matCellDef="let row">{{ row.valorAutorizado | currency:'COP':'symbol':'1.0-0' }}</td>
+          <td mat-cell *matCellDef="let row">
+            @if (enEdicion(row) && formularioFila) {
+              <ng-container *ngTemplateOutlet="parDeCampos;
+                context: { row, valor: 'valorAutorizado', unidades: 'unidadesAutorizadas', rotulo: 'autorizado' }">
+              </ng-container>
+            } @else {
+              <div class="celda-doble">
+                <span class="celda-doble__principal">{{ row.valorAutorizado | currency:'COP':'symbol':'1.0-0' }}</span>
+                @if (row.unidadesAutorizadas !== null) {
+                  <span class="celda-doble__secundario">{{ row.unidadesAutorizadas }} und.</span>
+                }
+              </div>
+            }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="iva">
+          <th mat-header-cell *matHeaderCellDef>IVA</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">
+                {{ row.valorIva === null ? '—' : (row.valorIva | currency:'COP':'symbol':'1.0-0') }}
+              </span>
+              @if (row.porcentajeIva !== null) {
+                <span class="celda-doble__secundario">{{ row.porcentajeIva }} %</span>
+              }
+            </div>
+            @if (enEdicion(row)) { <sura-campo-bloqueado [motivo]="motivos.calculado" /> }
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="valorCubierto">
           <th mat-header-cell *matHeaderCellDef>V. Cubierto</th>
-          <td mat-cell *matCellDef="let row">{{ row.valorCubierto | currency:'COP':'symbol':'1.0-0' }}</td>
+          <td mat-cell *matCellDef="let row">
+            {{ row.valorCubierto | currency:'COP':'symbol':'1.0-0' }}
+            @if (enEdicion(row)) { <sura-campo-bloqueado [motivo]="motivos.calculado" /> }
+          </td>
         </ng-container>
 
         <ng-container matColumnDef="valorGlosado">
-          <th mat-header-cell *matHeaderCellDef>V. Glosado</th>
+          <th mat-header-cell *matHeaderCellDef>
+            <button type="button" class="cabecera-orden" (click)="ordenarPor('valor_glosado')">
+              V. Glosado {{ flechaDe('valor_glosado') }}
+            </button>
+          </th>
           <td mat-cell *matCellDef="let row">
             @if (row.valorGlosado) {
               <span class="valor-glosado">
@@ -367,6 +771,7 @@
             } @else {
               —
             }
+            @if (enEdicion(row)) { <sura-campo-bloqueado [motivo]="motivos.desglose" /> }
           </td>
         </ng-container>
 
@@ -389,7 +794,17 @@
           <th mat-header-cell *matHeaderCellDef>Estado</th>
           <td mat-cell *matCellDef="let row">
             @if (row.tieneNovedadBloqueante) {
-              <mat-chip color="warn" matTooltip="Novedad bloqueante">⚠ Bloqueada</mat-chip>
+              <!-- El tooltip decía «Novedad bloqueante» y no nombraba ni el campo ni el
+                   motivo: el detalle solo se veía abriendo la línea. Ahora dice qué objetó
+                   el motor, con el dato que ya viajaba en la misma petición. -->
+              <mat-chip color="warn"
+                        [matTooltip]="novedadesDe(row)"
+                        matTooltipClass="tooltip-multilinea">⚠ Bloqueada</mat-chip>
+            } @else if (row.novedades?.length) {
+              <mat-chip [matTooltip]="novedadesDe(row)"
+                        matTooltipClass="tooltip-multilinea">
+                {{ row.novedades.length }} novedad{{ row.novedades.length === 1 ? '' : 'es' }}
+              </mat-chip>
             } @else if (!row.editable) {
               <mat-chip>No editable</mat-chip>
             } @else {
@@ -401,6 +816,39 @@
         <ng-container matColumnDef="acciones">
           <th mat-header-cell *matHeaderCellDef>Acciones</th>
           <td mat-cell *matCellDef="let row">
+            @if (enEdicion(row) && formularioFila) {
+              <!-- El modo de recálculo va junto a guardar, sin ninguno marcado: decide si el
+                   motor reprocesa la cuenta entera, y eso se elige en cada guardado. -->
+              <div class="acciones-en-fila" [formGroup]="formularioFila">
+                <mat-button-toggle-group formControlName="modoRecalculo" class="modo-en-fila"
+                                         [attr.aria-label]="'Modo de recálculo de la línea ' + row.numeroLinea">
+                  <mat-button-toggle value="AISLADO"
+                                     matTooltip="Aplica solo lo cambiado, sin propagar el recálculo">Aislado</mat-button-toggle>
+                  <mat-button-toggle value="EN_CASCADA"
+                                     matTooltip="El motor recalcula tarifación, coberturas y topes de toda la cuenta">Cascada</mat-button-toggle>
+                </mat-button-toggle-group>
+                <span [matTooltip]="motivoParaNoGuardar() ?? 'Guardar los cambios de la línea'">
+                  <button mat-icon-button color="primary" type="button"
+                          [attr.id]="'btn-guardar-fila-' + row.referencia"
+                          [disabled]="motivoParaNoGuardar() !== null"
+                          (click)="guardarFila(row)"
+                          aria-label="Guardar la línea">
+                    @if (guardandoFila()) {
+                      <mat-spinner diameter="18"></mat-spinner>
+                    } @else {
+                      <mat-icon>check</mat-icon>
+                    }
+                  </button>
+                </span>
+                <button mat-icon-button type="button"
+                        [attr.id]="'btn-cancelar-fila-' + row.referencia"
+                        [disabled]="guardandoFila()"
+                        (click)="cancelarEdicionEnFila()"
+                        aria-label="Cancelar la edición" matTooltip="Cancelar (Esc)">
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+            } @else {
             <!-- El ojo abre en consulta y el lápiz en edición: hasta ahora los
                  dos iban a la misma pantalla editable. -->
             <button mat-icon-button color="primary"
@@ -415,15 +863,29 @@
                       [routerLink]="[row.referencia, 'editar']"
                       [attr.id]="'btn-editar-' + row.referencia"
                       aria-label="Editar línea"
-                      matTooltip="Editar">
+                      matTooltip="Abrir la línea completa para editarla">
                 <mat-icon>edit</mat-icon>
               </button>
+              <!-- Editar aquí: los cuatro valores que la grilla enseña, sin abrir la línea. -->
+              <button mat-icon-button type="button"
+                      [attr.id]="'btn-editar-fila-' + row.referencia"
+                      [disabled]="filaEnEdicion() !== null"
+                      (click)="editarEnFila(row)"
+                      aria-label="Editar los valores en la grilla"
+                      [matTooltip]="filaEnEdicion() !== null
+                        ? 'Termine antes la línea que está editando'
+                        : 'Editar cargado y autorizado aquí, sin abrir la línea'">
+                <mat-icon>edit_note</mat-icon>
+              </button>
+            }
             }
           </td>
         </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+        <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
+        <tr mat-row *matRowDef="let row; columns: displayedColumns();"
+            [class.fila-en-edicion]="enEdicion(row)"
+            (keydown)="enEdicion(row) && teclaEnFila($event, row)"></tr>
 
         <!--
           `*matNoDataRow` y no un `@if`: `mat-table` proyecta en su propio outlet
@@ -432,7 +894,7 @@
           deja de ser un caso raro y pasa a ser frecuente.
         -->
         <tr class="mat-row" *matNoDataRow>
-          <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns.length">
+          <td class="mat-cell empty-cell" [attr.colspan]="displayedColumns().length">
             <mat-icon>inbox</mat-icon>
             @if (hayAlgunFiltro()) {
               <p>Ninguna línea cumple los filtros puestos.</p>
@@ -447,10 +909,11 @@
       </table>
 
       <!--
-        PAGINACIÓN NUMERADA SOBRE UN SERVICIO KEYSET.
-        No es mat-paginator: el servicio no acepta desplazamientos, solo cursores.
-        Los números se calculan con totalRegistros y el facade encadena los
-        cursores necesarios para llegar a la página pedida.
+        PAGINACIÓN NUMERADA POR DESPLAZAMIENTO.
+        No es mat-paginator porque hay un régimen sin total —el filtro que el
+        sistema de registro no sabe empujar— y mat-paginator exige un `length`:
+        habría que inventarlo. Los números salen del total que publica el
+        servicio y cada salto es una sola petición, también el de «última».
       -->
       <nav class="paginador" aria-label="Paginación de líneas">
 
@@ -499,11 +962,11 @@
           </button>
 
           <!--
-            `puedeIrAUltima()` y no `haySiguiente()`: con un filtro que obliga a
-            recorrer no hay total, así que tampoco hay una «última» conocida, y
-            un botón habilitado que al pulsarlo no hace nada es peor que uno
-            apagado. También se apaga cuando la última está tan lejos que
-            llegar costaría decenas de peticiones encadenadas.
+            `puedeUltima()` y no `haySiguiente()`: con un filtro que obliga a
+            descartar en el servicio no hay total, así que tampoco hay una
+            «última» conocida, y un botón habilitado que al pulsarlo no hace
+            nada es peor que uno apagado. Lo que ya no lo apaga es la
+            distancia.
           -->
           <button mat-icon-button id="btn-ultima-pagina"
                   [disabled]="!puedeUltima() || ocupado()"
@@ -512,20 +975,40 @@
                     ? 'Última página'
                     : (exigeRecorrido()
                         ? 'Con este filtro no se sabe cuántas páginas hay: avance con «siguiente»'
-                        : 'La última página está demasiado lejos para saltar')"
+                        : 'Ya está en la última página')"
                   aria-label="Última página">
             <mat-icon>last_page</mat-icon>
           </button>
         </div>
 
-        @if (recorriendo()) {
-          <span class="paginador__aviso" role="status">
-            <mat-spinner diameter="16"></mat-spinner>
-            Encadenando cursores hasta esa página…
-          </span>
-        }
       </nav>
     </div>
   }
 
 </div>
+
+<!--
+  Un par «valor y unidades» en edición. Debajo de cada campo, tras un conflicto, va lo que la
+  línea tiene ahora: así el conflicto se resuelve aquí, comparando, y no recargando la pantalla.
+-->
+<ng-template #parDeCampos let-row="row" let-valor="valor" let-unidades="unidades" let-rotulo="rotulo">
+  @if (formularioFila) {
+    <div class="par-en-fila" [formGroup]="formularioFila">
+      @for (campo of [valor, unidades]; track campo; let esValor = $first) {
+        <mat-form-field appearance="outline" subscriptSizing="dynamic"
+                        class="sura-campo-en-sitio sura-campo-en-sitio--numero campo-en-fila"
+                        [class.campo-en-fila--unidades]="!esValor">
+          <input matInput type="number" min="0" [formControlName]="campo"
+                 [attr.id]="'fila-' + row.referencia + '-' + campo"
+                 [attr.aria-label]="(esValor ? 'Valor ' : 'Unidades ') + rotulo">
+          @if (!esValor) { <span matTextSuffix>und.</span> }
+          @if (errorDeCampo(campo); as error) {
+            <mat-error>{{ error }}</mat-error>
+          } @else if (filaActual()) {
+            <mat-hint class="valor-actual">Ahora: {{ valorActual(campo) ?? '—' }}</mat-hint>
+          }
+        </mat-form-field>
+      }
+    </div>
+  }
+</ng-template>

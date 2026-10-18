@@ -1,8 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
-import { AccionesDisponiblesModel, CuentaMedicaModel, EnviarCuentaRequest, TiqueteResponse, MotivoModel, EjecutarAccionRequest } from '../../domain/models/cuenta-medica.model';
+import {
+  AccionesDisponiblesModel, CuentaMedicaModel, EnviarCuentaRequest, TiqueteResponse,
+  MotivoModel, EjecutarAccionRequest, HitoModel, FiltroCuentasModel, ResumenCuentaModel, VersionCuentaModel, FotoVersionModel
+} from '../../domain/models/cuenta-medica.model';
+import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 import { CambioNovedadRequest } from '../../domain/models/linea-cuenta.model';
 import { EstadoProcesoModel } from '../../domain/models/estado-proceso.model';
 import { environment } from '@sura/environments';
@@ -80,5 +84,41 @@ export class CuentaHttpAdapter extends CuentaRepository {
       es.onerror   = e => { observer.error(e); es.close(); };
       return () => es.close();
     });
+  }
+
+  /**
+   * GET /api/v1/cuentas/{codigo}/historia
+   *
+   * Lista vacía si la cuenta no se ha movido: eso es una respuesta, no un error.
+   */
+  override consultarHistoria(codigoCuenta: string): Observable<HitoModel[]> {
+    return this.http.get<HitoModel[]>(`${this.baseUrl}/${codigoCuenta}/historia`);
+  }
+
+  /**
+   * GET /api/v1/cuentas?factura=&radicado=&pagina=&tamano=
+   *
+   * Cada criterio solo si trae valor: un parámetro vacío el servicio lo trataría como «sin
+   * criterio» y respondería 400.
+   */
+  override buscar(
+    filtro: FiltroCuentasModel,
+    pagina: number,
+    tamano: number
+  ): Observable<OffsetPage<ResumenCuentaModel>> {
+    let params = new HttpParams()
+      .set('pagina', Math.max(0, pagina).toString())
+      .set('tamano', tamano.toString());
+    if (filtro.factura?.trim())  params = params.set('factura', filtro.factura.trim());
+    if (filtro.radicado?.trim()) params = params.set('radicado', filtro.radicado.trim());
+    return this.http.get<OffsetPage<ResumenCuentaModel>>(this.baseUrl, { params });
+  }
+
+  override consultarVersiones(codigoCuenta: string): Observable<VersionCuentaModel[]> {
+    return this.http.get<VersionCuentaModel[]>(`${this.baseUrl}/${codigoCuenta}/versiones`);
+  }
+
+  override consultarVersion(codigoCuenta: string, numero: number): Observable<FotoVersionModel> {
+    return this.http.get<FotoVersionModel>(`${this.baseUrl}/${codigoCuenta}/versiones/${numero}`);
   }
 }

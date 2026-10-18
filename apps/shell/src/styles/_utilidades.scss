@@ -90,7 +90,7 @@
   font-size: var(--sura-texto-base);
 
   &--error  { background: var(--sura-error-fondo);  color: var(--sura-error);  border-left-color: var(--sura-error); }
-  &--alerta { background: var(--sura-alerta-fondo); color: #7a5b00;            border-left-color: var(--sura-alerta); }
+  &--alerta { background: var(--sura-alerta-fondo); color: var(--sura-alerta-texto); border-left-color: var(--sura-alerta); }
   &--info   { background: var(--sura-info-fondo);   color: var(--sura-info);   border-left-color: var(--sura-info); }
   &--exito  { background: var(--sura-exito-fondo);  color: var(--sura-exito);  border-left-color: var(--sura-exito); }
 }

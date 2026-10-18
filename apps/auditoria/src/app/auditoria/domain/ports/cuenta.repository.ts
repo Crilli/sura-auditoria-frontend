@@ -1,5 +1,9 @@
 import { Observable } from 'rxjs';
-import { AccionesDisponiblesModel, CuentaMedicaModel, EnviarCuentaRequest, TiqueteResponse, MotivoModel, EjecutarAccionRequest } from '../models/cuenta-medica.model';
+import {
+  AccionesDisponiblesModel, CuentaMedicaModel, EnviarCuentaRequest, TiqueteResponse,
+  MotivoModel, EjecutarAccionRequest, HitoModel, FiltroCuentasModel, ResumenCuentaModel, VersionCuentaModel, FotoVersionModel
+} from '../models/cuenta-medica.model';
+import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 import { CambioNovedadRequest } from '../models/linea-cuenta.model';
 import { EstadoProcesoModel } from '../models/estado-proceso.model';
 
@@ -55,4 +59,24 @@ export abstract class CuentaRepository {
 
   /** Stream SSE — emite EstadoProcesoModel en tiempo real hasta que el proceso finaliza. */
   abstract transmitirProceso(codigo: string): Observable<EstadoProcesoModel>;
+
+  /**
+   * Por dónde ha pasado la cuenta: sus cambios de estado y sus desfinalizaciones con el motivo.
+   *
+   * No es `consultarProceso`, que es el estado del envío asíncrono.
+   */
+  abstract consultarHistoria(codigoCuenta: string): Observable<HitoModel[]>;
+
+  /** Busca cuentas por factura o radicado. Cada resultado trae sus versiones. */
+  abstract buscar(
+    filtro: FiltroCuentasModel,
+    pagina: number,
+    tamano: number
+  ): Observable<OffsetPage<ResumenCuentaModel>>;
+
+  /** Las versiones de negocio de la cuenta, de la más reciente a la más antigua. */
+  abstract consultarVersiones(codigoCuenta: string): Observable<VersionCuentaModel[]>;
+
+  /** La foto de una versión concreta. */
+  abstract consultarVersion(codigoCuenta: string, numero: number): Observable<FotoVersionModel>;
 }

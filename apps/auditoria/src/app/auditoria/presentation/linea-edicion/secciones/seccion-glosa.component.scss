@@ -78,3 +78,13 @@
 
   &__total { margin-top: var(--sura-espacio-2); }
 }
+
+// El causal se lee como código, no como texto: monoespaciado y con fondo, para que se
+// distinga de las descripciones que lo acompañan.
+.glosa-codigo {
+  padding: 0 var(--sura-espacio-1);
+  margin-right: var(--sura-espacio-2);
+  border-radius: var(--sura-radio-4, 4px);
+  background: var(--sura-gris-100, #f1f3f5);
+  font-size: 0.85em;
+}

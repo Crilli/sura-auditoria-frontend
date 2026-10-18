@@ -153,7 +153,9 @@ tr.seleccionada {
 .form-section {
   width: 40%;
   position: sticky;
-  top: 1rem;
+  // Debajo de la barra y las pestañas de la cuenta, que también son fijas (BTN-11): con
+  // `top: 1rem` a secas el formulario quedaba detrás de ellas.
+  top: calc(var(--sura-alto-cabecera-fija, 0px) + 1rem);
   
   mat-card {
     border-radius: 8px;
@@ -260,4 +262,12 @@ tr.seleccionada {
 // que Material pone a `.mat-mdc-row`, así que tiene que quedarse aquí.
 tr.motivo-marcado:not(.seleccionada) > td {
   background-color: var(--sura-azul-tenue);
+}
+
+// El aviso de «en curso» lleva su spinner en línea: se sigue sola (OPE-06).
+.resultado-masivo__en-curso {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }

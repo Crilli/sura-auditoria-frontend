@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { LineaRepository } from '../../domain/ports/linea.repository';
-import { CursorPage, CursorRequest } from '../../../../../../../libs/data-access/http/src/lib/cursor-page.model';
+import { OffsetPage, OffsetRequest } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 import { ResumenLineaModel, FiltroLineasModel } from '../../domain/models/linea-cuenta.model';
 
 @Injectable({ providedIn: 'root' })
@@ -10,9 +10,9 @@ export class ListarLineasUseCase {
 
   execute(
     codigoCuenta: string,
-    cursor: CursorRequest,
+    pagina: OffsetRequest,
     filtro?: FiltroLineasModel
-  ): Observable<CursorPage<ResumenLineaModel>> {
-    return this.repository.listar(codigoCuenta, cursor, filtro);
+  ): Observable<OffsetPage<ResumenLineaModel>> {
+    return this.repository.listar(codigoCuenta, pagina, filtro);
   }
 }

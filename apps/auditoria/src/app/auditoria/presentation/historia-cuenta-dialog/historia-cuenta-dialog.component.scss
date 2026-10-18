@@ -1,0 +1,45 @@
+/* El diálogo se usa para leer una secuencia, así que lo que manda es que las fechas
+   queden alineadas y el ojo pueda bajar por la columna sin perderse. */
+:host { display: block; min-width: 32rem; }
+
+.historia__que-es {
+  margin: 0 0 1rem;
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 0.85rem;
+}
+
+.historia__cargando,
+.historia__error {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+}
+
+.historia {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 55vh;
+  overflow-y: auto;
+
+  li {
+    display: grid;
+    grid-template-columns: 10rem 1fr auto;
+    gap: 0.75rem;
+    align-items: baseline;
+    padding: 0.4rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  }
+}
+
+/* La desfinalización se resalta: es el único hito que explica por qué la cuenta
+   volvió atrás, y es lo que se viene a buscar. */
+.historia--desfinalizacion {
+  background: rgba(255, 193, 7, 0.08);
+  font-weight: 500;
+}
+
+.historia__fecha  { color: rgba(0, 0, 0, 0.6); font-variant-numeric: tabular-nums; }
+.historia__quien  { color: rgba(0, 0, 0, 0.5); font-size: 0.8rem; white-space: nowrap; }
+.historia__icono  { font-size: 1rem; height: 1rem; width: 1rem; vertical-align: middle; }

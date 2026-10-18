@@ -8,14 +8,8 @@
   font-weight: var(--sura-peso-semibold);
 }
 
-.barra-superior {
-  margin-bottom: var(--sura-espacio-3);
-
-  .inicio {
-    font-weight: var(--sura-peso-semibold);
-    color: var(--sura-azul-primario);
-  }
-}
+// La barra fija y las pestañas pegadas (BTN-11) viven en styles/_barra-cuenta.scss, por el
+// presupuesto de estilos del componente.
 
 // Más ancho que el resto de pantallas a propósito: aquí vive la grilla de
 // líneas, que es el contenido más ancho de la aplicación. Con el tope general
@@ -98,17 +92,6 @@
 }
 
 .valor--diferencia { color: var(--sura-alerta); }
-
-.header-acciones { margin-left: auto; }
-
-.menu-helper-text {
-  padding: var(--sura-espacio-2) var(--sura-espacio-3);
-  font-size: var(--sura-texto-sm);
-  color: var(--sura-alerta);
-  max-width: 220px;
-  white-space: normal;
-  line-height: 1.3;
-}
 
 // ── Acordeones del detalle ──────────────────────────────────────────────────
 // El aspecto de los paneles vive en styles.scss (tema de Material); aquí solo
@@ -251,3 +234,10 @@
 }
 
 .accion-en-otro-sitio { cursor: help; }
+
+// Quien cobra no siempre es quien factura, y detectarlo es justo para lo que sirve
+// el campo. Antes había que leer dos NIT y compararlos de memoria; esto lo dice.
+.cuenta-detalle__cobra-otro {
+  color: var(--sura-advertencia-texto, var(--sura-texto-suave));
+  font-weight: var(--sura-peso-medio);
+}

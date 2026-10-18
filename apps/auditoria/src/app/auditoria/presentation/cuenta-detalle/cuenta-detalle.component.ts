@@ -1,4 +1,6 @@
-import { Component, Input, inject, effect, signal, OnInit, ChangeDetectionStrategy } from '@angular/core';
+import {
+  Component, Input, inject, effect, signal, OnInit, ChangeDetectionStrategy, computed, ElementRef, viewChild
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { MatTabsModule } from '@angular/material/tabs';
@@ -7,10 +9,17 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatExpansionModule } from '@angular/material/expansion';
+import { MatExpansionModule, MatExpansionPanelHeader } from '@angular/material/expansion';
+import { HistoriaCuentaDialogComponent }
+  from '../historia-cuenta-dialog/historia-cuenta-dialog.component';
+import { VersionCuentaDialogComponent }
+  from '../version-cuenta-dialog/version-cuenta-dialog.component';
+import { CuentaRepository } from '../../domain/ports/cuenta.repository';
+import { VersionCuentaModel } from '../../domain/models/cuenta-medica.model';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { CuentaFacade } from '../../application/facades/cuenta.facade';
+import { LineaFacade } from '../../application/facades/linea.facade';
 import { DialogoAccionComponent, DatosDialogoAccion } from './dialogo-accion.component';
 import { firstValueFrom } from 'rxjs';
 import { SeccionNovedadesComponent } from '../linea-edicion/secciones/seccion-novedades.component';
@@ -39,8 +48,67 @@ const CLAVE_PANELES = 'auditoria.cuenta-detalle.paneles';
 export class CuentaDetalleComponent implements OnInit {
   
   @Input({ required: true }) codigo!: string;
+
+  /**
+   * Abre la historia de la cuenta en un diálogo.
+   *
+   * El diálogo consulta al nacer, así que la petición se hace exactamente cuando el auditor
+   * la pide. Antes esto era un panel plegado en la cabecera: ocupaba sitio permanente sobre
+   * lo que sí se usa a diario para algo que casi nunca se abre.
+   */
+  // ── Versión vigente (BTN-04) ─────────────────────────────────────────────
+  //
+  // En su propia petición, en paralelo con la cabecera —igual que las acciones—: el histórico
+  // de lo transmitido no debe retrasar que se pinte la cuenta.
+
+  private readonly cuentasRepo = inject(CuentaRepository);
+  readonly versiones = signal<VersionCuentaModel[]>([]);
+  private versionesDe: string | null = null;
+
+  /** La de mayor número sin reversión: el servicio ya las manda de la más reciente a la más antigua. */
+  readonly versionVigente = computed(() => this.versiones()[0] ?? null);
+
+  private cargarVersiones(codigo: string): void {
+    if (this.versionesDe === codigo) return;
+    this.versionesDe = codigo;
+    this.versiones.set([]);
+    // Sin versiones no es un error —la cuenta aún no se transmitió— y un fallo aquí no debe
+    // tumbar la cabecera: el dato es accesorio y la pantalla sigue siendo útil sin él.
+    this.cuentasRepo.consultarVersiones(codigo).subscribe({
+      next: v => this.versiones.set(v),
+      error: () => this.versiones.set([]),
+    });
+  }
+
+  abrirVersionVigente(cuenta: CuentaMedicaModel): void {
+    const vigente = this.versionVigente();
+    if (!vigente) return;
+    this.dialog.open(VersionCuentaDialogComponent, {
+      data: { codigoCuenta: cuenta.codigo, numero: vigente.numero },
+      autoFocus: false, width: '40rem', maxWidth: '95vw',
+    });
+  }
+
+  abrirHistoria(cuenta: CuentaMedicaModel): void {
+    this.dialog.open(HistoriaCuentaDialogComponent, {
+      data: { codigoCuenta: cuenta.codigo },
+      autoFocus: false,
+      width: '48rem',
+      maxWidth: '95vw',
+    });
+  }
+
   
   readonly facade = inject(CuentaFacade);
+
+  /**
+   * Solo para el contador del rótulo. El total lo conoce quien pagina las líneas, y llega
+   * en `null` cuando el filtro obliga a descartar en el servicio: en ese caso el rótulo va
+   * sin paréntesis, que es preferible a enseñar un número que no corresponde a lo que el
+   * auditor va a poder ver.
+   */
+  private readonly lineas = inject(LineaFacade);
+  readonly totalLineas = this.lineas.totalLineas;
   private readonly router = inject(Router);
   private readonly dialog = inject(MatDialog);
   private readonly snackBar = inject(MatSnackBar);
@@ -79,10 +147,123 @@ export class CuentaDetalleComponent implements OnInit {
       prestador: this.panelPrestadorAbierto(),
       novedades: this.panelNovedadesAbierto()
     }));
+
+    // La franja aparece con la cuenta y desaparece al cambiar de cuenta o fallar la carga: el
+    // observador se monta y se desmonta con ella.
+    effect(onCleanup => {
+      const franja = this.resumen()?.nativeElement;
+      if (!franja || typeof IntersectionObserver === 'undefined') {
+        this.resumenFueraDeVista.set(false);
+        return;
+      }
+      // El margen negativo descuenta la barra: la franja que pasa por debajo de ella ya no se
+      // lee, aunque técnicamente siga dentro de la ventana.
+      const observador = new IntersectionObserver(
+        entradas => {
+          const ultima = entradas[entradas.length - 1];
+          if (ultima) this.resumenFueraDeVista.set(!ultima.isIntersecting);
+        },
+        { rootMargin: `-${this.ALTO_BARRA_PX}px 0px 0px 0px` });
+      observador.observe(franja);
+      onCleanup(() => observador.disconnect());
+    });
+  }
+
+  // ── Barra fija (BTN-11) ──────────────────────────────────────────────────
+
+  /**
+   * Alto de la barra, en un solo sitio: la plantilla lo publica como variable CSS para que las
+   * pestañas se peguen justo debajo, y el observador lo descuenta de la ventana.
+   */
+  readonly ALTO_BARRA_PX = 56;
+
+  private readonly resumen = viewChild<ElementRef<HTMLElement>>('resumen');
+  private readonly panelCuenta = viewChild('panelCuenta', { read: ElementRef });
+  private readonly cabeceraPanelCuenta = viewChild('cabeceraPanelCuenta', { read: MatExpansionPanelHeader });
+
+  /**
+   * Si la franja de resumen ya no se ve. Solo entonces la barra enseña el código, el estado y
+   * el no reconocido: arriba del todo sería repetir lo que está justo debajo.
+   *
+   * Sin `IntersectionObserver` se queda en `false`: la barra sigue fija y operativa, y lo único
+   * que se pierde es ese resumen, que es un añadido.
+   */
+  readonly resumenFueraDeVista = signal(false);
+
+  /**
+   * Por qué no se puede enviar, o `null` si se puede. El mismo texto va junto al botón y dentro
+   * del menú: un botón apagado sin explicación invita a buscar el fallo donde no está.
+   *
+   * La autoridad sobre qué se puede hacer es el sistema de registro: si publicó ENVIAR, la
+   * cuenta admite el envío. El conteo de pendientes se usa solo para anticipar el rechazo y
+   * explicar por qué no conviene enviar todavía. Las acciones llegan en su propia petición, más
+   * lenta que la cabecera: mientras se consultan todavía no se sabe.
+   */
+  motivoParaNoEnviar(cuenta: CuentaMedicaModel): string | null {
+    if (this.facade.accionesCargando()) return 'Consultando qué acciones están habilitadas…';
+    if (cuenta.pendientesSinResolver > 0) return 'Resuelva todos los pendientes para enviar.';
+    // Después de la carga: durante una recarga tras el fallo, `error()` sigue con valor.
+    if (this.facade.accionesError()) {
+      return 'No se pudo consultar si el sistema de registro habilita el envío.';
+    }
+    if (!this.facade.permite('ENVIAR')) {
+      return 'El sistema de registro no habilita el envío en el estado actual de la cuenta.';
+    }
+    return null;
+  }
+
+  /** El atajo se cumple al cerrarse el menú: si no, el menú devolvería el foco a su botón. */
+  private irAAccionesAlCerrar = false;
+
+  /**
+   * Atajo del menú a las acciones habilitadas: abre «Datos de la cuenta» y lo trae a la vista.
+   * Las acciones no cambian de sitio (decisión del 2026-10-17 sobre BTN-01 y BTN-09).
+   */
+  irALasAcciones(): void {
+    this.panelCuentaAbierto.set(true);
+    this.irAAccionesAlCerrar = true;
+  }
+
+  alCerrarMenu(): void {
+    if (!this.irAAccionesAlCerrar) return;
+    this.irAAccionesAlCerrar = false;
+    // Después de que el menú restaure el foco en su botón, para quedarse con la última palabra.
+    setTimeout(() => {
+      // Sin que el foco desplace por su cuenta: el desplazamiento lo hace `scrollIntoView`, una vez.
+      this.cabeceraPanelCuenta()?.focus('program', { preventScroll: true });
+      const panel = this.panelCuenta()?.nativeElement as HTMLElement | undefined;
+      panel?.scrollIntoView?.({ behavior: this.desplazamiento(), block: 'start' });
+    });
+  }
+
+  /** Suave, salvo que el sistema pida menos movimiento. */
+  private desplazamiento(): ScrollBehavior {
+    return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 'auto' : 'smooth';
+  }
+
+  private readonly pestanas = viewChild('pestanas', { read: ElementRef });
+  private readonly panelPestanas = viewChild('tabPanel', { read: ElementRef });
+
+  /**
+   * Con las pestañas pegadas, la pestaña nueva empezaría a la altura por la que iba la anterior
+   * —el router no toca el desplazamiento— y su principio quedaría por encima de la pantalla. Se
+   * lleva ese principio justo debajo de las pestañas. Si no están pegadas, no se mueve nada.
+   *
+   * Vale hacerlo en el click, antes de que cambie el contenido: lo que hay encima del panel no
+   * depende de la pestaña, así que su posición en el documento es la misma.
+   */
+  alCambiarDePestana(): void {
+    const nav = this.pestanas()?.nativeElement as HTMLElement | undefined;
+    const panel = this.panelPestanas()?.nativeElement as HTMLElement | undefined;
+    if (!nav || !panel || nav.getBoundingClientRect().top > this.ALTO_BARRA_PX) return;
+    window.scrollTo({ top: window.scrollY + panel.getBoundingClientRect().top - this.ALTO_BARRA_PX - nav.offsetHeight });
   }
 
   ngOnInit(): void {
     this.facade.buscar(this.codigo);
+    // En paralelo, no después: la cabecera no espera al histórico.
+    this.cargarVersiones(this.codigo);
   }
 
   /**
@@ -129,7 +310,7 @@ export class CuentaDetalleComponent implements OnInit {
   /** A dónde lleva una acción que no se ejecuta desde aquí. */
   aDondeLleva(accion: string): string {
     switch (accion) {
-      case 'ENVIAR':                   return 'Se envía desde el menú de la cuenta';
+      case 'ENVIAR':                   return 'Se envía con el botón «Enviar» de la barra superior';
       case 'SEGUIR_PROCESO':           return 'Se consulta en la pestaña Seguimiento';
       case 'RESOLVER_PENDIENTE':
       case 'RESOLVER_PENDIENTE_LINEA': return 'Se resuelven en la pestaña Pendientes';
@@ -196,20 +377,6 @@ export class CuentaDetalleComponent implements OnInit {
     void this.router.navigate(['/auditoria']);
   }
 
-  /**
-   * La autoridad sobre qué se puede hacer es el sistema de registro: si publicó
-   * ENVIAR, la cuenta admite el envío. El conteo de pendientes se usa solo para
-   * anticipar el rechazo y explicar por qué no conviene enviar todavía.
-   *
-   * <p>Las acciones llegan en su propia petición, más lenta que la cabecera:
-   * mientras `facade.accionesCargando()` sea true no se sabe todavía, y el menú
-   * mantiene el botón deshabilitado.
-   */
-  puedeEnviar(cuenta: CuentaMedicaModel): boolean {
-    return this.facade.permite('ENVIAR')
-        && cuenta.pendientesSinResolver === 0;
-  }
-
   /** Etiqueta legible para cada acción publicada por el sistema de registro. */
   etiquetaAccion(accion: string): string {
     const etiquetas: Record<string, string> = {
@@ -249,6 +416,9 @@ export class CuentaDetalleComponent implements OnInit {
   }
 
   abrirDialogoEnviar(cuenta: CuentaMedicaModel): void {
+    // El botón apagado sigue recibiendo clics (`disabledInteractive`, para que el teclado y el
+    // lector de pantalla lleguen a su motivo): la puerta está aquí.
+    if (this.motivoParaNoEnviar(cuenta)) return;
     const dialogRef = this.dialog.open(EnviarCuentaDialogComponent, {
       width: '400px',
       data: { codigoCuenta: cuenta.codigo }

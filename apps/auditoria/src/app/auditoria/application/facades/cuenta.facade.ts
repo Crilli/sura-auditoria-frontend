@@ -28,7 +28,12 @@ export class CuentaFacade {
     stream: ({ params: codigo }) => this.consultarUC.execute(codigo)
   });
 
-  readonly cuenta: Signal<CuentaMedicaModel | null> = computed(() => this._cuentaResource.value() as CuentaMedicaModel ?? null);
+  // `value()` no devuelve undefined cuando el recurso está en error: LANZA `ResourceValueError`.
+  // Sin el `hasValue()` delante, la plantilla que lea la cuenta antes que el error —la barra
+  // fija (BTN-11) va la primera— corta ahí, y ni el aviso de error ni el fin de la carga llegan
+  // a pintarse. `hasValue()` conserva el valor anterior durante una recarga.
+  readonly cuenta: Signal<CuentaMedicaModel | null> = computed(
+    () => this._cuentaResource.hasValue() ? this._cuentaResource.value() as CuentaMedicaModel : null);
   readonly loading    = computed(() => this._cuentaResource.isLoading());
   readonly cuentaError = computed(() => this._cuentaResource.error() as Error | null);
 
@@ -41,9 +46,11 @@ export class CuentaFacade {
     stream: ({ params: codigo }) => this.accionesUC.execute(codigo)
   });
 
-  readonly acciones: Signal<AccionCuenta[]> = computed(
-    () => this._accionesResource.value()?.accionesDisponibles ?? []);
+  // Con la misma guarda que `cuenta`: si la consulta falló, `value()` lanzaría.
+  readonly acciones: Signal<AccionCuenta[]> = computed(() => this._accionesResource.hasValue()
+    ? this._accionesResource.value()?.accionesDisponibles ?? [] : []);
   readonly accionesCargando = computed(() => this._accionesResource.isLoading());
+  readonly accionesError = computed(() => this._accionesResource.error() as Error | null ?? null);
 
   /** Si el sistema de registro habilita esa acción sobre la cuenta ahora mismo. */
   permite(accion: AccionCuenta): boolean {
@@ -124,6 +131,14 @@ export class CuentaFacade {
       this._accionesResource.reload();
       return true;
     } catch (err: unknown) {
+      if (esAplicadoSinRelectura(err)) {
+        // Se aplicaron aunque no se pudieran releer (OPE-11): se tratan como guardadas. Si
+        // siguieran marcadas, el siguiente guardado las repetiría.
+        this.cambiosDeNovedad.set([]);
+        this._cuentaResource.reload();
+        this._accionesResource.reload();
+        return true;
+      }
       this.errorComando.set((err as Error).message ?? 'Error al guardar las novedades');
       this._cuentaResource.reload();
       return false;
@@ -157,6 +172,13 @@ export class CuentaFacade {
       this._accionesResource.reload();
       return true;
     } catch (err: unknown) {
+      if (esAplicadoSinRelectura(err)) {
+        // La acción se ejecutó aunque no se pudiera releer (OPE-11): ofrecer repetirla
+        // fallaría o, peor, la aplicaría dos veces.
+        this._cuentaResource.reload();
+        this._accionesResource.reload();
+        return true;
+      }
       this.errorComando.set((err as Error).message ?? 'No se pudo ejecutar la acción');
       // También al fallar: el estado pudo cambiarlo otro, y es lo que explica
       // un conflicto.
@@ -196,6 +218,14 @@ export class CuentaFacade {
       return false;
     }
   }
+}
+
+/**
+ * Si el servicio dice que el cambio se aplicó pero no pudo releerlo (OPE-11): `codigo`
+ * `APLICADO_SIN_RELEER`. Se trata como hecho y se recarga; nunca se ofrece repetirlo.
+ */
+function esAplicadoSinRelectura(error: unknown): boolean {
+  return (error as { codigo?: string | null } | null)?.codigo === 'APLICADO_SIN_RELEER';
 }
 
 /**

@@ -1,5 +1,19 @@
 # SuraAuditoriaFrontend
 
+> **Lo que hay que construir está especificado, y se trabaja por requisito.** La especificación del
+> MVP del módulo de cuentas médicas —196 requisitos con identificador, estado y criterios de
+> aceptación— vive en
+> [`agents/ecosistema-auditoria/especificacion/mvp-cuentas-medicas.yaml`](../agents/ecosistema-auditoria/especificacion/mvp-cuentas-medicas.yaml).
+> El ciclo (cómo se cita un requisito desde una prueba, qué comprueba el gate) está en
+> [`contexto/09-sdd.md`](../agents/ecosistema-auditoria/contexto/09-sdd.md).
+>
+> En corto: cada prueba cita el requisito que comprueba —`@Tag("F3-ORD-01")` en JUnit,
+> `it('[F3-ORD-01] …')` en vitest— y antes de dar algo por terminado:
+>
+> ```bash
+> python3 ../agents/ecosistema-auditoria/especificacion/trazabilidad.py
+> ```
+
 <a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
 
 ✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.

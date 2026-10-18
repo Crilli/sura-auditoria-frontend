@@ -23,6 +23,8 @@ import {
   MotivoPendienteModel, ResumenMotivoModel, AlcanceResolucion,
   ETIQUETA_NIVEL, NivelPendiente, FiltroBloqueo, NivelResolucion
 } from '../../domain/models/motivo-pendiente.model';
+import { RouterModule, Router } from '@angular/router';
+import { LineaFacade } from '../../application/facades/linea.facade';
 
 @Component({
   selector: 'sura-pendientes-list',
@@ -33,7 +35,7 @@ import {
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatChipsModule, MatFormFieldModule, MatInputModule,
     MatSelectModule, MatCardModule, MatTooltipModule, MatButtonToggleModule,
-    MatCheckboxModule
+    MatCheckboxModule, RouterModule
   ],
   templateUrl: './pendientes-list.component.html',
   styleUrls: ['./pendientes-list.component.scss']
@@ -42,6 +44,33 @@ export class PendientesListComponent implements OnInit {
 
   /** El parámetro de la ruta padre se llama `codigo`; el alias hace el enlace. */
   @Input({ required: true, alias: 'codigo' }) codigoCuenta!: string;
+
+  private readonly router = inject(Router);
+  /**
+   * La fachada de líneas, para dejar el filtro puesto antes de cambiar de pestaña.
+   *
+   * Está en la raíz, así que es la misma instancia que lee la grilla. Se elige esto en
+   * vez de pasar el criterio por la URL porque la grilla ya guarda su filtro en la
+   * fachada: meterlo además en los parámetros de la ruta daría dos sitios donde vive el
+   * mismo estado, y tarde o temprano discreparían.
+   */
+  private readonly lineas = inject(LineaFacade);
+
+  /**
+   * Del motivo a las líneas que afecta, ya filtradas.
+   *
+   * Es el circuito que el auditor no tenía: leía «Línea #37» en un chip de texto y
+   * tenía que cambiar de pestaña y paginar a ojo hasta encontrarla. Y con un motivo
+   * grande no podía ni enumerarlas: la pestaña de pendientes corta en 20 páginas
+   * encadenadas. Ahora el filtro va al servicio, así que alcanza a toda la cuenta.
+   */
+  verLineasDelMotivo(codigoMotivo: string): void {
+    this.lineas.limpiarTodosLosFiltros();
+    this.lineas.aplicarFiltro({ motivoPendiente: codigoMotivo });
+    // El micro-frontend se publica bajo /auditoria, no bajo /cuentas: con el prefijo
+    // equivocado la navegación cae en el 404 del shell.
+    void this.router.navigate(['/auditoria', this.codigoCuenta, 'lineas']);
+  }
 
   private readonly fb = inject(FormBuilder);
   readonly facade = inject(PendienteFacade);
@@ -293,6 +322,12 @@ export class PendientesListComponent implements OnInit {
   readonly todosMarcados   = this.facade.todosMarcados;
   readonly motivosMarcados = this.facade.motivosMarcados;
   readonly resolviendoEnMasa = this.facade.resolviendoEnMasa;
+
+  /** Si esta cuenta tiene una resolución en curso: se sigue sola y no se deja lanzar otra. */
+  readonly enCursoAqui = computed(() => this.facade.hayResolucionEnCurso(this.codigoCuenta));
+
+  /** La que se dejó de seguir sin confirmar, si es de esta cuenta. */
+  readonly sinConfirmarAqui = computed(() => this.facade.seguimientoSinConfirmarDe(this.codigoCuenta));
   readonly resultadoMasivo   = this.facade.resultadoMasivo;
   readonly sinEfecto         = this.facade.seleccionSinEfecto;
 

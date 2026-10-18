@@ -1,0 +1,134 @@
+// ============================================================================
+// Barra fija de la cuenta y pestañas pegadas (BTN-11)
+// ============================================================================
+//
+// Vive en la capa global y no en el componente por el presupuesto de
+// `anyComponentStyle` (4 kB): `cuenta-detalle` ya gasta lo suyo en la cabecera,
+// los acordeones y las acciones, y añadir esto allí lo pasaba.
+//
+// **Los selectores van anidados bajo `.detalle-container` a propósito.** Al salir
+// de un componente se pierde el atributo `[_ngcontent-…]` que Angular añadía, y
+// con él un nivel de especificidad frente a los estilos propios de Material; el
+// descendiente lo devuelve. Es la misma lección que dejó escrita `_paginador.scss`.
+//
+// La barra va pegada arriba y con alto fijo: las pestañas se pegan justo debajo
+// (`top` igual a ese alto), y si la barra se partiera en dos filas las taparía.
+// Por eso lo que no cabe se recorta en vez de saltar de renglón. El alto llega de
+// la plantilla como `--alto-barra-cuenta`, el mismo número que usa el observador
+// de la franja de resumen.
+
+.detalle-container {
+  // Lo que dentro de una pestaña ya era fijo se pega debajo de la barra y las
+  // pestañas, no detrás. El alto de las pestañas, medido: 48px del enlace, 1px del
+  // divisor que Material pone en su contenedor y 1px del borde que añade
+  // styles.scss. No se le impone: con menos se recortaba el subrayado de la activa.
+  --alto-pestanas-cuenta: 50px;
+  --sura-alto-cabecera-fija: calc(var(--alto-barra-cuenta, 0px) + var(--alto-pestanas-cuenta));
+
+  // Por encima de las cabeceras «fijas» de las tablas: el CDK de Material les pone
+  // z-index 100 (hasta 112 con columnas fijas), y sin esto la cabecera de la grilla
+  // se pintaba encima de la barra al pasar por debajo de ella. Por debajo de la capa
+  // superpuesta de Material (1000), donde viven el menú, los diálogos y los tooltips.
+  .barra-cuenta {
+    position: sticky;
+    top: 0;
+    z-index: 120;
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-3);
+    height: var(--alto-barra-cuenta);
+    margin-bottom: var(--sura-espacio-3);
+    padding: 0 var(--sura-espacio-3);
+    background: var(--sura-blanco);
+    border-radius: var(--sura-radio-12);
+    box-shadow: var(--sura-sombra-sm);
+
+    .inicio {
+      flex-shrink: 0;
+      font-weight: var(--sura-peso-semibold);
+      color: var(--sura-azul-primario);
+    }
+  }
+
+  .barra-cuenta__resumen {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-3);
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .barra-cuenta__codigo {
+    font-weight: var(--sura-peso-bold);
+    color: var(--sura-azul-institucional);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .barra-cuenta__estado { flex-shrink: 0; }
+
+  .barra-cuenta__dato {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--sura-texto-suave);
+    font-size: var(--sura-texto-sm);
+
+    // En letra pequeña el naranja de marca no se lee (2,5:1): el tono de texto de alerta.
+    .valor--diferencia { color: var(--sura-alerta-texto); }
+  }
+
+  .barra-cuenta__acciones {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+
+  // Las pestañas se pegan debajo de la barra. El fondo es el de la página: sin
+  // él, las filas de la grilla se verían pasar por detrás de los rótulos.
+  .pestanas-cuenta {
+    position: sticky;
+    top: var(--alto-barra-cuenta);
+    z-index: 115;
+    background: var(--sura-gris-100);
+  }
+
+  // En pantalla angosta la barra se queda con lo imprescindible: el icono de
+  // inicio, el código, «Enviar» y el menú.
+  @media (max-width: 640px) {
+    .barra-cuenta {
+      gap: var(--sura-espacio-2);
+      padding: 0 var(--sura-espacio-2);
+    }
+
+    // Sin «Cuenta» delante: recortado, el rótulo se comía el código, que es lo que
+    // identifica la cuenta.
+    .inicio__rotulo,
+    .barra-cuenta__prefijo,
+    .barra-cuenta__estado,
+    .barra-cuenta__dato { display: none; }
+  }
+}
+
+// El motivo de no poder enviar, dentro del menú de la barra. El menú se pinta en la
+// capa superpuesta de Material, fuera de `.detalle-container`: por eso va suelto.
+.menu-helper-text {
+  padding: var(--sura-espacio-2) var(--sura-espacio-3);
+  font-size: var(--sura-texto-sm);
+  color: var(--sura-alerta-texto);
+  max-width: 260px;
+  white-space: normal;
+  line-height: 1.3;
+}
+
+// El foco de teclado no se queda debajo de la barra ni de las pestañas (WCAG 2.4.11):
+// al enfocar, el navegador solo desplaza si el elemento no está a la vista, y lo que
+// queda tapado por algo pegado cuenta como «a la vista». Va en `html` porque el que
+// desplaza es el documento, y por eso con números y no con las variables del
+// contenedor: 56px es `ALTO_BARRA_PX` y 50px, `--alto-pestanas-cuenta`. También lo
+// respeta el atajo del menú al traer «Datos de la cuenta».
+html:has(.detalle-container > .barra-cuenta) {
+  scroll-padding-top: calc(56px + 50px + var(--sura-espacio-2));
+}

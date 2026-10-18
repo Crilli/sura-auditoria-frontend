@@ -1,48 +1,171 @@
 <div class="busqueda-container">
   <mat-card class="busqueda-card">
     <mat-card-header class="encabezado">
-      <mat-card-title>Auditoría de cuentas médicas</mat-card-title>
-      <mat-card-subtitle>Consulte una cuenta por su código de negocio</mat-card-subtitle>
+      <mat-card-title>Buscar facturas</mat-card-title>
+      <mat-card-subtitle>
+        Por número de factura o por el principio del radicado. Una factura puede estar
+        radicada más de una vez: se ven todas.
+      </mat-card-subtitle>
     </mat-card-header>
-    <mat-card-content>
-      <mat-form-field appearance="outline" class="campo-busqueda">
-        <mat-label>Código de cuenta</mat-label>
-        <input matInput [formControl]="codigoCtrl"
-               placeholder="Ej. GT-106586883036"
-               id="input-codigo-cuenta"
-               (keyup.enter)="buscar()">
-        <mat-icon matSuffix>search</mat-icon>
-        @if (codigoCtrl.hasError('required')) {
-          <mat-error>El código es requerido</mat-error>
-        }
-      </mat-form-field>
 
-      <button mat-raised-button
-              class="sura-cta"
-              id="btn-buscar-cuenta"
-              [disabled]="facade.loading()"
-              (click)="buscar()">
-        @if (facade.loading()) {
-          <mat-spinner diameter="20"></mat-spinner>
-        }
-        @if (!facade.loading()) {
-          <mat-icon>search</mat-icon>
-        }
-        @if (!facade.loading()) {
+    <mat-card-content>
+      <form class="busqueda-form" [formGroup]="formulario" (ngSubmit)="buscar()">
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Número de factura</mat-label>
+          <input matInput formControlName="factura" id="input-factura"
+                 placeholder="Ej. FE75010901976" autocomplete="off">
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" subscriptSizing="dynamic">
+          <mat-label>Radicado</mat-label>
+          <input matInput formControlName="radicado" id="input-radicado"
+                 placeholder="Ej. CM-5794" autocomplete="off">
+          <mat-hint>Basta con el principio</mat-hint>
+        </mat-form-field>
+
+        <button mat-raised-button class="sura-cta" type="submit" id="btn-buscar"
+                [disabled]="busqueda.cargando()">
+          @if (busqueda.cargando()) {
+            <mat-spinner diameter="20"></mat-spinner>
+          } @else {
+            <mat-icon>search</mat-icon>
+          }
           <span>Buscar</span>
+        </button>
+
+        @if (busqueda.hayCriterio()) {
+          <button mat-button type="button" (click)="limpiar()">Limpiar</button>
         }
-      </button>
+      </form>
+
+      @if (faltaCriterio()) {
+        <p class="aviso" role="alert">
+          Escriba un número de factura o el principio de un radicado.
+        </p>
+      }
     </mat-card-content>
 
-    @if (facade.cuentaError()) {
+    @if (busqueda.error(); as error) {
       <mat-card-content>
         <div class="error-banner" role="alert">
           <mat-icon>error_outline</mat-icon>
-          <span>{{ facade.cuentaError()?.message }}</span>
+          <span>{{ error.message }}</span>
         </div>
       </mat-card-content>
     }
-
-
   </mat-card>
+
+  @if (busqueda.sinResultados()) {
+    <p class="resultados__vacio" role="status">
+      No hay cuentas médicas con esos criterios.
+    </p>
+  }
+
+  @if (busqueda.resultados().length > 0) {
+    <section class="resultados" aria-label="Resultados de la búsqueda">
+      <header class="resultados__cabecera">
+        <strong>{{ busqueda.total() ?? busqueda.resultados().length }}</strong>
+        {{ (busqueda.total() ?? busqueda.resultados().length) === 1 ? 'cuenta' : 'cuentas' }}
+      </header>
+
+      <table class="resultados__tabla">
+        <thead>
+          <tr>
+            <th aria-label="Versiones"></th>
+            <th>Radicado</th>
+            <th>Llegada</th>
+            <th>Factura</th>
+            <th>Prestador de facturación</th>
+            <th class="num">Valor factura</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (c of busqueda.resultados(); track c.codigo) {
+            <tr class="resultado" (click)="abrir(c)" tabindex="0" (keyup.enter)="abrir(c)"
+                [matTooltip]="'Abrir ' + c.codigo">
+              <td>
+                @if (c.versiones.length > 0) {
+                  <button mat-icon-button type="button"
+                          (click)="alternarVersiones(c.codigo, $event)"
+                          [attr.aria-expanded]="estaDesplegada(c.codigo)"
+                          [attr.aria-label]="(estaDesplegada(c.codigo) ? 'Ocultar' : 'Ver')
+                                             + ' las versiones de ' + c.codigo">
+                    <mat-icon>{{ estaDesplegada(c.codigo) ? 'expand_less' : 'expand_more' }}</mat-icon>
+                  </button>
+                }
+              </td>
+              <td><code>{{ c.codigo }}</code></td>
+              <td>{{ c.fechaRadicacion | date:'dd/MM/yyyy' }}</td>
+              <td>{{ c.numeroFactura || '—' }}</td>
+              <td>
+                {{ c.prestadorNombre || '—' }}
+                @if (c.prestadorNit) { <span class="dato-secundario">NIT {{ c.prestadorNit }}</span> }
+              </td>
+              <td class="num">{{ c.valorFactura | currency:'COP':'symbol':'1.0-0' }}</td>
+              <td>
+                {{ c.estado }}
+                <!-- Cuántas versiones tiene, aunque no estén desplegadas: es lo que se mira
+                     antes de decidir abrirlas. -->
+                @if (c.versiones.length > 0) {
+                  <span class="dato-secundario">
+                    {{ c.versiones.length }} {{ c.versiones.length === 1 ? 'versión' : 'versiones' }}
+                  </span>
+                }
+              </td>
+            </tr>
+
+            @if (estaDesplegada(c.codigo)) {
+              <tr class="versiones">
+                <td></td>
+                <td colspan="6">
+                  <table class="versiones__tabla">
+                    <thead>
+                      <tr>
+                        <th>Versión</th>
+                        <th>Entrada</th>
+                        <th class="num">Valor</th>
+                        <th>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (v of c.versiones; track v.numero; let primera = $first) {
+                        <!-- La primera es la vigente: el servicio las manda de la más reciente
+                             a la más antigua, que es la que el auditor mira primero. -->
+                        <tr [class.versiones--vigente]="primera" class="version"
+                            (click)="abrirVersion(c.codigo, v.numero, $event)" tabindex="0"
+                            (keyup.enter)="abrirVersion(c.codigo, v.numero, $event)"
+                            [matTooltip]="'Ver la versión ' + v.numero + ' tal como se transmitió'">
+                          <td>
+                            V{{ v.numero }}
+                            @if (primera) { <span class="etiqueta-vigente">vigente</span> }
+                          </td>
+                          <td>{{ v.fechaEntrada | date:'dd/MM/yyyy' }}</td>
+                          <td class="num">{{ v.valor | currency:'COP':'symbol':'1.0-0' }}</td>
+                          <td>{{ v.estado || '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+            }
+          }
+        </tbody>
+      </table>
+
+      @if (busqueda.pagina() > 0 || busqueda.hayMas()) {
+        <nav class="resultados__paginador" aria-label="Páginas de resultados">
+          <button mat-button [disabled]="busqueda.pagina() === 0 || busqueda.cargando()"
+                  (click)="paginaAnterior()">Anterior</button>
+          <span>
+            Página {{ busqueda.pagina() + 1 }}
+            @if (busqueda.totalPaginas(); as total) { de {{ total }} }
+          </span>
+          <button mat-button [disabled]="!busqueda.hayMas() || busqueda.cargando()"
+                  (click)="paginaSiguiente()">Siguiente</button>
+        </nav>
+      }
+    </section>
+  }
 </div>

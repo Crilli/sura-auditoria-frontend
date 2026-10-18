@@ -1,0 +1,56 @@
+<h2 mat-dialog-title>
+  <mat-icon>photo_library</mat-icon>
+  {{ datos.codigoCuenta }} · versión {{ datos.numero }}
+</h2>
+
+<mat-dialog-content>
+  <p class="foto__aviso" role="note">
+    <mat-icon>info</mat-icon>
+    Es la versión tal como se transmitió. Sus importes no son los de la cuenta actual.
+  </p>
+
+  @if (cargando()) {
+    <div class="foto__cargando" role="status">
+      <mat-spinner diameter="32"></mat-spinner><span>Consultando la versión…</span>
+    </div>
+  } @else if (error(); as mensaje) {
+    <div class="foto__error" role="alert">
+      <mat-icon>error_outline</mat-icon><span>{{ mensaje }}</span>
+      <button mat-button color="primary" (click)="consultar()">Reintentar</button>
+    </div>
+  } @else if (foto(); as f) {
+    <dl class="foto__datos">
+      <div><dt>Estado</dt><dd>{{ f.estadoActual || '—' }}</dd></div>
+      <div><dt>Entrada</dt><dd>{{ f.fechaEntrada | date:'dd/MM/yyyy' }}</dd></div>
+      <div><dt>Factura</dt><dd>{{ f.numeroFactura || '—' }}</dd></div>
+      <div><dt>Prestador</dt><dd>{{ f.prestador || '—' }}</dd></div>
+    </dl>
+
+    <table class="foto__importes">
+      <tbody>
+        <tr><th>Valor factura</th><td>{{ f.valorFactura !== null ? (f.valorFactura | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+        <tr><th>Total cargado</th><td>{{ f.totalCargado !== null ? (f.totalCargado | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+        <tr><th>Total autorizado</th><td>{{ f.totalAutorizado !== null ? (f.totalAutorizado | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+        <tr><th>Total cubierto</th><td>{{ f.totalCubierto !== null ? (f.totalCubierto | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+        <tr><th>Total glosado</th><td>{{ f.totalGlosado !== null ? (f.totalGlosado | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+        <tr><th>Notas crédito</th><td>{{ f.totalNotasCredito !== null ? (f.totalNotasCredito | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+      </tbody>
+    </table>
+
+    @if (f.historial.length > 0) {
+      <h3 class="foto__subtitulo">Por dónde pasó esta versión</h3>
+      <ol class="foto__historial">
+        @for (e of f.historial; track e.desde) {
+          <li>
+            <span class="foto__fecha">{{ e.desde | date:'dd/MM/yyyy HH:mm' }}</span>
+            <span>{{ e.estado }}</span>
+          </li>
+        }
+      </ol>
+    }
+  }
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button mat-dialog-close>Cerrar</button>
+</mat-dialog-actions>

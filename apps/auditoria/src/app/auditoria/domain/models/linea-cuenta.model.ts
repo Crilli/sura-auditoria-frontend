@@ -83,6 +83,14 @@ export interface ResumenLineaModel {
   /** Código de autorización; `null` si la línea no lo trae. */
   codigoAutorizacion:       string | null;
   valorAutorizado:          number;
+  /** Lo que el prestador cobró, con sus unidades. Puede faltar. */
+  valorCargado:             number | null;
+  unidadesCargadas:         number | null;
+  /** OHI omite las unidades autorizadas en el 7,5 % de las líneas. */
+  unidadesAutorizadas:      number | null;
+  /** IVA calculado por el motor. Casi siempre nulo: pocas prestaciones lo llevan. */
+  valorIva:                 number | null;
+  porcentajeIva:            number | null;
   valorCubierto:            number;
   /** Valor glosado; `null` si la línea no tiene glosa. */
   valorGlosado:             number | null;
@@ -91,6 +99,14 @@ export interface ResumenLineaModel {
   /** Motivos sin resolver, con su texto: explican el contador sin abrir la línea. */
   pendientes:               MotivoPendienteModel[];
   tieneNovedadBloqueante:   boolean;
+  /**
+   * Las novedades de la línea, con su texto. Explican el chip de estado sin abrir la línea.
+   *
+   * El dato ya viajaba en la misma petición y el servicio lo descartaba: la grilla solo
+   * recibía el booleano y pintaba «⚠ Bloqueada» con un tooltip fijo que no decía qué campo
+   * ni por qué.
+   */
+  novedades:                NovedadModel[];
   version:                  number;
 }
 
@@ -143,8 +159,17 @@ export interface DiagnosticoLineaModel {
 /** Una glosa concreta de la línea; la suma de sus valores es el valor glosado. */
 export interface DetalleGlosaModel {
   identificador:     number;
+  /**
+   * El causal que se eligió al glosar, p. ej. `308-1` o `AU0202`.
+   *
+   * Antes no llegaba: el auditor escribía un causal y al guardar dejaba de verlo, porque solo
+   * se recibían las descripciones genérica y específica, que no identifican cuál fue.
+   */
+  codigoGlosa:       string | null;
   valor:             number | null;
   codigoNotaCredito: string | null;
+  /** Importe de la nota crédito. `null` si esta glosa no lleva, que no es lo mismo que cero. */
+  valorNotaCredito:  number | null;
   /** Clasificación normativa, p. ej. «Tarifas». */
   generico:          string | null;
   /** Clasificación específica, p. ej. «Procedimiento o actividad». */
@@ -289,6 +314,8 @@ export type CatalogoPrestacion = 'CUPS' | 'CUM' | 'SURACUPS' | 'PROPIO' | 'OTRO'
  * navegación pasa a «siguiente/anterior».
  */
 export interface FiltroLineasModel {
+  /** Número de línea exacto. */
+  numeroLinea?: number | null;
   cedula?:      string | null;
   /** Fecha de atención desde, inclusive, en `aaaa-mm-dd`. */
   desde?:       string | null;
@@ -300,14 +327,39 @@ export interface FiltroLineasModel {
   catalogo?:    CatalogoPrestacion | null;
   glosaDesde?:  number | null;
   glosaHasta?:  number | null;
+  /**
+   * Solo las líneas que tienen alguna novedad.
+   *
+   * Se empuja al sistema de registro, así que **no** cuesta el total: ver `exigeRecorrido`.
+   */
+  conNovedad?:  boolean | null;
+  /** Solo las líneas con este motivo de pendiente sin resolver. */
+  motivoPendiente?: string | null;
+  /**
+   * Si se quieren solo las líneas con un pendiente que frena la cuenta, solo las que no, o
+   * todas. Mismo vocabulario que la pantalla de pendientes, porque la regla es una sola:
+   * bloquear depende del par motivo-estado, no del motivo.
+   */
+  bloqueo?:     FiltroBloqueo | null;
 }
+
+/** Ver `bloqueo` en `FiltroLineasModel`. */
+export type FiltroBloqueo = 'TODOS' | 'BLOQUEANTES' | 'NO_BLOQUEANTES';
 
 export const FILTRO_LINEAS_VACIO: FiltroLineasModel = {};
 
 /** Si alguno de los criterios obliga al servicio a recorrer la cuenta. */
+/**
+ * Si el filtro obliga al servicio a recorrer la cuenta, y por tanto la página llega sin total.
+ *
+ * Desde el 2026-10-17 son dos criterios y no tres: el **catálogo**, que el sistema de registro
+ * no sabe filtrar, y el **techo de glosa**, que sí sabría pero dejaría fuera las líneas que no
+ * traen el campo —medido: 63 de cada 200— y una línea sin glosa está por debajo de cualquier
+ * techo. El **suelo** de glosa ya se empuja, así que «glosadas por más de X» vuelve a traer su
+ * contador de resultados.
+ */
 export function exigeRecorrido(filtro: FiltroLineasModel): boolean {
   return !!filtro.catalogo
-      || filtro.glosaDesde !== null && filtro.glosaDesde !== undefined
       || filtro.glosaHasta !== null && filtro.glosaHasta !== undefined;
 }
 
@@ -372,3 +424,45 @@ export type CambioNovedadRequest =
       valores?: Record<number, string>;
     }
   | { operacion: 'ELIMINAR'; identificador: number };
+
+/**
+ * El mismo cambio sobre varias líneas.
+ *
+ * Solo lo que tiene sentido idéntico en todas: el desglose de glosa y las novedades. Los
+ * importes propios de cada línea no viajan aquí a propósito —aplicar el mismo valor
+ * autorizado a veinte líneas distintas no es una operación masiva sino veinte errores— y el
+ * valor glosado tampoco, porque es la suma del desglose de cada una y lo calcula el servicio.
+ */
+export interface CambiosEnLoteRequest {
+  /** Referencias marcadas. Obligatoria y **no vacía**: aquí vacía no significa «todas». */
+  lineas:        number[];
+  modoRecalculo: 'EN_CASCADA' | 'AISLADO';
+  glosas?:       CambioGlosaRequest[];
+  novedades?:    CambioNovedadRequest[];
+}
+
+/** Una línea que no se pudo cambiar, con el número que ve el auditor. */
+export interface FalloDeLinea {
+  referencia:  number | null;
+  numeroLinea: number | null;
+  motivo:      string;
+}
+
+/**
+ * Cómo acabó el lote.
+ *
+ * `PARCIAL` es el desenlace normal, no una excepción: una línea bloqueada o una que otro
+ * auditor acaba de tocar no son errores de la petición sino filas que no se pudieron aplicar.
+ */
+export interface ResultadoEnLoteModel {
+  desenlace:            'COMPLETO' | 'PARCIAL' | 'FALLIDO';
+  aplicadas:            number;
+  referenciasAplicadas: number[];
+  fallos:               FalloDeLinea[];
+  /**
+   * Las que ya tenían lo pedido y no se tocaron (OPE-12): repetir un lote no duplica nada.
+   * Ni aplicadas ni fallidas.
+   */
+  yaEstaban:            number;
+  referenciasYaEstaban: number[];
+}
