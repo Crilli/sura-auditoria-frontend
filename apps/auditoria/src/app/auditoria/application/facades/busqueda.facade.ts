@@ -1,7 +1,9 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
-import { FiltroCuentasModel, ResumenCuentaModel } from '../../domain/models/cuenta-medica.model';
+import {
+  FiltroCuentasModel, HitoModel, ResumenCuentaModel
+} from '../../domain/models/cuenta-medica.model';
 import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 
 /**
@@ -57,6 +59,45 @@ export class BusquedaFacade {
   // Sin fallo el recurso da `undefined`, no `null`: se normaliza para que el tipo diga la verdad.
   readonly error       = computed(() => (this._resultado.error() as Error | undefined) ?? null);
 
+  /**
+   * La historia de las cuentas abiertas cuyas versiones se desplegaron.
+   *
+   * De ahí sale la fila «en curso»: desde cuándo está la cuenta en su estado y por qué se
+   * reabrió. Se pide al desplegar y no con la búsqueda, porque son dos consultas al sistema de
+   * registro por cuenta y casi nadie despliega más de una o dos. Una entrada `null` es una
+   * historia pedida que todavía no llegó.
+   */
+  private readonly _historias = signal<ReadonlyMap<string, HitoModel[] | null>>(new Map());
+
+  /** La historia ya llegada de una cuenta, o `null` si no se ha pedido o no ha llegado. */
+  historiaDe(codigo: string): HitoModel[] | null {
+    return this._historias().get(codigo) ?? null;
+  }
+
+  /**
+   * Pide la historia de una cuenta, una sola vez.
+   *
+   * Si falla no se enseña ningún error: la fila en curso sale igual, sin fecha ni motivo, que
+   * son contexto y no lo que la define. Se olvida el intento para que volver a desplegar
+   * reintente.
+   */
+  cargarHistoria(codigo: string): void {
+    if (this._historias().has(codigo)) return;
+    this.guardarHistoria(codigo, null);
+    this.repositorio.consultarHistoria(codigo).subscribe({
+      next: hitos => this.guardarHistoria(codigo, hitos),
+      error: () => this._historias.update(actual => {
+        const copia = new Map(actual);
+        copia.delete(codigo);
+        return copia;
+      }),
+    });
+  }
+
+  private guardarHistoria(codigo: string, hitos: HitoModel[] | null): void {
+    this._historias.update(actual => new Map(actual).set(codigo, hitos));
+  }
+
   /** Si ya se buscó y no salió nada: distinto de «todavía no se ha buscado». */
   readonly sinResultados = computed(() =>
     this.hayCriterio() && !this.cargando() && !this.error() && this.resultados().length === 0);
@@ -67,6 +108,8 @@ export class BusquedaFacade {
     // Una búsqueda nueva empieza por la primera página: la séptima del criterio anterior
     // no significa nada en el nuevo.
     this._pagina.set(0);
+    // Y vuelve a preguntar la historia: buscar otra vez es querer ver la cuenta como está ahora.
+    this._historias.set(new Map());
   }
 
   irAPagina(pagina: number): void {
@@ -76,5 +119,6 @@ export class BusquedaFacade {
   limpiar(): void {
     this._filtro.set({});
     this._pagina.set(0);
+    this._historias.set(new Map());
   }
 }

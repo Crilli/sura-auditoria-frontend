@@ -146,7 +146,7 @@ describe('CuentaDetalleComponent — barra fija', () => {
     fixture.detectChanges();
     const resumen = dom().querySelector('#barra-resumen')!;
     expect(resumen.textContent).toContain('CM-94421');
-    expect(resumen.textContent).toContain('ADJUDICACION_MANUAL');
+    expect(resumen.textContent).toContain('Adjudicación manual');
     expect(resumen.textContent).toContain('No reconocido');
     // 2.050.112 − 129.390, sin depender del formato regional.
     expect(resumen.querySelector('.valor--diferencia')!.textContent!.replace(/\D/g, '')).toBe('1920722');
@@ -154,6 +154,16 @@ describe('CuentaDetalleComponent — barra fija', () => {
     observador.avisar([{ isIntersecting: true }]);
     fixture.detectChanges();
     expect(dom().querySelector('#barra-resumen')).toBeNull();
+  });
+
+  it('[BUS-19] la vista 360 dice el estado en palabras, como el buscador, con la palabra de OHI en la ayuda', async () => {
+    await montar();
+    const estados = fixture.debugElement.queryAll(By.css('.estado-badge'))
+      .filter(e => (e.nativeElement as HTMLElement).textContent!.includes('Adjudicación manual'));
+
+    expect(estados.length).toBeGreaterThan(0);
+    expect(dom().textContent).not.toContain('ADJUDICACION_MANUAL');
+    expect(estados[0].injector.get(MatTooltip).message).toBe('En OHI: Pendiente');
   });
 
   it('[BTN-11.3] con pendientes, Enviar se apaga, el motivo se lee junto a él y en el menú, y el clic no abre nada', async () => {

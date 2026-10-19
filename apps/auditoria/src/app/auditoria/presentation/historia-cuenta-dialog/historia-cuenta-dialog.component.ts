@@ -4,7 +4,9 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
+import { EstadoEnOhiPipe, TextoEstadoPipe } from '../compartido/estado-cuenta.pipe';
 import { HitoModel } from '../../domain/models/cuenta-medica.model';
 
 /** Lo que hay que saber para abrir el diálogo. */
@@ -35,7 +37,7 @@ export interface HistoriaCuentaDialogData {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     CommonModule, MatDialogModule, MatButtonModule, MatIconModule,
-    MatProgressSpinnerModule,
+    MatProgressSpinnerModule, MatTooltipModule, TextoEstadoPipe, EstadoEnOhiPipe,
   ],
   templateUrl: './historia-cuenta-dialog.component.html',
   styleUrls: ['./historia-cuenta-dialog.component.scss'],

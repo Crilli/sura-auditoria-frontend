@@ -2,7 +2,9 @@ import { TestBed } from '@angular/core/testing';
 import { Observable, of, throwError } from 'rxjs';
 import { BusquedaFacade } from './busqueda.facade';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
-import { FiltroCuentasModel, ResumenCuentaModel } from '../../domain/models/cuenta-medica.model';
+import {
+  FiltroCuentasModel, HitoModel, ResumenCuentaModel
+} from '../../domain/models/cuenta-medica.model';
 import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 
 /**
@@ -17,6 +19,14 @@ class RepositorioSimulado {
   filas: ResumenCuentaModel[] = [];
   total: number | null = null;
   fallo: Error | null = null;
+  readonly historiasPedidas: string[] = [];
+  falloDeHistoria: Error | null = null;
+  hitos: HitoModel[] = [];
+
+  consultarHistoria(codigo: string): Observable<HitoModel[]> {
+    this.historiasPedidas.push(codigo);
+    return this.falloDeHistoria ? throwError(() => this.falloDeHistoria) : of(this.hitos);
+  }
 
   buscar(filtro: FiltroCuentasModel, pagina: number, tamano: number)
       : Observable<OffsetPage<ResumenCuentaModel>> {
@@ -131,5 +141,45 @@ describe('BusquedaFacade', () => {
     expect(facade.hayCriterio()).toBe(false);
     expect(facade.filtro()).toEqual({});
     expect(facade.pagina()).toBe(0);
+  });
+
+  describe('la historia que alimenta la versión en curso', () => {
+    const HITO: HitoModel = {
+      tipo: 'CAMBIO_DE_ESTADO', etiqueta: 'ADJUDICACION_MANUAL', detalle: null,
+      autor: 'Internal System User', loHizoElSistema: true, ocurridoEn: '2026-09-21T16:45:48Z',
+    };
+
+    it('[BUS-13] se pide una sola vez por cuenta, aunque se despliegue dos veces', () => {
+      repo.hitos = [HITO];
+      facade.cargarHistoria('CM-1');
+      facade.cargarHistoria('CM-1');
+
+      expect(repo.historiasPedidas).toEqual(['CM-1']);
+      expect(facade.historiaDe('CM-1')).toEqual([HITO]);
+      expect(facade.historiaDe('CM-2')).toBeNull();
+    });
+
+    it('[BUS-13] si falla no deja error y se puede reintentar', () => {
+      repo.falloDeHistoria = new Error('sin red');
+      facade.cargarHistoria('CM-1');
+      expect(facade.historiaDe('CM-1')).toBeNull();
+      expect(facade.error()).toBeNull();
+
+      repo.falloDeHistoria = null;
+      repo.hitos = [HITO];
+      facade.cargarHistoria('CM-1');
+      expect(repo.historiasPedidas).toEqual(['CM-1', 'CM-1']);
+      expect(facade.historiaDe('CM-1')).toEqual([HITO]);
+    });
+
+    it('[BUS-13] buscar otra vez la vuelve a pedir: es querer ver la cuenta como está ahora', () => {
+      repo.hitos = [HITO];
+      facade.cargarHistoria('CM-1');
+      facade.buscar({ radicado: 'CM-1' });
+      expect(facade.historiaDe('CM-1')).toBeNull();
+
+      facade.cargarHistoria('CM-1');
+      expect(repo.historiasPedidas).toEqual(['CM-1', 'CM-1']);
+    });
   });
 });

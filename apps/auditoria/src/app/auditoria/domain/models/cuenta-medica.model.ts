@@ -14,7 +14,9 @@ export type EstadoCuenta =
   | 'TARIFACION_FINALIZADA'
   | 'ENVIADA_A_PREPROCESO'
   | 'ENVIADA_A_TARIFACION'
+  | 'EN_PROCESO'
   | 'FINALIZADA'
+  | 'ANULADA'
   | 'DESCONOCIDO';
 
 /**
@@ -207,7 +209,14 @@ export interface FiltroCuentasModel {
  *
  * **No** es el contador de bloqueo optimista que la cabecera llamaba «Versión»: ésta es la del
  * documento transmitido, la que nace cada vez que la cuenta se desfinaliza y vuelve a cerrarse.
- * Su estado viene del histórico y está en español, así que no coincide con el de la cuenta viva.
+ *
+ * Su `estado` llega con el **mismo nombre del dominio que el de la cuenta viva**
+ * (`FINALIZADA`, `ADJUDICACION_MANUAL`…): el servicio traduce el español del histórico
+ * («Finalizado», «Pendiente») para que las dos se pinten con una sola tabla
+ * (`estado-cuenta.model.ts`). Lo que el servicio no sabe traducir llega tal cual.
+ *
+ * El histórico solo guarda una versión al finalizarse: la que la cuenta tenga abierta no está
+ * aquí (ver `versionEnCurso`).
  */
 export interface VersionCuentaModel {
   numero:       number;

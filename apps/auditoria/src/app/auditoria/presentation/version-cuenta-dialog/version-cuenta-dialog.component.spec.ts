@@ -11,10 +11,11 @@ const FOTO: FotoVersionModel = {
   codigo: 'CM-57944424433', numero: 2, fechaEntrada: '2026-09-02', numeroFactura: 'JONATHAN201',
   prestador: 'Prestador de prueba', valorFactura: 6_000_000, totalCargado: 6_000_000,
   totalAutorizado: 5_000_000, totalCubierto: 5_000_000, totalGlosado: 1_000_000,
-  totalNotasCredito: null, estadoActual: 'Finalizado',
+  // Como los publica el servicio: traducidos del español del histórico al nombre del dominio.
+  totalNotasCredito: null, estadoActual: 'FINALIZADA',
   historial: [
-    { estado: 'Pendiente', desde: '2026-09-02T15:00:00Z' },
-    { estado: 'Finalizado', desde: '2026-09-05T15:00:00Z' },
+    { estado: 'ADJUDICACION_MANUAL', desde: '2026-09-02T15:00:00Z' },
+    { estado: 'FINALIZADA', desde: '2026-09-05T15:00:00Z' },
   ],
 };
 
@@ -41,7 +42,17 @@ describe('VersionCuentaDialogComponent', () => {
     expect(dom.textContent).toContain('versión 2');
     expect(dom.textContent).toContain('6,000,000');
     expect(dom.textContent).toContain('1,000,000');
-    expect(dom.textContent).toContain('Finalizado');
+    expect(dom.textContent).toContain('Finalizada');
+  });
+
+  it('[BUS-19] su historia habla como la cuenta: en palabras, no con el nombre del dominio', async () => {
+    const { dom } = await montar(of(FOTO));
+
+    const pasos = Array.from(dom.querySelectorAll('.foto__historial li'))
+      .map(li => li.textContent!.replace(/\s+/g, ' ').trim());
+    expect(pasos[0]).toContain('Adjudicación manual');
+    expect(pasos[1]).toContain('Finalizada');
+    expect(dom.textContent).not.toContain('ADJUDICACION_MANUAL');
   });
 
   it('[BUS-20] dice arriba que es una foto y no la cuenta actual', async () => {

@@ -83,14 +83,18 @@
 
 .versiones > td { padding-top: 0; }
 .versiones__tabla { background: var(--sura-gris-100, #f6f7f9); border-radius: 8px; }
-.versiones--vigente { font-weight: 600; }
-.etiqueta-vigente {
+.versiones--vigente, .version--en-curso { font-weight: 600; }
+.etiqueta-version {
   margin-left: var(--sura-espacio-1);
   padding: 0 6px;
   border-radius: 8px;
   font-size: 0.75rem;
+  font-weight: 400;
   background: var(--sura-azul-claro, #e3f2fd);
 }
+// La abierta se distingue de las del histórico: es trabajo vivo, no una foto.
+.etiqueta-version--en-curso { background: var(--sura-alerta-fondo, #fff4d6); color: var(--sura-alerta-texto, #7a5b00); }
+.version--en-curso > td { border-bottom: 1px dashed var(--sura-gris-300); }
 .resultados__paginador {
   display: flex; gap: var(--sura-espacio-3); align-items: center; justify-content: flex-end;
   margin-top: var(--sura-espacio-3);

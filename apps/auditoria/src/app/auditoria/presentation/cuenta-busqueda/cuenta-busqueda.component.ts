@@ -14,6 +14,11 @@ import { VersionCuentaDialogComponent }
   from '../version-cuenta-dialog/version-cuenta-dialog.component';
 import { BusquedaFacade } from '../../application/facades/busqueda.facade';
 import { ResumenCuentaModel } from '../../domain/models/cuenta-medica.model';
+import {
+  VersionEnCursoModel, estaAbierta, estadoEnOhi, laUltimaEsLaVigente, rotuloDeLaUltimaVersion,
+  versionEnCurso
+} from '../../domain/models/estado-cuenta.model';
+import { EstadoEnOhiPipe, TextoEstadoPipe } from '../compartido/estado-cuenta.pipe';
 
 /**
  * El buscador de facturas: la pantalla principal.
@@ -28,6 +33,15 @@ import { ResumenCuentaModel } from '../../domain/models/cuenta-medica.model';
  * ## Las versiones van debajo de cada cuenta
  * Se despliegan en la misma fila porque es la pregunta normal —«¿en qué versión va esta
  * cuenta?»— y el servicio ya las manda en la misma respuesta: no cuesta ninguna llamada.
+ *
+ * ## La versión en curso, arriba
+ * El histórico solo guarda una versión cuando la cuenta se finaliza. Una cuenta reabierta
+ * —en adjudicación manual, por ejemplo— está trabajando una versión que todavía no está en
+ * él, y la lista enseñaba arriba la última finalizada rotulada «vigente»: la cuenta decía
+ * «adjudicación manual» y su versión «vigente» decía «finalizado». Ahora la abierta va
+ * primero, con el estado de la cuenta, y la de debajo se llama por lo que es: la última que
+ * se finalizó. Desde cuándo y por qué se reabrió salen de su historia, que se pide al
+ * desplegar (ver `BusquedaFacade.cargarHistoria`).
  */
 @Component({
   selector: 'sura-cuenta-busqueda',
@@ -37,6 +51,7 @@ import { ResumenCuentaModel } from '../../domain/models/cuenta-medica.model';
     CommonModule, ReactiveFormsModule,
     MatFormFieldModule, MatInputModule, MatButtonModule, MatIconModule,
     MatProgressSpinnerModule, MatCardModule, MatTooltipModule, MatDialogModule,
+    TextoEstadoPipe, EstadoEnOhiPipe,
   ],
   templateUrl: './cuenta-busqueda.component.html',
   styleUrls: ['./cuenta-busqueda.component.scss']
@@ -58,6 +73,35 @@ export class CuentaBusquedaComponent {
 
   /** Se intentó buscar sin criterio: se dice aquí, antes de salir, y no con un 400. */
   readonly faltaCriterio = signal(false);
+
+  /**
+   * Sobre qué estado está el puntero, si está sobre alguno.
+   *
+   * El estado lleva su propia ayuda («En OHI: Pendiente») dentro de una fila que ya tiene
+   * la suya («Abrir…»). Sin apagar la de la fila mientras tanto, salían las dos a la vez.
+   */
+  readonly ayudaInterior = signal<string | null>(null);
+
+  /**
+   * El puntero entra en un estado. Solo apaga la ayuda de la fila si el estado trae la suya:
+   * uno sin ayuda («Inicial», un estado desconocido) dejaba la fila muda hasta volver a entrar.
+   */
+  entrarEnEstado(clave: string, estado: string | null): void {
+    if (estadoEnOhi(estado)) this.ayudaInterior.set(clave);
+  }
+
+  /**
+   * Si un Enter es de la fila y no de algo de dentro. Las filas escuchan `keydown.enter`:
+   * con `keyup.enter`, el Enter del botón de desplegar subía hasta la fila y abría la cuenta en
+   * vez de enseñar sus versiones, y el Enter que cierra la foto de una versión —el foco vuelve a
+   * la fila al cerrarse— la volvía a abrir. Mantener Enter pulsado tampoco repite.
+   */
+  esEnterDeLaFila(evento: Event): boolean {
+    const tecla = evento as KeyboardEvent;
+    if (tecla.target !== tecla.currentTarget || tecla.repeat) return false;
+    tecla.preventDefault();
+    return true;
+  }
 
   buscar(): void {
     const { factura, radicado } = this.formulario.getRawValue();
@@ -81,18 +125,37 @@ export class CuentaBusquedaComponent {
     void this.router.navigate(['/auditoria', cuenta.codigo]);
   }
 
-  alternarVersiones(codigo: string, evento: Event): void {
+  alternarVersiones(cuenta: ResumenCuentaModel, evento: Event): void {
     // Sin esto, desplegar las versiones también abriría la cuenta: el clic llega a la fila.
     evento.stopPropagation();
+    const codigo = cuenta.codigo;
+    const despliega = !this.estaDesplegada(codigo);
     this.desplegadas.update(actual => {
       const copia = new Set(actual);
       if (copia.has(codigo)) copia.delete(codigo); else copia.add(codigo);
       return copia;
     });
+    // Solo hace falta para la fila en curso, y solo la tiene una cuenta abierta.
+    if (despliega && estaAbierta(cuenta.estado)) this.busqueda.cargarHistoria(codigo);
   }
 
   estaDesplegada(codigo: string): boolean {
     return this.desplegadas().has(codigo);
+  }
+
+  /** La versión abierta de la cuenta, si la tiene: va encima de las del histórico. */
+  enCurso(cuenta: ResumenCuentaModel): VersionEnCursoModel | null {
+    return versionEnCurso(cuenta, this.busqueda.historiaDe(cuenta.codigo));
+  }
+
+  /** «vigente» o «última finalizada», según la cuenta siga cerrada o se haya reabierto. */
+  rotuloDeLaUltima(cuenta: ResumenCuentaModel): string {
+    return rotuloDeLaUltimaVersion(cuenta.estado);
+  }
+
+  /** El mismo criterio que el rótulo, para que el estilo no diga «vigente» donde el texto no. */
+  laUltimaEsLaVigente(cuenta: ResumenCuentaModel): boolean {
+    return laUltimaEsLaVigente(cuenta.estado);
   }
 
   /**

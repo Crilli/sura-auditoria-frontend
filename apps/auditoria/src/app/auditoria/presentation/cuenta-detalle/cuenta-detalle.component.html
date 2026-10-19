@@ -23,7 +23,8 @@
       @if (resumenFueraDeVista()) {
         <div class="barra-cuenta__resumen" id="barra-resumen">
           <span class="barra-cuenta__codigo"><span class="barra-cuenta__prefijo">Cuenta </span>{{ cuenta.codigo }}</span>
-          <span class="estado-badge barra-cuenta__estado">{{ cuenta.estado }}</span>
+          <span class="estado-badge barra-cuenta__estado"
+                [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</span>
           <span class="barra-cuenta__dato">
             No reconocido
             <strong class="valor--diferencia">{{ diferencia(cuenta) | currency:'COP':'symbol':'1.0-0' }}</strong>
@@ -117,7 +118,7 @@
       <div class="header-resumen" #resumen>
         <div class="titulo">
           <h1>Cuenta {{ cuenta.codigo }}</h1>
-          <span class="estado-badge">{{ cuenta.estado }}</span>
+          <span class="estado-badge" [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</span>
           @if (cuenta.pendientesSinResolver > 0) {
             <span class="estado-badge estado-badge--alerta">
               {{ cuenta.pendientesSinResolver }} pendiente(s) de cabecera
@@ -177,7 +178,7 @@
               </div>
               <div>
                 <dt>Estado</dt>
-                <dd>{{ cuenta.estado }}</dd>
+                <dd [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</dd>
               </div>
               <!--
                 Dos números que antes compartían rótulo y no tienen nada que ver:

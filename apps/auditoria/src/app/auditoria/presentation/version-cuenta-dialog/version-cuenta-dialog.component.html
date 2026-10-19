@@ -20,7 +20,7 @@
     </div>
   } @else if (foto(); as f) {
     <dl class="foto__datos">
-      <div><dt>Estado</dt><dd>{{ f.estadoActual || '—' }}</dd></div>
+      <div><dt>Estado</dt><dd [matTooltip]="f.estadoActual | estadoEnOhi">{{ f.estadoActual | textoEstado }}</dd></div>
       <div><dt>Entrada</dt><dd>{{ f.fechaEntrada | date:'dd/MM/yyyy' }}</dd></div>
       <div><dt>Factura</dt><dd>{{ f.numeroFactura || '—' }}</dd></div>
       <div><dt>Prestador</dt><dd>{{ f.prestador || '—' }}</dd></div>
@@ -43,7 +43,7 @@
         @for (e of f.historial; track e.desde) {
           <li>
             <span class="foto__fecha">{{ e.desde | date:'dd/MM/yyyy HH:mm' }}</span>
-            <span>{{ e.estado }}</span>
+            <span [matTooltip]="e.estado | estadoEnOhi">{{ e.estado | textoEstado }}</span>
           </li>
         }
       </ol>

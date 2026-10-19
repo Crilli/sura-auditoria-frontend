@@ -4,7 +4,9 @@ import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
+import { EstadoEnOhiPipe, TextoEstadoPipe } from '../compartido/estado-cuenta.pipe';
 import { FotoVersionModel } from '../../domain/models/cuenta-medica.model';
 
 export interface VersionCuentaDialogData {
@@ -26,7 +28,7 @@ export interface VersionCuentaDialogData {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, MatDialogModule, MatButtonModule, MatIconModule,
-            MatProgressSpinnerModule],
+            MatProgressSpinnerModule, MatTooltipModule, TextoEstadoPipe, EstadoEnOhiPipe],
   templateUrl: './version-cuenta-dialog.component.html',
   styleUrls: ['./version-cuenta-dialog.component.scss'],
 })

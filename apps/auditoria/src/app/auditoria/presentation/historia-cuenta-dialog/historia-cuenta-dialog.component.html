@@ -36,7 +36,11 @@
               <mat-icon class="historia__icono">undo</mat-icon>
               Desfinalizada:
             }
-            <strong>{{ h.etiqueta }}</strong>
+            @if (h.tipo === 'CAMBIO_DE_ESTADO') {
+              <strong [matTooltip]="h.etiqueta | estadoEnOhi">{{ h.etiqueta | textoEstado }}</strong>
+            } @else {
+              <strong>{{ h.etiqueta }}</strong>
+            }
             @if (h.detalle) { — {{ h.detalle }} }
           </span>
           <!-- El motor y una persona se distinguen: el sistema de registro escribe un

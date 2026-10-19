@@ -82,12 +82,14 @@
         </thead>
         <tbody>
           @for (c of busqueda.resultados(); track c.codigo) {
-            <tr class="resultado" (click)="abrir(c)" tabindex="0" (keyup.enter)="abrir(c)"
-                [matTooltip]="'Abrir ' + c.codigo">
+            <tr class="resultado" (click)="abrir(c)" tabindex="0"
+                (keydown.enter)="esEnterDeLaFila($event) && abrir(c)"
+                [matTooltip]="'Abrir ' + c.codigo"
+                [matTooltipDisabled]="ayudaInterior() === c.codigo">
               <td>
                 @if (c.versiones.length > 0) {
                   <button mat-icon-button type="button"
-                          (click)="alternarVersiones(c.codigo, $event)"
+                          (click)="alternarVersiones(c, $event)"
                           [attr.aria-expanded]="estaDesplegada(c.codigo)"
                           [attr.aria-label]="(estaDesplegada(c.codigo) ? 'Ocultar' : 'Ver')
                                              + ' las versiones de ' + c.codigo">
@@ -104,12 +106,16 @@
               </td>
               <td class="num">{{ c.valorFactura | currency:'COP':'symbol':'1.0-0' }}</td>
               <td>
-                {{ c.estado }}
+                <span class="estado" [matTooltip]="c.estado | estadoEnOhi"
+                      (mouseenter)="entrarEnEstado(c.codigo, c.estado)"
+                      (mouseleave)="ayudaInterior.set(null)">{{ c.estado | textoEstado }}</span>
                 <!-- Cuántas versiones tiene, aunque no estén desplegadas: es lo que se mira
-                     antes de decidir abrirlas. -->
+                     antes de decidir abrirlas. Las del histórico son las finalizadas; si la
+                     cuenta está abierta, la que trabaja es otra más y se dice. -->
                 @if (c.versiones.length > 0) {
                   <span class="dato-secundario">
                     {{ c.versiones.length }} {{ c.versiones.length === 1 ? 'versión' : 'versiones' }}
+                    @if (enCurso(c); as abierta) { · V{{ abierta.numero }} en curso }
                   </span>
                 }
               </td>
@@ -129,20 +135,56 @@
                       </tr>
                     </thead>
                     <tbody>
+                      <!-- La abierta, encima de todas: es la que la cuenta está trabajando y
+                           todavía no está en el histórico, que solo guarda las finalizadas.
+                           No tiene foto que abrir; abrirla es abrir la cuenta. -->
+                      @if (enCurso(c); as abierta) {
+                        <tr class="version version--en-curso" tabindex="0"
+                            (click)="abrir(c)" (keydown.enter)="esEnterDeLaFila($event) && abrir(c)"
+                            [matTooltip]="'Abrir la cuenta: la versión ' + abierta.numero
+                                          + ' aún no se ha finalizado y no tiene foto'"
+                            [matTooltipDisabled]="ayudaInterior() === c.codigo + '#en-curso'">
+                          <td>
+                            V{{ abierta.numero }}
+                            <span class="etiqueta-version etiqueta-version--en-curso">en curso</span>
+                          </td>
+                          <td>—</td>
+                          <td class="num">{{ c.valorFactura | currency:'COP':'symbol':'1.0-0' }}</td>
+                          <td>
+                            <span class="estado" [matTooltip]="abierta.estado | estadoEnOhi"
+                                  (mouseenter)="entrarEnEstado(c.codigo + '#en-curso', abierta.estado)"
+                                  (mouseleave)="ayudaInterior.set(null)">{{ abierta.estado | textoEstado }}</span>
+                            @if (abierta.desde) {
+                              <span class="dato-secundario">desde {{ abierta.desde | date:'dd/MM/yyyy HH:mm' }}</span>
+                            }
+                            @if (abierta.motivoReapertura) {
+                              <span class="dato-secundario">Reabierta: {{ abierta.motivoReapertura }}</span>
+                            }
+                          </td>
+                        </tr>
+                      }
                       @for (v of c.versiones; track v.numero; let primera = $first) {
-                        <!-- La primera es la vigente: el servicio las manda de la más reciente
-                             a la más antigua, que es la que el auditor mira primero. -->
-                        <tr [class.versiones--vigente]="primera" class="version"
+                        <!-- El servicio las manda de la más reciente a la más antigua. La
+                             primera es la vigente solo si la cuenta sigue finalizada; si se
+                             reabrió, es la última que se finalizó. -->
+                        <tr [class.versiones--vigente]="primera && laUltimaEsLaVigente(c)" class="version"
                             (click)="abrirVersion(c.codigo, v.numero, $event)" tabindex="0"
-                            (keyup.enter)="abrirVersion(c.codigo, v.numero, $event)"
-                            [matTooltip]="'Ver la versión ' + v.numero + ' tal como se transmitió'">
+                            (keydown.enter)="esEnterDeLaFila($event) && abrirVersion(c.codigo, v.numero, $event)"
+                            [matTooltip]="'Ver la versión ' + v.numero + ' tal como se transmitió'"
+                            [matTooltipDisabled]="ayudaInterior() === c.codigo + '#' + v.numero">
                           <td>
                             V{{ v.numero }}
-                            @if (primera) { <span class="etiqueta-vigente">vigente</span> }
+                            @if (primera) {
+                              <span class="etiqueta-version">{{ rotuloDeLaUltima(c) }}</span>
+                            }
                           </td>
                           <td>{{ v.fechaEntrada | date:'dd/MM/yyyy' }}</td>
                           <td class="num">{{ v.valor | currency:'COP':'symbol':'1.0-0' }}</td>
-                          <td>{{ v.estado || '—' }}</td>
+                          <td>
+                            <span class="estado" [matTooltip]="v.estado | estadoEnOhi"
+                                  (mouseenter)="entrarEnEstado(c.codigo + '#' + v.numero, v.estado)"
+                                  (mouseleave)="ayudaInterior.set(null)">{{ v.estado | textoEstado }}</span>
+                          </td>
                         </tr>
                       }
                     </tbody>

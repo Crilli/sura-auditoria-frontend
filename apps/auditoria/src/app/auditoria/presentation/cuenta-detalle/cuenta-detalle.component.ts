@@ -27,6 +27,7 @@ import { resumenNovedades } from '../linea-edicion/resumenes-seccion';
 import { environment } from '@sura/environments';
 import { EnviarCuentaDialogComponent } from '../enviar-cuenta-dialog/enviar-cuenta-dialog.component';
 import { CuentaMedicaModel, InformacionFacturacionModel } from '../../domain/models/cuenta-medica.model';
+import { EstadoEnOhiPipe, TextoEstadoPipe } from '../compartido/estado-cuenta.pipe';
 
 /** Clave en localStorage para recordar qué bloques de la cabecera deja abiertos el auditor. */
 const CLAVE_PANELES = 'auditoria.cuenta-detalle.paneles';
@@ -40,7 +41,7 @@ const CLAVE_PANELES = 'auditoria.cuenta-detalle.paneles';
     MatButtonModule, MatIconModule, MatProgressSpinnerModule,
     MatMenuModule, MatDialogModule, MatSnackBarModule, MatTooltipModule,
     MatExpansionModule,
-    SeccionNovedadesComponent
+    SeccionNovedadesComponent, TextoEstadoPipe, EstadoEnOhiPipe,
   ],
   templateUrl: './cuenta-detalle.component.html',
   styleUrls: ['./cuenta-detalle.component.scss']
