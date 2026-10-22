@@ -295,3 +295,7 @@ function sonElMismo(a: CambioNovedadRequest, b: CambioNovedadRequest): boolean {
   }
   return JSON.stringify(a) === JSON.stringify(b);
 }
+
+/*
+Cambios que faltaba de version
+*/
