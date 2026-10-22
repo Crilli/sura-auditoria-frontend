@@ -7,8 +7,8 @@ import {
 const valoresVacios: LineaFormValores = {
   valorCargado:        null,
   unidadesCargadas:    null,
-  valorAutorizado:     null,
-  unidadesAutorizadas: null,
+  valorConvenido:      null,
+  unidadesConvenidas:  null,
   valorGlosado:        null,
   conservarBeneficios: null,
   conservarTarifacion: null,
@@ -70,8 +70,8 @@ describe('construirSolicitud', () => {
       ...valoresVacios,
       valorCargado:        120_000,
       unidadesCargadas:    2,
-      valorAutorizado:     100_000,
-      unidadesAutorizadas: 1,
+      valorConvenido:      100_000,
+      unidadesConvenidas:  1,
       valorGlosado:        20_000,
       conservarBeneficios: true,
       conservarTarifacion: false,
@@ -89,8 +89,8 @@ describe('construirSolicitud', () => {
     expect(solicitud).toMatchObject({
       valorCargado:        120_000,
       unidadesCargadas:    2,
-      valorAutorizado:     100_000,
-      unidadesAutorizadas: 1,
+      valorConvenido:      100_000,
+      unidadesConvenidas:  1,
       valorGlosado:        20_000,
       conservarBeneficios: true,
       conservarTarifacion: false,
@@ -104,6 +104,15 @@ describe('construirSolicitud', () => {
       codigoUnicoContratoSiifa: 'SIIFA-1',
       codigoSiniestro:     'ARL-1'
     });
+  });
+
+  // El autorizado (`coveredAmount`) lo calcula el motor: el formulario completo reenvía todo
+  // en cada guardado, y si llevara el autorizado lo escribiría en el convenido.
+  it('[LIN-09] nunca envía el autorizado, ni con nombre nuevo ni con el viejo', () => {
+    const solicitud = construirSolicitud({ ...valoresVacios, valorConvenido: 900 });
+    // Ningún campo del autorizado, ni el de hoy ni el «cubierto» de antes del 2026-10-21.
+    expect(Object.keys(solicitud).filter(k => /autorizad|cubiert/i.test(k))).toEqual([]);
+    expect(solicitud.valorConvenido).toBe(900);
   });
 
   // Vaciar un texto sí se envía: en OHI borra el dato. Es la diferencia con las
@@ -129,14 +138,14 @@ describe('construirSolicitud', () => {
     expect(solicitud.fechaFin).toBe('2026-08-06');
   });
 
-  // El cero es un importe legítimo —glosar todo deja el autorizado en 0— y no
-  // puede confundirse con «sin valor».
+  // El cero es un importe legítimo —un convenido de 0 es un dato, no un hueco— y
+  // no puede confundirse con «sin valor».
   it('no confunde el cero con la ausencia de valor', () => {
     const solicitud = construirSolicitud({
-      ...valoresVacios, valorAutorizado: 0, unidadesAutorizadas: 0
+      ...valoresVacios, valorConvenido: 0, unidadesConvenidas: 0
     });
-    expect(solicitud.valorAutorizado).toBe(0);
-    expect(solicitud.unidadesAutorizadas).toBe(0);
+    expect(solicitud.valorConvenido).toBe(0);
+    expect(solicitud.unidadesConvenidas).toBe(0);
   });
 
   // `false` tampoco: desmarcar «conservar beneficios» es una decisión, no un
@@ -168,9 +177,12 @@ describe('aFechaIso', () => {
 });
 
 describe('valoresDeLaLinea', () => {
+  // Cifras distintas por concepto: un cruce entre convenido, autorizado y tarifa de contrato
+  // tiene que notarse.
   const detalle = {
-    valorCargado: 1000, unidadesCargadas: 1,
-    valorAutorizado: 900, unidadesAutorizadas: 1,
+    valorCargado: 1000, unidadesCargadas: 3,
+    valorConvenido: 900, unidadesConvenidas: 2,
+    valorAutorizado: 800, unidadesAutorizadas: 1,
     valorGlosado: 100,
     conservarBeneficios: true, conservarTarifacion: false,
     observacionesGlosa: 'nota',
@@ -181,7 +193,8 @@ describe('valoresDeLaLinea', () => {
       codigoNoDefinido: 'ND', codigoNoDefinidoDef: 'NDD', descripcionRips: 'RIPS'
     },
     convenio: {
-      numeroContrato: 'CW9', homologoCups: 'H9', codigoUnicoContratoSiifa: 'S9'
+      numeroContrato: 'CW9', homologoCups: 'H9', codigoUnicoContratoSiifa: 'S9',
+      valorTarifaContrato: 950
     },
     otrosDatos: { codigoSiniestro: 'ARL-9' },
     version: 42
@@ -195,6 +208,18 @@ describe('valoresDeLaLinea', () => {
       numeroContrato: 'CW9',
       codigoSiniestro: 'ARL-9'
     });
+  });
+
+  it('[LIN-07] [LIN-08] el campo editable del convenido arranca con el allowedAmount de la línea', () => {
+    const valores = valoresDeLaLinea(detalle);
+    expect(valores).toMatchObject({
+      valorCargado: 1000, unidadesCargadas: 3,
+      valorConvenido: 900, unidadesConvenidas: 2,
+      valorGlosado: 100,
+    });
+    // Ni el autorizado (800) ni la tarifa de contrato (950) tienen control en el formulario.
+    expect(valores).not.toHaveProperty('valorAutorizado');
+    expect(valores).not.toHaveProperty('valorTarifaContrato');
   });
 
   it('normaliza las fechas al formato del control del navegador', () => {

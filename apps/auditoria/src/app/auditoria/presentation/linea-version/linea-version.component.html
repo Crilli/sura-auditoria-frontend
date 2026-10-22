@@ -1,0 +1,284 @@
+<article class="linea-version" aria-labelledby="titulo-linea-version">
+
+  <!-- La salida a las líneas de la versión está siempre, también si la línea no carga. -->
+  <div class="linea-version__barra">
+    <a mat-button color="primary" id="btn-volver-lineas-version"
+       [routerLink]="['lineas']" [relativeTo]="rutaDeLaVersion"
+       [queryParams]="{ pagina: paginaDeVuelta() }">
+      <mat-icon>arrow_back</mat-icon>
+      Volver a las líneas de la V{{ numero() }}
+    </a>
+
+    <span class="linea-version__modo">
+      <mat-icon aria-hidden="true">lock</mat-icon>
+      Foto · solo lectura
+    </span>
+
+    <!--
+      Anterior y siguiente dentro de la versión, no de la cuenta actual. Mientras llegan las
+      vecinas de la línea nueva los enlaces no se van —el pulsado conserva el foco—: se apagan como
+      un enlace deshabilitado (sin destino, `role="link"`, `aria-disabled` y enfocables), porque el
+      destino de antes ya no es la vecina de esta línea. Sin destino y no solo apagados: con
+      `routerLink` el clic navegaría igual, porque el router lo atiende antes que el botón.
+    -->
+    <nav class="linea-version__vecinas" aria-label="Otras líneas de la versión"
+         [attr.aria-busy]="vecinasCargando() || null">
+      @let v = vecinasDeLinea();
+      @if (v.anterior !== null) {
+        <a mat-stroked-button id="btn-linea-version-anterior"
+           disabledInteractive [disabled]="vecinasCargando()" [tabIndex]="0"
+           [attr.role]="vecinasCargando() ? 'link' : null"
+           [routerLink]="vecinasCargando() ? null : ['lineas', v.anterior]" [relativeTo]="rutaDeLaVersion"
+           [queryParams]="{ posicion: v.posicion! - 1 }">
+          <mat-icon>chevron_left</mat-icon>
+          Línea {{ v.anterior }}
+        </a>
+      }
+      @if (v.siguiente !== null) {
+        <a mat-stroked-button id="btn-linea-version-siguiente"
+           disabledInteractive [disabled]="vecinasCargando()" [tabIndex]="0"
+           [attr.role]="vecinasCargando() ? 'link' : null"
+           [routerLink]="vecinasCargando() ? null : ['lineas', v.siguiente]" [relativeTo]="rutaDeLaVersion"
+           [queryParams]="{ posicion: v.posicion! + 1 }">
+          Línea {{ v.siguiente }}
+          <mat-icon iconPositionEnd>chevron_right</mat-icon>
+        </a>
+      }
+    </nav>
+  </div>
+
+  @if (cargando() && !linea()) {
+    <div class="linea-version__cargando" role="status">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Cargando la línea {{ numeroLinea() }} de la V{{ numero() }}…</p>
+    </div>
+  } @else if (error(); as mensaje) {
+    <div class="sura-mensaje" [class.sura-mensaje--alerta]="noExiste()" [class.sura-mensaje--error]="!noExiste()"
+         role="alert" id="error-linea-version">
+      <mat-icon>{{ noExiste() ? 'image_not_supported' : 'error_outline' }}</mat-icon>
+      <span>{{ mensaje }}</span>
+      @if (!noExiste()) {
+        <button mat-button color="primary" type="button" (click)="reintentar()">Reintentar</button>
+      }
+    </div>
+  } @else if (linea(); as l) {
+
+    <h2 id="titulo-linea-version">
+      Línea #{{ l.numeroLinea }} · V{{ numero() }} — {{ l.codigoProcedimiento ?? 'sin prestación' }}
+      @if (l.descripcionProcedimiento) {
+        <span class="sura-subtitulo">{{ l.descripcionProcedimiento }}</span>
+      }
+    </h2>
+
+    <!-- La identidad de la línea en esa versión. Lo que no vino es una raya. -->
+    <dl class="sura-ficha-datos">
+      <div>
+        <dt>Estado en la versión</dt>
+        <dd>
+          @if (l.estado) {
+            <span class="sura-distintivo" [class]="claseDeEstado(l.estado)">{{ textoDeEstado(l.estado) }}</span>
+          } @else { — }
+        </dd>
+      </div>
+      <div>
+        <dt>Atención</dt>
+        <dd>
+          {{ l.fechaInicio ? (l.fechaInicio | date:'dd/MM/yyyy') : '—' }}
+          @if (l.fechaFin && l.fechaFin !== l.fechaInicio) { al {{ l.fechaFin | date:'dd/MM/yyyy' }} }
+        </dd>
+      </div>
+      <div>
+        <dt>Afiliado</dt>
+        <dd>
+          {{ l.codigoAfiliado ?? '—' }}
+          @if (l.nombreAfiliado) { <span class="sura-dato-secundario">{{ l.nombreAfiliado }}</span> }
+        </dd>
+      </div>
+      <div>
+        <dt>Autorización</dt>
+        <dd>{{ l.codigoAutorizacion ?? '—' }}</dd>
+      </div>
+      <div>
+        <dt>Prestador de la atención</dt>
+        <dd>
+          {{ l.prestadorNombre ?? l.prestadorCodigo ?? '—' }}
+          @if (l.prestadorNombre && l.prestadorCodigo) { <span class="sura-dato-secundario">{{ l.prestadorCodigo }}</span> }
+        </dd>
+      </div>
+      <div>
+        <dt>Catálogo</dt>
+        <dd>{{ l.catalogoProcedimiento ?? '—' }}</dd>
+      </div>
+    </dl>
+
+    <section class="linea-version__seccion" aria-labelledby="valores-linea-version">
+      <h3 id="valores-linea-version"><mat-icon aria-hidden="true">payments</mat-icon> Valores y cantidades</h3>
+      <table class="sura-tabla-detalle sura-tabla-detalle--importes">
+        <thead><tr><th>Concepto</th><th>Valor</th><th>Cantidad</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Cargado</td>
+            <td>{{ l.valorCargado == null ? '—' : (l.valorCargado | currency:'COP':'symbol':'1.0-0') }}</td>
+            <td>{{ l.unidadesCargadas ?? '—' }}</td>
+          </tr>
+          <!-- Convenido = allowed* y autorizado = covered*, como en la línea viva (decisión del
+               2026-10-21; antes «Autorizado» y «Cubierto»). -->
+          <tr>
+            <td>Convenido</td>
+            <td>{{ l.valorConvenido == null ? '—' : (l.valorConvenido | currency:'COP':'symbol':'1.0-0') }}</td>
+            <td>{{ l.unidadesConvenidas ?? '—' }}</td>
+          </tr>
+          <tr>
+            <td>Autorizado</td>
+            <td>{{ l.valorAutorizado == null ? '—' : (l.valorAutorizado | currency:'COP':'symbol':'1.0-0') }}</td>
+            <td>{{ l.unidadesAutorizadas ?? '—' }}</td>
+          </tr>
+          <tr>
+            <td>Glosado</td>
+            <td [class.valor-glosado]="l.valorGlosado">{{ l.valorGlosado == null ? '—' : (l.valorGlosado | currency:'COP':'symbol':'1.0-0') }}</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>IVA @if (l.porcentajeIva !== null) { <span class="sura-dato-secundario">{{ l.porcentajeIva }} %</span> }</td>
+            <td>{{ l.valorIva === null ? '—' : (l.valorIva | currency:'COP':'symbol':'1.0-0') }}</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    @if (l.glosas.length > 0) {
+      <section class="linea-version__seccion" aria-labelledby="glosas-linea-version">
+        <h3 id="glosas-linea-version">
+          <mat-icon aria-hidden="true">receipt_long</mat-icon> Detalle de la glosa
+          <span class="sura-contador">{{ l.glosas.length }}</span>
+        </h3>
+        <table class="sura-tabla-detalle" id="tabla-glosas-version">
+          <thead>
+            <tr><th>#</th><th>Causal</th><th>Valor</th><th>Concepto</th><th>Nota crédito</th><th>Tipo</th></tr>
+          </thead>
+          <tbody>
+            @for (g of l.glosas; track $index) {
+              <tr>
+                <td>{{ g.secuencia ?? '—' }}</td>
+                <td>{{ g.codigo ?? '—' }}</td>
+                <td>{{ g.valor === null ? '—' : (g.valor | currency:'COP':'symbol':'1.0-0') }}</td>
+                <td>
+                  {{ g.concepto ?? '—' }}
+                  @if (g.conceptoEspecifico) { <span class="sura-dato-secundario">{{ g.conceptoEspecifico }}</span> }
+                  @if (g.texto) { <span class="sura-dato-secundario linea-version__texto">{{ g.texto }}</span> }
+                </td>
+                <td>
+                  @if (g.codigoNotaCredito || g.valorNotaCredito !== null) {
+                    {{ g.codigoNotaCredito ?? '—' }}
+                    @if (g.valorNotaCredito !== null) {
+                      <span class="sura-dato-secundario">{{ g.valorNotaCredito | currency:'COP':'symbol':'1.0-0' }}</span>
+                    }
+                  } @else { — }
+                </td>
+                <td>{{ g.tipo ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    @if (l.novedades.length > 0) {
+      <section class="linea-version__seccion" aria-labelledby="novedades-linea-version">
+        <h3 id="novedades-linea-version">
+          <mat-icon aria-hidden="true">campaign</mat-icon> Novedades
+          <span class="sura-contador">{{ l.novedades.length }}</span>
+        </h3>
+        <!-- El texto es el de entonces: el catálogo de hoy puede decir otra cosa. -->
+        <p class="sura-nota">
+          <mat-icon aria-hidden="true">history</mat-icon>
+          <span>Con el texto que tenían en esta versión. El histórico no guarda quién las puso ni cuándo.</span>
+        </p>
+        <table class="sura-tabla-detalle" id="tabla-novedades-version">
+          <thead>
+            <tr><th>Código</th><th>Severidad</th><th>Texto</th><th>Origen</th></tr>
+          </thead>
+          <tbody>
+            @for (n of l.novedades; track $index) {
+              <tr [class.linea-version__anulada]="n.anulada">
+                <td>
+                  {{ n.codigo ?? 'sin código' }}
+                  @if (n.repeticiones > 1) {
+                    <span class="sura-dato-secundario" [matTooltip]="'El histórico la guarda ' + n.repeticiones + ' veces'">
+                      ×{{ n.repeticiones }}
+                    </span>
+                  }
+                </td>
+                <td><span class="sura-distintivo" [class]="claseDeSeveridad(n.severidad)">{{ textoDeSeveridad(n.severidad) }}</span></td>
+                <td>
+                  {{ n.texto ?? '—' }}
+                  @if (n.anulada) { <span class="sura-dato-secundario">Anulada</span> }
+                </td>
+                <td>{{ textoDeOrigen(n.origen) }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    @if (l.diagnosticos.length > 0) {
+      <section class="linea-version__seccion" aria-labelledby="diagnosticos-linea-version">
+        <h3 id="diagnosticos-linea-version">
+          <mat-icon aria-hidden="true">coronavirus</mat-icon> Diagnósticos
+          <span class="sura-contador">{{ l.diagnosticos.length }}</span>
+        </h3>
+        <table class="sura-tabla-detalle sura-tabla-detalle--diagnosticos" id="tabla-diagnosticos-version">
+          <thead><tr><th>Secuencia</th><th>Código</th><th>Descripción</th><th>Tipo</th></tr></thead>
+          <tbody>
+            @for (d of l.diagnosticos; track $index) {
+              <tr>
+                <td>{{ d.secuencia ?? '—' }}</td>
+                <td>{{ d.codigo ?? '—' }}</td>
+                <td>{{ d.descripcion ?? '—' }}</td>
+                <td>{{ d.tipo ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </section>
+    }
+
+    <section class="linea-version__seccion" aria-labelledby="convenio-linea-version">
+      <h3 id="convenio-linea-version"><mat-icon aria-hidden="true">handshake</mat-icon> Datos de convenio</h3>
+      <dl class="sura-ficha-datos">
+        <div><dt>Tarifa ISS 2000</dt><dd>{{ l.convenio?.tarifaIss2000 ?? '—' }}</dd></div>
+        <div><dt>Tarifa ISS 2001</dt><dd>{{ l.convenio?.tarifaIss2001 ?? '—' }}</dd></div>
+        <div><dt>Tarifa SOAT</dt><dd>{{ l.convenio?.tarifaSoat ?? '—' }}</dd></div>
+        <!-- Sin «Contrato»: el histórico de producción no lo guarda (su definición de
+             ctrclaimlines no tiene numeroContrato, a diferencia de UAT), y una raya en todas las
+             líneas se leería como «se tarifó sin contrato». -->
+        <div><dt>Homólogo CUPS</dt><dd>{{ l.convenio?.homologoCups ?? '—' }}</dd></div>
+      </dl>
+      @if (l.convenio?.clausulas?.length) {
+        <table class="sura-tabla-detalle" id="tabla-clausulas-version">
+          <thead><tr><th>Cláusula</th><th>Monto</th><th>Regla</th></tr></thead>
+          <tbody>
+            @for (c of l.convenio!.clausulas; track $index) {
+              <tr>
+                <td>{{ c.descripcion ?? '—' }}</td>
+                <td>{{ c.monto === null ? '—' : (c.monto | currency:'COP':'symbol':'1.0-0') }}</td>
+                <td>{{ c.regla ?? '—' }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </section>
+
+    <section class="linea-version__seccion" aria-labelledby="atencion-linea-version">
+      <h3 id="atencion-linea-version"><mat-icon aria-hidden="true">local_hospital</mat-icon> Atención</h3>
+      <dl class="sura-ficha-datos">
+        <div><dt>Tipo de sala</dt><dd>{{ l.atencion?.tipoSala ?? '—' }}</dd></div>
+        <div><dt>Vía de acceso</dt><dd>{{ l.atencion?.viaAcceso ?? '—' }}</dd></div>
+        <div><dt>UEN</dt><dd>{{ l.atencion?.uen ?? '—' }}</dd></div>
+      </dl>
+    </section>
+  }
+</article>

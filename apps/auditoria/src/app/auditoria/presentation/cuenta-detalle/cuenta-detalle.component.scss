@@ -91,7 +91,8 @@
   }
 }
 
-.valor--diferencia { color: var(--sura-alerta); }
+// El glosado es lo objetado: se lee en el color de alerta, igual que en la grilla.
+.valor--glosado { color: var(--sura-alerta); }
 
 // ── Acordeones del detalle ──────────────────────────────────────────────────
 // El aspecto de los paneles vive en styles.scss (tema de Material); aquí solo

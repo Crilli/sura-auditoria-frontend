@@ -1,4 +1,4 @@
-import { Injectable, inject, signal, computed, effect, untracked } from '@angular/core';
+import { Injectable, Injector, inject, signal, computed, effect, untracked } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
 import { lastValueFrom } from 'rxjs';
 import { ListarLineasUseCase }          from '../use-cases/listar-lineas.use-case';
@@ -7,6 +7,7 @@ import { GuardarLineaUseCase }          from '../use-cases/guardar-linea.use-cas
 import { ObtenerSiguienteLineaUseCase } from '../use-cases/obtener-siguiente-linea.use-case';
 import { ResumirFiltrosLineasUseCase }  from '../use-cases/resumir-filtros-lineas.use-case';
 import { ResumirMotivosPendientesUseCase } from '../use-cases/resumir-motivos-pendientes.use-case';
+import { CuentaFacade }                 from './cuenta.facade';
 import {
   ResumenLineaModel, DetalleLineaModel, GuardarLineaRequest,
   FiltroLineasModel, ResumenFiltrosLineasModel,
@@ -52,6 +53,11 @@ export class LineaFacade {
   private readonly siguienteUC = inject(ObtenerSiguienteLineaUseCase);
   private readonly filtrosUC   = inject(ResumirFiltrosLineasUseCase);
   private readonly motivosUC = inject(ResumirMotivosPendientesUseCase);
+  /**
+   * La fachada de la cuenta se pide solo cuando un guardado la necesita (un 409
+   * `CUENTA_NO_MODIFICABLE`): las líneas no dependen de ella para nada más.
+   */
+  private readonly injector  = inject(Injector);
 
   /** Tamaño de página fijo: es el máximo que acepta el servicio. */
   readonly TAMANO_PAGINA = 25;
@@ -459,8 +465,53 @@ export class LineaFacade {
     return total === null ? Promise.resolve() : this.irAPagina(total);
   }
 
+  /**
+   * Vuelve a pedir lo que se está viendo de la cuenta tras un cambio de estado —pasar a
+   * Modificación, desfinalizar, enviar— (EST-02.4): la página de líneas y, si hay una abierta,
+   * su detalle. La versión de las líneas puede cambiar con el estado —desfinalizar abre la
+   * versión siguiente— y la de antes haría chocar el próximo guardado con un 412.
+   *
+   * El detalle se relee **sin vaciarlo**: vaciarlo cerraría la pantalla de la línea y la
+   * volvería a pintar, cuando lo único que cambia es lo que trae. Solo si es de esta cuenta
+   * —la fachada es de toda la aplicación y puede guardar la línea de otra— y si sigue abierta
+   * la misma cuando llega la respuesta.
+   *
+   * Y solo si la línea cambió de versión. Poner el detalle releído hace que la pantalla de la
+   * línea rehaga su formulario con lo que trae, y con la cuenta todavía en Modificación —tras
+   * «Desbloquear líneas» desde la tira, que sigue a la vista sobre la línea— eso borraba lo
+   * tecleado sin guardar aunque la acción no la hubiera tocado. Con la misma versión no hay 412
+   * que evitar, así que lo tecleado se queda.
+   */
+  async recargarTrasCambioDeEstado(codigoCuenta: string): Promise<void> {
+    if (this.codigoCuenta() === codigoCuenta) this._lineasResource.reload();
+    const abierta = this.detalleLinea();
+    if (!abierta || this.detalleDe !== codigoCuenta) return;
+    try {
+      const detalle = await lastValueFrom(this.detalleUC.execute(codigoCuenta, abierta.referencia));
+      const actual = this.detalleLinea();
+      if (actual?.referencia === abierta.referencia && this.detalleDe === codigoCuenta
+          && detalle.version !== actual.version) {
+        this.relecturaTrasCambioDeEstado = detalle;
+        this.detalleLinea.set(detalle);
+      }
+    } catch {
+      // Se queda la de antes: si su versión ya no vale, el próximo guardado lo dirá con un 412.
+    }
+  }
+
+  /** De qué cuenta es el detalle cargado: el detalle no lo dice y la fachada es de toda la app. */
+  private detalleDe: string | null = null;
+
+  /**
+   * El último detalle que puso `recargarTrasCambioDeEstado`. La pantalla de la línea lo compara
+   * con el que recibe para distinguir esa relectura de la respuesta de su propio guardado: solo
+   * en la primera se descarta lo tecleado sin que el auditor lo haya pedido, y hay que decírselo.
+   */
+  relecturaTrasCambioDeEstado: DetalleLineaModel | null = null;
+
   async consultarDetalle(codigoCuenta: string, referencia: number): Promise<void> {
     this.errorComando.set(null);
+    this.detalleDe = codigoCuenta;
     // Se descarta el detalle anterior para que la pantalla no muestre los datos
     // de la línea previa mientras llega la nueva.
     this.detalleLinea.set(null);
@@ -513,6 +564,7 @@ export class LineaFacade {
         await this.consultarDetalle(codigoCuenta, referencia);
         return true;
       }
+      this.injector.get(CuentaFacade).alRechazarUnCambio(err);
       this.errorComando.set((err as Error).message ?? 'Error al guardar la línea');
       return false;
     } finally {
@@ -555,6 +607,7 @@ export class LineaFacade {
         return { tipo: 'APLICADO_SIN_RELEER', mensaje: (err as Error).message };
       }
       if (!esConflictoDeVersion(err)) {
+        this.injector.get(CuentaFacade).alRechazarUnCambio(err);
         return { tipo: 'ERROR', mensaje: (err as Error).message ?? 'No se pudo guardar la línea.' };
       }
       try {

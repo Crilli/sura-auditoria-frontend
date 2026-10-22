@@ -1,5 +1,6 @@
 import {
-  estaAbierta, estadoEnOhi, rotuloDeLaUltimaVersion, textoDeEstado, versionEnCurso
+  accionParaPasarAModificacion, estaAbierta, estadoEnOhi, motivoParaNoCambiarDatos, rotuloDeLaUltimaVersion,
+  rotuloDelEnvio, seMuestraElEnvio, textoDeEstado, versionEnCurso
 } from './estado-cuenta.model';
 import { HitoModel, ResumenCuentaModel } from './cuenta-medica.model';
 
@@ -145,5 +146,53 @@ describe('la versión en curso', () => {
   it('[BUS-13] si la reapertura no trae texto, se da su código', () => {
     const sinTexto = HISTORIA.map(h => h.tipo === 'DESFINALIZACION' ? { ...h, detalle: null } : h);
     expect(versionEnCurso(cuenta(), sinTexto)?.motivoReapertura).toBe('RESPUESTA_GLOSA_BLOQUEO');
+  });
+});
+
+describe('el envío y el paso a Modificación (reglas del 2026-10-21)', () => {
+
+  /** Los estados en que el botón está y no es la adjudicación manual: todos leen «Enviar». */
+  const OTROS = ['MODIFICACION', 'DIGITACION', 'TARIFACION_MANUAL', 'BENEFICIOS_MANUALES', 'EN_PROCESO',
+                 'ANULADA', 'DESCONOCIDO', 'ESTADO NUEVO'];
+
+  it('[BTN-13.1] en adjudicación manual el envío se llama «Aceptar»', () => {
+    expect(rotuloDelEnvio('ADJUDICACION_MANUAL')).toBe('Aceptar');
+  });
+
+  it('[BTN-08] [BTN-13.2] [BTN-13.10] en Modificación y en cualquier otro estado se llama «Enviar»', () => {
+    for (const estado of OTROS) expect(rotuloDelEnvio(estado)).toBe('Enviar');
+    expect(rotuloDelEnvio(null)).toBe('Enviar');
+  });
+
+  it('[BTN-13.5] [BTN-13.6] el botón solo desaparece con la cuenta finalizada; anulada, en proceso o desconocida lo tienen', () => {
+    expect(seMuestraElEnvio('FINALIZADA')).toBe(false);
+    for (const estado of ['ADJUDICACION_MANUAL', ...OTROS]) expect(seMuestraElEnvio(estado)).toBe(true);
+    // Sin estado no hay cuenta que enviar; una clave del prototipo es un estado más, no un truco.
+    expect(seMuestraElEnvio(null)).toBe(false);
+    expect(seMuestraElEnvio('toString')).toBe(true);
+  });
+
+  it('[EST-02.1] [EST-02.3] fuera de Modificación se pasa devolviendo; una finalizada, desfinalizando', () => {
+    expect(accionParaPasarAModificacion('ADJUDICACION_MANUAL')).toBe('DEVOLVER_A_MODIFICACION');
+    expect(accionParaPasarAModificacion('TARIFACION_MANUAL')).toBe('DEVOLVER_A_MODIFICACION');
+    expect(accionParaPasarAModificacion('DESCONOCIDO')).toBe('DEVOLVER_A_MODIFICACION');
+    expect(accionParaPasarAModificacion('ANULADA')).toBe('DEVOLVER_A_MODIFICACION');
+    expect(accionParaPasarAModificacion('FINALIZADA')).toBe('REVERTIR_FINALIZACION');
+  });
+
+  it('[EST-02.6] en Modificación, o sin estado, no hay a dónde pasar', () => {
+    expect(accionParaPasarAModificacion('MODIFICACION')).toBeNull();
+    expect(accionParaPasarAModificacion(null)).toBeNull();
+    expect(accionParaPasarAModificacion('')).toBeNull();
+  });
+
+  it('[EST-01.4] el aviso dice el estado en palabras y remite a «Pasar a Modificación» de la barra', () => {
+    expect(motivoParaNoCambiarDatos('ADJUDICACION_MANUAL')).toBe(
+      'La cuenta está en Adjudicación manual: sus datos solo se cambian en Modificación. '
+      + 'Use «Pasar a Modificación» en la barra.');
+    expect(motivoParaNoCambiarDatos('FINALIZADA')).toContain('está en Finalizada:');
+    // Un estado que no se reconoce no se nombra con la etiqueta de la tabla.
+    expect(motivoParaNoCambiarDatos('DESCONOCIDO')).toContain('está en un estado que la aplicación no reconoce:');
+    expect(motivoParaNoCambiarDatos(null)).toContain('un estado que la aplicación no reconoce');
   });
 });

@@ -37,7 +37,7 @@ import {
  *
  * <h3>Se marca, no se aplica</h3>
  * Igual que la glosa: lo que se marca aquí se acumula y viaja en el guardado de
- * la línea, de modo que poner una novedad y corregir el valor autorizado son una
+ * la línea, de modo que poner una novedad y corregir el valor convenido son una
  * sola operación, con una sola versión y un solo recálculo.
  *
  * <h3>Se elige del catálogo, no se escribe</h3>

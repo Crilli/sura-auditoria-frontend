@@ -9,11 +9,21 @@ import { DetalleLineaModel, NovedadModel } from '../../domain/models/linea-cuent
  * levantar la pantalla.
  */
 
-/** Resumen de importes para la cabecera del panel, sin tener que abrirlo. */
+/**
+ * Resumen de importes para la cabecera del panel, sin tener que abrirlo.
+ *
+ * Los cuatro conceptos con los nombres que fijó negocio el 2026-10-21, en el orden de la tabla:
+ * cargado, convenido (`allowedAmount`), autorizado (`coveredAmount`) y glosado. Lo que falta es
+ * «—», no un cero.
+ */
 export function resumenValores(l: DetalleLineaModel): string {
   const m = (v: number | null) =>
     v == null ? '—' : v.toLocaleString('es-CO', { maximumFractionDigits: 0 });
-  const partes = [`Cargado ${m(l.valorCargado)}`, `Autorizado ${m(l.valorAutorizado)}`];
+  const partes = [
+    `Cargado ${m(l.valorCargado)}`,
+    `Convenido ${m(l.valorConvenido)}`,
+    `Autorizado ${m(l.valorAutorizado)}`,
+  ];
   if (l.valorGlosado) partes.push(`Glosado ${m(l.valorGlosado)}`);
   return partes.join(' · ');
 }
@@ -77,7 +87,7 @@ export function resumenPrestacion(l: DetalleLineaModel): string {
 export function resumenConvenio(l: DetalleLineaModel): string {
   const c = l.convenio;
   if (c.numeroContrato) return `Contrato ${c.numeroContrato}`;
-  const n = conDato(c.codigoTarifarioIss2001, c.codigoTarifarioIss2000,
+  const n = conDato(c.valorTarifaContrato, c.codigoTarifarioIss2001, c.codigoTarifarioIss2000,
                     c.codigoTarifarioSoat, c.homologoCups,
                     c.multiplesCupsHomologos, c.codigoUnicoContratoSiifa);
   return n > 0 ? `${n} datos` : 'sin datos';

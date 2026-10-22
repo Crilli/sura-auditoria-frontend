@@ -1,4 +1,4 @@
-import { HitoModel, ResumenCuentaModel } from './cuenta-medica.model';
+import { AccionCuenta, HitoModel, ResumenCuentaModel } from './cuenta-medica.model';
 
 /**
  * Cómo se llama cada estado de la cuenta en pantalla, y cómo lo llama OHI.
@@ -100,6 +100,58 @@ export function laUltimaEsLaVigente(estadoDeLaCuenta: string | null | undefined)
   return estadoDeLaCuenta === 'FINALIZADA';
 }
 
+// ── El envío y el paso a Modificación (reglas del 2026-10-21) ────────────────
+//
+// Lo que la barra ofrece según el estado. Son funciones puras y no un `computed` de la vista
+// para que la regla se lea y se pruebe en un sitio, sin montar nada. Lo que **no** está aquí es
+// si la cuenta admite cambios de datos: eso lo publica el servicio (`admiteCambios` de la
+// cabecera) y la pantalla lo obedece, no lo deduce del estado.
+
+/**
+ * El rótulo del botón de envío (BTN-13). En adjudicación manual —«Pendiente» en OHI— lo que el
+ * auditor hace es aceptar la cuenta; en el resto de estados, enviarla. Por debajo es el mismo
+ * envío (`claim:submit`), con el mismo cuerpo: solo cambia la palabra.
+ */
+export function rotuloDelEnvio(estado: string | null | undefined): 'Aceptar' | 'Enviar' {
+  return estado === 'ADJUDICACION_MANUAL' ? 'Aceptar' : 'Enviar';
+}
+
+/**
+ * Si la barra lleva el botón de envío. Solo desaparece con la cuenta finalizada; en cualquier
+ * otro estado —anulada, en proceso o uno que la aplicación no reconoce incluidos— está, y si
+ * OHI no deja enviar, lo dice el servicio al pulsarlo (BTN-13.6, BTN-13.7). Una anulada es
+ * FINALIZED en OHI, así que también se queda sin él. Sin estado no hay cuenta que enviar.
+ */
+export function seMuestraElEnvio(estado: string | null | undefined): boolean {
+  return !!estado && estado !== 'FINALIZADA';
+}
+
+/**
+ * Con qué acción se pasa la cuenta a Modificación (EST-02), o `null` si ya está en ella o no
+ * hay estado. Una finalizada se desfinaliza (`claim:unfinalize`), que en OHI la deja
+ * directamente en Modificación —medido: 117 de 117 en PROD, 423 de 423 en UAT—; cualquier
+ * otra se devuelve (`claim:tochange`). Si OHI publica o no esa acción ahora mismo es otra
+ * pregunta, y la contesta la lista de acciones.
+ */
+export function accionParaPasarAModificacion(estado: string | null | undefined): AccionCuenta | null {
+  if (!estado || estado === 'MODIFICACION') return null;
+  return estado === 'FINALIZADA' ? 'REVERTIR_FINALIZACION' : 'DEVOLVER_A_MODIFICACION';
+}
+
+/**
+ * Por qué no se pueden cambiar los datos de la cuenta, para el aviso que lo dice una vez por
+ * pantalla (EST-01.4). Remite al botón de la barra, que es el único camino. Un estado que la
+ * aplicación no reconoce no se nombra con la etiqueta de la tabla —«está en Estado no
+ * reconocido» no se lee—, sino diciendo que no se reconoce.
+ */
+export function motivoParaNoCambiarDatos(estado: string | null | undefined): string {
+  const donde = !estado?.trim() || estado === 'DESCONOCIDO'
+    ? 'un estado que la aplicación no reconoce'
+    : textoDeEstado(estado);
+  return `La cuenta está en ${donde}: sus datos solo se cambian en Modificación. `
+    + 'Use «Pasar a Modificación» en la barra.';
+}
+
 /** La versión que la cuenta tiene abierta y que todavía no está en el histórico. */
 export interface VersionEnCursoModel {
   /** El número que tendrá cuando se finalice: el siguiente al de la última del histórico. */
@@ -140,8 +192,11 @@ function ultimoDe(hitos: readonly HitoModel[], tipo: HitoModel['tipo']): HitoMod
  *   sería de otra cosa.
  * - **motivo**: el sistema de registro guarda como mucho un motivo de reapertura por cuenta,
  *   que puede ser de una vuelta anterior. Solo se da si es posterior a la última finalización.
+ *
+ * Pide solo el estado y las versiones, no el resumen entero del buscador: la barra de la cuenta
+ * (BTN-12) la usa con la cuenta viva, que no es un resumen.
  */
-export function versionEnCurso(cuenta: ResumenCuentaModel,
+export function versionEnCurso(cuenta: Pick<ResumenCuentaModel, 'estado' | 'versiones'>,
                                hitos: readonly HitoModel[] | null): VersionEnCursoModel | null {
   if (!estaAbierta(cuenta.estado) || cuenta.versiones.length === 0) return null;
 

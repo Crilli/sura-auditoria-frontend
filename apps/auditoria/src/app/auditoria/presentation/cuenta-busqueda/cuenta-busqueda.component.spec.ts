@@ -54,6 +54,11 @@ const HISTORIA: HitoModel[] = [
     autor: 'Internal System User', loHizoElSistema: true, ocurridoEn: '2026-09-21T16:45:48Z' },
 ];
 
+const respuesta = (elementos: ResumenCuentaModel[]) => of({
+  elementos, desplazamiento: 0, tamanoPagina: 25, pagina: 0,
+  totalRegistros: elementos.length, totalPaginas: 1, hayMas: false,
+});
+
 describe('CuentaBusquedaComponent', () => {
   let fixture: ComponentFixture<CuentaBusquedaComponent>;
   let repo: { buscar: ReturnType<typeof vi.fn>; consultarHistoria: ReturnType<typeof vi.fn> };
@@ -102,6 +107,13 @@ describe('CuentaBusquedaComponent', () => {
     await fixture.whenStable();
     fixture.detectChanges();
   };
+  /** Abrir una cuenta y volver: la pantalla muere y se crea otra; la fachada sigue viva. */
+  const volverDelDetalle = async () => {
+    fixture.destroy();
+    fixture = TestBed.createComponent(CuentaBusquedaComponent);
+    await fixture.whenStable();
+    fixture.detectChanges();
+  };
 
   it('[BUS-01] la pantalla de inicio es el buscador de facturas', () => {
     expect(dom().textContent).toContain('Buscar facturas');
@@ -124,6 +136,61 @@ describe('CuentaBusquedaComponent', () => {
 
     expect(filas()).toHaveLength(3);
     expect(navegar).not.toHaveBeenCalled();
+  });
+
+  it('[BUS-12] enseñarse otra vez sin búsqueda no sale al servicio', async () => {
+    await volverDelDetalle();
+
+    expect(repo.buscar).not.toHaveBeenCalled();
+    expect(filas()).toHaveLength(0);
+  });
+
+  it('[BUS-12] [BUS-13] al volver del detalle trae la cuenta como está ahora, con la búsqueda y las desplegadas de antes', async () => {
+    await buscar('JONATHAN201');
+    await desplegar(0);
+    expect(versiones().map(v => texto(v.querySelector('td')!)))
+      .toEqual(['V4 en curso', 'V3 última finalizada', 'V2', 'V1']);
+
+    // En el detalle, el auditor la envió: se finalizó y la V4 ya está en el histórico.
+    const enviada: ResumenCuentaModel = {
+      ...RESULTADOS[0], estado: 'FINALIZADA',
+      versiones: [
+        { numero: 4, fechaEntrada: '2026-10-19', valor: 8_800_000, estado: 'FINALIZADA',
+          estadoDesde: '2026-10-19T15:00:00Z' },
+        ...RESULTADOS[0].versiones,
+      ],
+    };
+    repo.buscar.mockReturnValue(respuesta([enviada, RESULTADOS[1], RESULTADOS[2]]));
+    await volverDelDetalle();
+
+    expect(repo.buscar).toHaveBeenCalledTimes(2);
+    expect(repo.buscar).toHaveBeenLastCalledWith({ factura: 'JONATHAN201', radicado: null }, 0, 25);
+    expect(dom().querySelector<HTMLInputElement>('#input-factura')!.value).toBe('JONATHAN201');
+    expect(texto(filas()[0].querySelector('.estado')!)).toBe('Finalizada');
+    expect(texto(filas()[0].querySelectorAll('td')[6])).toBe('Finalizada 4 versiones');
+    // Sigue desplegada, y sin versión en curso: la V4 es ahora la vigente.
+    expect(versiones().map(v => texto(v.querySelector('td')!))).toEqual(['V4 vigente', 'V3', 'V2', 'V1']);
+    expect(dom().querySelector('tr.version--en-curso')).toBeNull();
+    // Cerrada ya no usa la historia: solo se pidió al desplegarla la primera vez.
+    expect(repo.consultarHistoria).toHaveBeenCalledTimes(1);
+  });
+
+  it('[BUS-13] al volver, una cuenta devuelta a modificación vuelve a pedir su historia y la fila en curso lo dice', async () => {
+    await buscar('JONATHAN201');
+    await desplegar(0);
+
+    repo.buscar.mockReturnValue(respuesta([{ ...RESULTADOS[0], estado: 'MODIFICACION' }, ...RESULTADOS.slice(1)]));
+    repo.consultarHistoria.mockReturnValue(of([...HISTORIA,
+      { tipo: 'CAMBIO_DE_ESTADO', etiqueta: 'MODIFICACION', detalle: null,
+        autor: 'auditor', loHizoElSistema: false, ocurridoEn: '2026-10-19T14:00:00Z' }]));
+    await volverDelDetalle();
+
+    expect(repo.consultarHistoria).toHaveBeenCalledTimes(2);
+    expect(texto(filas()[0].querySelectorAll('td')[6])).toBe('Modificación 3 versiones · V4 en curso');
+    const enCurso = dom().querySelector('tr.version--en-curso')!;
+    expect(texto(enCurso.querySelector('td')!)).toBe('V4 en curso');
+    expect(texto(enCurso.querySelectorAll('td')[3])).toContain('Modificación');
+    expect(texto(enCurso.querySelectorAll('td')[3])).toContain('desde 19/10/2026');
   });
 
   it('[BUS-14] [BUS-15] [BUS-16] [BUS-17] [BUS-18] cada fila trae radicado, llegada, factura, prestador y valor', async () => {

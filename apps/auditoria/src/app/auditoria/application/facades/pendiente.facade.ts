@@ -560,9 +560,12 @@ export class PendienteFacade {
 
       this.resultadoMasivo.set(resultado);
       this.desmarcarTodos();
-      // En curso no es el final: se sigue sin bloquear la pantalla (OPE-06).
+      // En curso no es el final: se sigue sin bloquear la pantalla (OPE-06), y el aviso a la
+      // cuenta lo da el seguimiento al terminar. Si no, ya acabó: la cuenta puede haber cambiado.
       if (resultado.desenlace === 'EN_CURSO' && resultado.referencias.length > 0) {
         this.seguirResolucion(codigo, resultado.referencias, resultado.fallos);
+      } else {
+        this.avisarDeResolucion(codigo);
       }
 
       // Si el motivo por el que se filtraba era uno de los resueltos, el filtro
@@ -629,6 +632,29 @@ export class PendienteFacade {
   /** La última que terminó en esa cuenta mientras se seguía. */
   resolucionTerminadaDe(codigoCuenta: string | null): ResolucionTerminada | null {
     return codigoCuenta ? this._terminadas().get(codigoCuenta) ?? null : null;
+  }
+
+  /**
+   * Cuándo acabó por última vez una resolución en cada cuenta, la lanzara quien la lanzara: la
+   * pestaña de pendientes, una a una o en masa, o la grilla de líneas. Resolver puede mover la
+   * cuenta de estado —`IN PROCESS` justo después, y luego a donde la lleve el motor—, y con el
+   * estado cambian el botón de envío, «Pasar a Modificación» y si se pueden cambiar datos
+   * (EST-03.4). La vista de la cuenta lo observa para volver a pedirla; esta fachada no toca la
+   * de cuentas.
+   */
+  private readonly _resueltoEn = signal<ReadonlyMap<string, number>>(new Map());
+
+  /** El instante de la última resolución acabada en esa cuenta, o `null` si no hubo ninguna. */
+  ultimaResolucionDe(codigoCuenta: string | null): number | null {
+    return codigoCuenta ? this._resueltoEn().get(codigoCuenta) ?? null : null;
+  }
+
+  /**
+   * Anota que acabó una resolución en esa cuenta. Pública porque la grilla resuelve por su
+   * cuenta («Resolver {motivo} en N»), sin pasar por los métodos de aquí.
+   */
+  avisarDeResolucion(codigoCuenta: string): void {
+    this.poner(this._resueltoEn, codigoCuenta, Date.now());
   }
 
   /** La que se dejó de seguir sin confirmar en esa cuenta. */
@@ -704,6 +730,7 @@ export class PendienteFacade {
     this.dejarDeSeguir(codigoCuenta);
     this.quitar(this._enCurso, codigoCuenta);
     this.poner(this._terminadas, codigoCuenta, { codigoCuenta, resultado, instante: Date.now() });
+    this.avisarDeResolucion(codigoCuenta);
     // El aviso y la lista solo se tocan si el auditor sigue en esa cuenta.
     if (this.codigoCuenta() === codigoCuenta) {
       this.resultadoMasivo.set(resultado);
@@ -760,6 +787,7 @@ export class PendienteFacade {
         this.resolverUC.execute(codigoCuenta, idMotivo, solicitud, auditor)
       );
       this._recargaMotivos.update(n => n + 1);
+      this.avisarDeResolucion(codigoCuenta);
       // Si lo resuelto era justo el motivo del filtro, el filtro se queda sin
       // objeto: ese motivo ya no existe en la cuenta. Mantenerlo dejaría una
       // tabla vacía con un selector apuntando a algo que ya no está.

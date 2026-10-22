@@ -16,6 +16,8 @@ import { ActivatedRoute, Router }   from '@angular/router';
 import { CambioGlosaRequest, CambioNovedadRequest } from '../../domain/models/linea-cuenta.model';
 import { environment } from '@sura/environments';
 import { LineaFacade }              from '../../application/facades/linea.facade';
+import { CuentaFacade }             from '../../application/facades/cuenta.facade';
+import { motivoParaNoCambiarDatos } from '../../domain/models/estado-cuenta.model';
 import { ResumenLineaModel }        from '../../domain/models/linea-cuenta.model';
 import { ModoLinea }                from './modo-linea';
 import {
@@ -143,7 +145,33 @@ export class LineaEdicionComponent {
   readonly cargando     = this.facade.cargandoDetalle;
   readonly errorComando = this.facade.errorComando;
 
-  readonly editable   = computed(() => this.detalle()?.editable ?? false);
+  /**
+   * La cuenta, que es de toda la aplicación y ya la carga la vista que contiene esta pantalla.
+   * De ella sale si se pueden cambiar datos (EST-01): solo en Modificación, y lo publica el servicio.
+   */
+  private readonly cuentas = inject(CuentaFacade);
+
+  /**
+   * Si la línea se puede editar: que la línea lo admita —no bloqueada ni reemplazada— **y** que
+   * la cuenta admita cambios. Todo lo demás cuelga de aquí —el modo efectivo, el formulario, el
+   * guardado—, así que una cuenta fuera de Modificación no se edita aunque se abra `…/editar` a
+   * mano (EST-01.5), y una edición abierta se cierra sola si la cuenta sale de Modificación
+   * (EST-01.8): el modo pasa a consulta y el formulario vuelve a lo que trae la línea.
+   */
+  readonly editable   = computed(() => (this.detalle()?.editable ?? false) && this.cuentas.admiteCambios());
+
+  /** La regla de la cuenta, para la plantilla. */
+  readonly cuentaAdmiteCambios = this.cuentas.admiteCambios;
+
+  /**
+   * Por qué no se edita, cuando es por la cuenta: el aviso de la pantalla, que remite a «Pasar a
+   * Modificación» de la barra. No es «esta línea no es editable», que es de la línea. Sin la
+   * cuenta todavía no se dice nada: no se sabe en qué estado está.
+   */
+  readonly motivoDeLaCuenta = computed(() => {
+    const cuenta = this.cuentas.cuenta();
+    return cuenta && !this.cuentas.admiteCambios() ? motivoParaNoCambiarDatos(cuenta.estado) : null;
+  });
 
   /** Ver `modoEfectivo()` en `linea-form.ts`: la URL pide, el registro decide. */
   readonly modoEfectivo = computed<ModoLinea>(() =>
@@ -195,6 +223,12 @@ export class LineaEdicionComponent {
       if (!detalle) return;
 
       untracked(() => {
+        // Una acción sobre la cuenta cambió la línea que se está editando (EST-02.4): lo tecleado
+        // era sobre la versión vieja y chocaría con un 412, así que se descarta, pero no en
+        // silencio. La respuesta del propio guardado también llega por aquí, y esa no avisa.
+        const descartaLoTecleado = detalle === this.facade.relecturaTrasCambioDeEstado
+          && this.esEdicion() && this.form.dirty;
+
         this.form.reset(valoresDeLaLinea(detalle));
 
         // Se decide por el modo efectivo, no por `editable` a secas: en consulta
@@ -202,6 +236,22 @@ export class LineaEdicionComponent {
         // algo lo alcanzara.
         if (this.esEdicion()) this.form.enable();
         else                  this.form.disable();
+
+        if (descartaLoTecleado) {
+          this.snackBar.open('La línea cambió con la acción sobre la cuenta y se volvió a cargar: '
+            + 'lo tecleado sin guardar se descartó.', 'Cerrar', { duration: 8000 });
+        }
+      });
+    });
+
+    // Al salir de la edición —por la cuenta, que dejó Modificación (EST-01.8), por la línea o por
+    // la navegación— las glosas y novedades marcadas sin guardar se descartan, igual que lo
+    // tecleado: si siguieran, el siguiente guardado las mandaría sin que nadie las viera.
+    effect(() => {
+      if (this.esEdicion()) return;
+      untracked(() => {
+        if (this.cambiosDeGlosa().length > 0) this.cambiosDeGlosa.set([]);
+        if (this.cambiosDeNovedad().length > 0) this.cambiosDeNovedad.set([]);
       });
     });
   }

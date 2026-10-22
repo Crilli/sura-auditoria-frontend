@@ -6,6 +6,7 @@ import {
 import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 import { CambioNovedadRequest } from '../models/linea-cuenta.model';
 import { EstadoProcesoModel } from '../models/estado-proceso.model';
+import { DetalleLineaDeVersionModel, LineaDeVersionModel } from '../models/linea-de-version.model';
 
 /** Puerto del dominio para operaciones sobre la cuenta médica (cabecera). */
 export abstract class CuentaRepository {
@@ -79,4 +80,27 @@ export abstract class CuentaRepository {
 
   /** La foto de una versión concreta. */
   abstract consultarVersion(codigoCuenta: string, numero: number): Observable<FotoVersionModel>;
+
+  /**
+   * Las líneas de una versión del histórico, en orden de número de línea (BUS-21).
+   *
+   * Una versión que existe sin líneas —la madre de un large claim— es una página vacía con
+   * `totalRegistros` 0; una que no está en el histórico es un error que la nombra (400).
+   *
+   * @param pagina contando desde cero, como `LineaRepository.listar`.
+   * @param tamano el servicio no da más de 25.
+   */
+  abstract listarLineasDeVersion(
+    codigoCuenta: string,
+    numero: number,
+    pagina: number,
+    tamano: number
+  ): Observable<OffsetPage<LineaDeVersionModel>>;
+
+  /** Una línea de esa versión, con sus novedades, diagnósticos, convenio y atención de entonces. */
+  abstract consultarLineaDeVersion(
+    codigoCuenta: string,
+    numero: number,
+    numeroLinea: number
+  ): Observable<DetalleLineaDeVersionModel>;
 }

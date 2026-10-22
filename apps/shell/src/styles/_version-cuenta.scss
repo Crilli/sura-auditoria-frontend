@@ -1,0 +1,249 @@
+// ============================================================================
+// La foto de una versión de la cuenta (BTN-12) y sus líneas (BUS-21)
+// ============================================================================
+//
+// Vive en la capa global y no en los componentes por el presupuesto de
+// `anyComponentStyle` (4 kB de aviso, 8 kB de error): `cuenta-detalle` ya gasta lo
+// suyo en la cabecera viva, y la grilla y el detalle de la versión repiten patrones
+// que aquí se escriben una vez.
+//
+// Los selectores van anidados bajo `.detalle-container`, `.lineas-version` y
+// `.linea-version` a propósito, por la misma razón que en `_barra-cuenta.scss` y
+// `_paginador.scss`: fuera del componente se pierde el atributo `[_ngcontent-…]`
+// y, con él, un nivel de especificidad frente a los estilos propios de Material.
+
+// ── La cabecera de la foto, en lugar de la cabecera viva ───────────────────
+.detalle-container {
+  .foto-cuenta {
+    display: flex;
+    flex-direction: column;
+    gap: var(--sura-espacio-3);
+    margin-bottom: var(--sura-espacio-4);
+  }
+
+  // Arriba y a la vista: tomar por actual un importe de otra versión es justo el
+  // error que esta pantalla tiene que impedir.
+  .foto-cuenta__aviso {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    margin: 0;
+    padding: var(--sura-espacio-2) var(--sura-espacio-3);
+    background: var(--sura-info-fondo);
+    color: var(--sura-texto);
+    border-left: 4px solid var(--sura-info);
+    border-radius: var(--sura-radio-12);
+
+    > .mat-icon { color: var(--sura-info); }
+    > a { margin-left: auto; }
+  }
+
+  // Como la cabecera viva, pero con el filete en el azul de información y no en el
+  // institucional: se distingue de un vistazo que no es la cuenta actual.
+  .foto-cuenta__tarjeta {
+    padding: var(--sura-espacio-4);
+    background: var(--sura-blanco);
+    border-radius: var(--sura-radio-16);
+    box-shadow: var(--sura-sombra-sm);
+    border-top: 4px solid var(--sura-info);
+
+    h1 {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--sura-espacio-3);
+      margin: 0 0 var(--sura-espacio-3);
+    }
+  }
+
+  // «Comprobando la Vn…»: en el sitio de la foto, con su misma tarjeta, mientras no se sabe si
+  // la versión la tiene. Neutro a propósito: ni el aviso de foto ni el de «sin foto».
+  .foto-cuenta__cargando {
+    display: flex;
+    align-items: center;
+    gap: var(--sura-espacio-3);
+    margin-bottom: var(--sura-espacio-4);
+    padding: var(--sura-espacio-4);
+    background: var(--sura-blanco);
+    border-radius: var(--sura-radio-16);
+    box-shadow: var(--sura-sombra-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  // Versión sin foto (inexistente o en curso): el mensaje y la vuelta, juntos.
+  .sin-foto {
+    flex-wrap: wrap;
+    margin-bottom: var(--sura-espacio-4);
+
+    .sin-foto__texto {
+      display: flex;
+      flex-direction: column;
+      gap: var(--sura-espacio-1);
+      flex: 1 1 20rem;
+    }
+  }
+}
+
+// ── Grilla de las líneas de la versión ─────────────────────────────────────
+.lineas-version {
+  display: block;
+  padding: var(--sura-espacio-3) 0;
+
+  .lineas-version__cabecera {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-3);
+    margin-bottom: var(--sura-espacio-3);
+
+    h2 { margin: 0; }
+  }
+
+  .lineas-version__cargando,
+  .lineas-version__vacia {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    padding: var(--sura-espacio-5) var(--sura-espacio-3);
+    color: var(--sura-texto-suave);
+    text-align: center;
+
+    p { margin: 0; }
+  }
+
+  .lineas-version__vacia > .mat-icon {
+    font-size: 3rem;
+    width: 3rem;
+    height: 3rem;
+    opacity: 0.4;
+  }
+
+  .lineas-version__tabla {
+    overflow-x: auto;
+    border-radius: var(--sura-radio-16);
+    background: var(--sura-blanco);
+    border: 1px solid var(--sura-gris-300);
+
+    table { width: 100%; }
+
+    // Al cambiar de página la tabla se queda a la vista, atenuada, en vez de
+    // desaparecer y volver: no salta la pantalla.
+    &.lineas-version__tabla--cargando table { opacity: 0.55; }
+  }
+
+  // Los importes no se parten en dos renglones. Ids de columna con el vocabulario del
+  // 2026-10-21: convenido = allowed*, autorizado = covered*, los mismos de la grilla viva.
+  .mat-column-valorCargado,
+  .mat-column-valorConvenido,
+  .mat-column-valorAutorizado,
+  .mat-column-iva,
+  .mat-column-valorGlosado { white-space: nowrap; }
+
+  .mat-column-numeroLinea { width: 4rem; }
+  .mat-column-ver { width: 3.5rem; }
+
+  // Celda de dos renglones: el dato arriba y su complemento debajo, como en la
+  // grilla de la cuenta actual (allí es del componente; aquí, global).
+  .celda-doble {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    padding-block: var(--sura-espacio-1);
+
+    .celda-doble__principal { font-variant-numeric: tabular-nums; }
+
+    .celda-doble__secundario {
+      max-width: 22ch;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: var(--sura-texto-sm);
+      color: var(--sura-texto-suave);
+    }
+  }
+}
+
+// El modo, dicho con letras, en la grilla y en el detalle.
+.lineas-version__modo,
+.linea-version__modo {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sura-espacio-1);
+  padding: 2px var(--sura-espacio-2);
+  border-radius: 999px;
+  background: var(--sura-info-fondo);
+  color: var(--sura-info);
+  font-size: var(--sura-texto-sm);
+  font-weight: var(--sura-peso-semibold);
+
+  .mat-icon { font-size: 16px; width: 16px; height: 16px; }
+}
+
+// ── Detalle de una línea de la versión ─────────────────────────────────────
+.linea-version {
+  display: block;
+  padding: var(--sura-espacio-4);
+  margin-block: var(--sura-espacio-3);
+  background: var(--sura-blanco);
+  border-radius: var(--sura-radio-16);
+  border: 1px solid var(--sura-gris-300);
+
+  h2 { margin-bottom: var(--sura-espacio-4); }
+
+  .linea-version__barra {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--sura-espacio-3);
+    padding-bottom: var(--sura-espacio-3);
+    margin-bottom: var(--sura-espacio-3);
+    border-bottom: 1px solid var(--sura-gris-300);
+  }
+
+  .linea-version__vecinas {
+    display: flex;
+    gap: var(--sura-espacio-2);
+    margin-left: auto;
+  }
+
+  .linea-version__cargando {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--sura-espacio-2);
+    padding: var(--sura-espacio-5) 0;
+    color: var(--sura-texto-suave);
+  }
+
+  .linea-version__seccion {
+    margin-bottom: var(--sura-espacio-4);
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: var(--sura-espacio-2);
+      font-size: var(--sura-texto-base);
+
+      .mat-icon { color: var(--sura-azul-primario); }
+    }
+
+    .sura-nota { margin-bottom: var(--sura-espacio-2); }
+  }
+
+  // Una novedad anulada se sigue leyendo, pero en segundo plano.
+  .linea-version__anulada td { color: var(--sura-texto-suave); }
+
+  .linea-version__texto { white-space: pre-line; }
+}
+
+// El desglose de la glosa en el tooltip de la grilla: un renglón por glosa. Va
+// suelto porque el tooltip se pinta en la capa superpuesta, fuera de la grilla.
+.mat-mdc-tooltip.tooltip-desglose-version .mdc-tooltip__surface {
+  white-space: pre-line;
+  max-width: 32rem;
+  text-align: left;
+  line-height: 1.45;
+}

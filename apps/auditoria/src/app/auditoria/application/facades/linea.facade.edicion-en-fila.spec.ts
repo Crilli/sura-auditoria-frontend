@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { LineaFacade } from './linea.facade';
+import { CuentaFacade } from './cuenta.facade';
 import { LineaRepository } from '../../domain/ports/linea.repository';
 import { PendienteRepository } from '../../domain/ports/pendiente.repository';
 import {
@@ -12,22 +13,27 @@ import { OffsetPage, OffsetRequest }
 /**
  * El guardado desde la grilla contra un repositorio simulado (GRID-18). Ningún dato
  * identifica a una persona.
+ *
+ * Cifras distintas por concepto —cargado 1000, convenido 900, autorizado 800, glosado 100— para
+ * que un cruce entre convenido (`allowedAmount`) y autorizado (`coveredAmount`) se note.
  */
 
 const fila = (referencia: number, cambios: Partial<ResumenLineaModel> = {}): ResumenLineaModel => ({
   referencia, numeroLinea: referencia, codigoProcedimiento: '870603',
   descripcionProcedimiento: null, catalogoProcedimiento: 'CUPS', codigoAfiliado: 'X',
   nombreAfiliado: null, fechaInicio: null, fechaFin: null, codigoAutorizacion: null,
-  valorAutorizado: 0, valorCargado: 1000, unidadesCargadas: 1, unidadesAutorizadas: 1,
-  valorIva: null, porcentajeIva: null, valorCubierto: 0, valorGlosado: null,
+  valorCargado: 1000, unidadesCargadas: 3, valorConvenido: 900, unidadesConvenidas: 2,
+  valorAutorizado: 800, unidadesAutorizadas: 1,
+  valorIva: null, porcentajeIva: null, valorGlosado: 100,
   editable: true, cantidadPendientes: 0, pendientes: [], tieneNovedadBloqueante: false,
   novedades: [], version: 10, ...cambios,
 });
 
 const detalleDe = (f: ResumenLineaModel): DetalleLineaModel => ({
   valorCargado: f.valorCargado, unidadesCargadas: f.unidadesCargadas,
+  valorConvenido: f.valorConvenido, unidadesConvenidas: f.unidadesConvenidas,
   valorAutorizado: f.valorAutorizado, unidadesAutorizadas: f.unidadesAutorizadas,
-  valorCubierto: f.valorCubierto, valorGlosado: f.valorGlosado,
+  valorGlosado: f.valorGlosado,
   editable: f.editable, version: f.version,
 } as DetalleLineaModel);
 
@@ -81,8 +87,10 @@ class RepositorioSimulado extends LineaRepository {
                                             { status: 412, codigo: 'MODIFICACION_CONCURRENTE' }));
     }
     const i = this.filas.findIndex(f => f.referencia === referencia);
-    // El motor recalcula: el cubierto sigue a lo autorizado.
-    this.filas[i] = { ...this.filas[i], ...solicitud, valorCubierto: solicitud.valorAutorizado ?? 0,
+    // El motor recalcula el autorizado a partir del convenido: aquí, 100 menos de cobertura.
+    const convenido = solicitud.valorConvenido ?? this.filas[i].valorConvenido;
+    this.filas[i] = { ...this.filas[i], ...solicitud,
+                      valorAutorizado: convenido === null ? null : convenido - 100,
                       version: this.filas[i].version + 1 };
     return of(detalleDe(this.filas[i]));
   }
@@ -92,12 +100,15 @@ class RepositorioSimulado extends LineaRepository {
 describe('LineaFacade — guardar en la fila', () => {
   let facade: LineaFacade;
   let repo: RepositorioSimulado;
+  let cuentas: { alRechazarUnCambio: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
     repo = new RepositorioSimulado();
+    cuentas = { alRechazarUnCambio: vi.fn() };
     TestBed.configureTestingModule({
       providers: [
         { provide: LineaRepository, useValue: repo },
+        { provide: CuentaFacade, useValue: cuentas },
         { provide: PendienteRepository, useValue: {
             resumirMotivos: () => of([]), catalogoDeMotivos: () => of([]) } },
       ],
@@ -112,7 +123,7 @@ describe('LineaFacade — guardar en la fila', () => {
     await abrir();
 
     const r = await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorCargado: 1000, valorAutorizado: 0 }, 'AISLADO', 'auditor');
+      { valorCargado: 1000, valorConvenido: 900 }, 'AISLADO', 'auditor');
 
     expect(r.tipo).toBe('SIN_CAMBIOS');
     expect(repo.guardados).toHaveLength(0);
@@ -122,10 +133,13 @@ describe('LineaFacade — guardar en la fila', () => {
     await abrir();
 
     await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorCargado: 1000, valorAutorizado: 700 }, 'EN_CASCADA', 'auditor');
+      { valorCargado: 1000, valorConvenido: 700 }, 'EN_CASCADA', 'auditor');
 
     expect(repo.guardados).toEqual([{ referencia: 1, solicitud: {
-      versionEsperada: 10, modoRecalculo: 'EN_CASCADA', valorAutorizado: 700 } }]);
+      versionEsperada: 10, modoRecalculo: 'EN_CASCADA', valorConvenido: 700 } }]);
+    // El autorizado no viaja nunca: lo calcula el motor y el servicio lo rechazaría con 400.
+    expect(repo.guardados[0].solicitud).not.toHaveProperty('valorAutorizado');
+    expect(repo.guardados[0].solicitud).not.toHaveProperty('unidadesAutorizadas');
   });
 
   it('[GRID-18] la fila pasa a enseñar lo devuelto y la página se refresca sin ocultar la grilla',
@@ -134,14 +148,16 @@ describe('LineaFacade — guardar en la fila', () => {
     repo.refrescoEnVuelo = true;
 
     const r = await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorAutorizado: 700 }, 'AISLADO', 'auditor');
+      { valorConvenido: 700 }, 'AISLADO', 'auditor');
     await asentar();
 
     expect(r.tipo).toBe('GUARDADO');
     // Mientras llega el refresco, la tabla sigue con sus filas y la guardada ya actualizada.
     expect(facade.refrescando()).toBe(true);
     expect(facade.lineas()).toHaveLength(2);
-    expect(facade.lineas()[0]).toMatchObject({ valorAutorizado: 700, valorCubierto: 700, version: 11 });
+    // El convenido es lo tecleado y el autorizado, lo que recalculó el motor: cada uno en su campo.
+    expect(facade.lineas()[0]).toMatchObject({
+      valorConvenido: 700, valorAutorizado: 600, unidadesAutorizadas: 1, version: 11 });
     expect(repo.listados).toBe(2);
 
     repo.soltar();
@@ -153,23 +169,23 @@ describe('LineaFacade — guardar en la fila', () => {
   it('[GRID-18] un conflicto trae la línea releída, con su versión nueva, sin recargar la página',
      async () => {
     await abrir();
-    // Otro usuario la guardó: en el servidor ya va por la versión 12 y autorizado 300.
-    repo.filas[0] = { ...repo.filas[0], valorAutorizado: 300, version: 12 };
+    // Otro usuario la guardó: en el servidor ya va por la versión 12 y convenido 300.
+    repo.filas[0] = { ...repo.filas[0], valorConvenido: 300, version: 12 };
     repo.conflicto = true;
 
     const r = await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorAutorizado: 700 }, 'AISLADO', 'auditor');
+      { valorConvenido: 700 }, 'AISLADO', 'auditor');
     await asentar();
 
     expect(r.tipo).toBe('CONFLICTO');
-    expect(r.tipo === 'CONFLICTO' && r.actual).toMatchObject({ valorAutorizado: 300, version: 12 });
-    expect(facade.lineas()[0]).toMatchObject({ valorAutorizado: 300, version: 12 });
+    expect(r.tipo === 'CONFLICTO' && r.actual).toMatchObject({ valorConvenido: 300, version: 12 });
+    expect(facade.lineas()[0]).toMatchObject({ valorConvenido: 300, version: 12 });
     expect(repo.listados).toBe(1);
 
     // Y el segundo intento sale con la versión nueva.
     repo.conflicto = false;
     await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorAutorizado: 700 }, 'AISLADO', 'auditor');
+      { valorConvenido: 700 }, 'AISLADO', 'auditor');
     expect(repo.guardados.at(-1)!.solicitud.versionEsperada).toBe(12);
   });
 
@@ -178,10 +194,37 @@ describe('LineaFacade — guardar en la fila', () => {
     repo.fallo = new Error('La línea no es editable');
 
     const r = await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorAutorizado: 700 }, 'AISLADO', 'auditor');
+      { valorConvenido: 700 }, 'AISLADO', 'auditor');
 
     expect(r).toEqual({ tipo: 'ERROR', mensaje: 'La línea no es editable' });
-    expect(facade.lineas()[0].valorAutorizado).toBe(0);
+    expect(facade.lineas()[0]).toMatchObject({ valorConvenido: 900, valorAutorizado: 800 });
+  });
+
+  it('[EST-01.6] si la cuenta salió de Modificación por detrás, el 409 se lee con el texto del servicio', async () => {
+    await abrir();
+    // Así lo deja el interceptor: el `mensaje` del cuerpo como texto del error, y el código aparte.
+    // No es un conflicto de versión: releer la línea no lo arregla, hay que pasar la cuenta.
+    const mensaje = 'La cuenta CM-94421 está en Adjudicación manual: sus datos solo se cambian en '
+                  + 'Modificación. Pásela a Modificación y vuelva a intentarlo.';
+    repo.fallo = Object.assign(new Error(mensaje), { status: 409, codigo: 'CUENTA_NO_MODIFICABLE' });
+
+    const r = await facade.guardarEnFila('CM-94421', facade.lineas()[0],
+      { valorConvenido: 700 }, 'AISLADO', 'auditor');
+
+    expect(r).toEqual({ tipo: 'ERROR', mensaje });
+    expect(facade.lineas()[0]).toMatchObject({ valorConvenido: 900, version: 10 });
+  });
+
+  it('[EST-01.8] [EST-01.4] ese 409 hace releer la cuenta: la fila se cierra sola y aparece «Pasar a Modificación»', async () => {
+    await abrir();
+    const rechazo = Object.assign(new Error('La cuenta no está en Modificación.'),
+      { status: 409, codigo: 'CUENTA_NO_MODIFICABLE' });
+    repo.fallo = rechazo;
+
+    await facade.guardarEnFila('CM-94421', facade.lineas()[0], { valorConvenido: 700 }, 'AISLADO', 'auditor');
+
+    // Es la fachada de la cuenta la que decide por el código; aquí solo se le pasa el rechazo.
+    expect(cuentas.alRechazarUnCambio).toHaveBeenCalledWith(rechazo);
   });
 
   it('[OPE-11] si se aplicó pero no se pudo releer, es un guardado: se recarga la página y no se ofrece repetir', async () => {
@@ -189,7 +232,7 @@ describe('LineaFacade — guardar en la fila', () => {
     repo.sinReleer = true;
 
     const r = await facade.guardarEnFila('CM-94421', facade.lineas()[0],
-      { valorAutorizado: 700 }, 'AISLADO', 'auditor');
+      { valorConvenido: 700 }, 'AISLADO', 'auditor');
     await asentar();
 
     expect(r.tipo).toBe('APLICADO_SIN_RELEER');

@@ -7,13 +7,16 @@ import {
  *
  * ## Qué se teclea en la fila, y qué no
  * Solo los cuatro campos que el sistema de registro acepta escribir y que la grilla ya enseña:
- * valor y unidades cargadas, valor y unidades autorizadas. Lo demás de la fila se ve pero no
- * se toca, cada cosa por su motivo:
+ * valor y unidades cargadas (`claimed*`), valor y unidades **convenidas** (`allowed*`). Lo demás
+ * de la fila se ve pero no se toca, cada cosa por su motivo:
  *
  * - **el valor glosado** es la suma del desglose de glosa y OHI **no** lo recalcula: teclearlo
  *   suelto dejaría una línea cuyo total no cuadra con lo que lo compone. Se edita abriendo la
  *   línea, donde está el desglose;
- * - **el cubierto y el IVA** los calcula el motor de coberturas: `/claimsupdate` ni los acepta.
+ * - **el autorizado** (`coveredAmount`) **y el IVA** los calcula el motor de coberturas:
+ *   `/claimsupdate` ni los acepta. Por eso, desde la decisión del 2026-10-21 que fijó qué es cada
+ *   importe, lo que se teclea es el convenido y el autorizado lleva candado.
+ *   Antes el convenido se rotulaba «autorizado»: el campo escrito es el mismo, cambió su nombre.
  *
  * ## El modo de recálculo no tiene valor por defecto
  * Igual que en la pantalla de la línea. Decide si el motor reprocesa la cuenta entera o solo
@@ -27,7 +30,7 @@ export type ModoRecalculo = GuardarLineaRequest['modoRecalculo'];
 
 /** Los campos que se teclean en la fila, en el orden en que se pintan. */
 export const CAMPOS_EN_FILA = [
-  'valorCargado', 'unidadesCargadas', 'valorAutorizado', 'unidadesAutorizadas',
+  'valorCargado', 'unidadesCargadas', 'valorConvenido', 'unidadesConvenidas',
 ] as const;
 
 export type CampoEnFila = typeof CAMPOS_EN_FILA[number];
@@ -39,8 +42,8 @@ export function valoresDeLaFila(fila: ResumenLineaModel): ValoresEnFila {
   return {
     valorCargado:        fila.valorCargado,
     unidadesCargadas:    fila.unidadesCargadas,
-    valorAutorizado:     fila.valorAutorizado,
-    unidadesAutorizadas: fila.unidadesAutorizadas,
+    valorConvenido:      fila.valorConvenido,
+    unidadesConvenidas:  fila.unidadesConvenidas,
   };
 }
 
@@ -80,7 +83,7 @@ export function solicitudDeLaFila(fila: ResumenLineaModel, cambios: CambiosEnFil
  * La fila con lo que devolvió el sistema de registro tras guardar.
  *
  * Se toma del detalle releído y no de lo tecleado: el motor puede haber recalculado el
- * cubierto o reajustado lo autorizado, y la fila tiene que enseñar lo que quedó, no lo que
+ * autorizado o reajustado lo convenido, y la fila tiene que enseñar lo que quedó, no lo que
  * se pidió. Lo que el detalle no trae —el IVA, el estado de las novedades— lo pone el
  * refresco de la página que sigue al guardado.
  */
@@ -90,9 +93,11 @@ export function filaConDetalle(fila: ResumenLineaModel,
     ...fila,
     valorCargado:        detalle.valorCargado,
     unidadesCargadas:    detalle.unidadesCargadas,
+    valorConvenido:      detalle.valorConvenido,
+    unidadesConvenidas:  detalle.unidadesConvenidas,
     valorAutorizado:     detalle.valorAutorizado,
+    // La cantidad autorizada también cambia con el recálculo y la grilla la enseña (GRID-13).
     unidadesAutorizadas: detalle.unidadesAutorizadas,
-    valorCubierto:       detalle.valorCubierto,
     valorGlosado:        detalle.valorGlosado,
     editable:            detalle.editable,
     version:             detalle.version,

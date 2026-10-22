@@ -43,6 +43,7 @@ import { CambiosEnLoteRequest }     from '../../domain/models/linea-cuenta.model
 import {
   ResumenLineaModel, CatalogoPrestacion, FiltroLineasModel, FiltroBloqueo, NovedadModel
 } from '../../domain/models/linea-cuenta.model';
+import { motivoParaNoCambiarDatos }  from '../../domain/models/estado-cuenta.model';
 
 /**
  * Lista de líneas con paginación KEYSET (cursor-based).
@@ -88,8 +89,10 @@ export class LineasListComponent implements OnInit {
    * que necesitan las columnas que sí cambian de fila en fila.
    */
   readonly displayedColumns = computed(() => {
+    // Importes en el orden en que se leen: lo cobrado, lo pactado, lo que reconoce el motor, el
+    // IVA y lo objetado (decisión del 2026-10-21 sobre qué es cada importe).
     const base = ['seleccion', 'numeroLinea', 'atencion', 'codigoProcedimiento', 'codigoAfiliado',
-                  'valorCargado', 'valorAutorizado', 'iva', 'valorCubierto', 'valorGlosado',
+                  'valorCargado', 'valorConvenido', 'valorAutorizado', 'iva', 'valorGlosado',
                   'pendientes', 'estado', 'acciones'];
     return this.afiliadoUnico() ? base.filter(c => c !== 'codigoAfiliado') : base;
   });
@@ -280,6 +283,60 @@ export class LineasListComponent implements OnInit {
   readonly errorSeleccion = signal<string | null>(null);
   readonly avisoSeleccion = signal<string | null>(null);
 
+  // ── Solo se cambian datos en Modificación (EST-01) ───────────────────────
+  //
+  // La regla vive en `CuentaFacade.admiteCambios()`, que sale de lo que publica el servicio; aquí
+  // solo se obedece. Son cambios de datos el lápiz, «Editar aquí», el lote —glosa, añadir y quitar
+  // mensaje—, añadir un pendiente y desbloquear. **No** lo es resolver un pendiente («Resolver
+  // {motivo} en N»), que queda libre en cualquier estado (EST-03.2): por eso la guarda no va en
+  // `guardar()`, que comparten las dos cosas, sino en cada operación que cambia datos.
+
+  /**
+   * Por qué no se pueden cambiar los datos, o `null` si se puede. Se dice una vez encima de la
+   * grilla y en la ayuda de cada botón apagado. Sin la cuenta todavía no se dice nada —no se sabe
+   * en qué estado está— aunque no se ofrezca editar: ante la duda no se edita.
+   */
+  readonly motivoSinCambios = computed(() => {
+    const cuenta = this.cuentas.cuenta();
+    return cuenta && !this.cuentas.admiteCambios() ? motivoParaNoCambiarDatos(cuenta.estado) : null;
+  });
+
+  /** La regla, para la plantilla: apaga los botones de la selección que cambian datos. */
+  readonly cuentaAdmiteCambios = this.cuentas.admiteCambios;
+
+  /** Si la fila se puede editar: que la línea lo admita y que la cuenta admita cambios. */
+  sePuedeEditar(row: ResumenLineaModel): boolean {
+    return row.editable && this.cuentas.admiteCambios();
+  }
+
+  /**
+   * Si la cuenta deja de admitir cambios con algo abierto —la fila en edición, o el formulario
+   * de un cambio sobre la selección—, se cierra sin guardar (EST-01.8): lo tecleado ya no se
+   * podría guardar y dejarlo abierto invitaría a intentarlo.
+   */
+  private readonly _cierraLoQueCambiaDatos = effect(() => {
+    if (this.cuentas.admiteCambios()) return;
+    untracked(() => {
+      if (this.filaEnEdicion() !== null) this.cancelarEdicionEnFila();
+      if (this.formularioAbierto() !== null) this.formularioAbierto.set(null);
+    });
+  });
+
+  /**
+   * La guarda de las operaciones que cambian datos: si la cuenta no los admite, lo dice y no
+   * sale nada al servicio, que además lo rechazaría con 409. Los botones ya están apagados; esto
+   * cubre el clic que `disabledInteractive` deja pasar y la cuenta que cambia de estado con el
+   * formulario a medias.
+   */
+  private sinCambiosDeDatos(): boolean {
+    const motivo = this.motivoSinCambios() ?? (this.cuentas.admiteCambios() ? null
+      : 'Todavía no se sabe en qué estado está la cuenta: sus datos solo se cambian en Modificación.');
+    if (!motivo) return false;
+    this.avisoSeleccion.set(null);
+    this.errorSeleccion.set(motivo);
+    return true;
+  }
+
   /**
    * Desbloquea solo las líneas marcadas.
    *
@@ -290,6 +347,7 @@ export class LineasListComponent implements OnInit {
    * el sistema de registro desbloquea TODAS las líneas de la cuenta.
    */
   async desbloquearSeleccion(): Promise<void> {
+    if (this.sinCambiosDeDatos()) return;
     const lineas = this.facade.referenciasSeleccionadas();
     if (!this.guardar(lineas, 'desbloquear')) return;
 
@@ -372,6 +430,8 @@ export class LineasListComponent implements OnInit {
           ? `Se resolvió ${codigoMotivo} en ${lineas.length} línea(s).`
           : `La resolución acabó ${resultado.desenlace.toLowerCase()}: revise la pestaña de pendientes.`);
         this.facade.recargarMotivos();
+        // Ya acabó: la cuenta puede haber cambiado de estado, y con él la barra (EST-03.4).
+        this.pendientes.avisarDeResolucion(this.codigoCuenta);
       }
       this.facade.limpiarSeleccion();
       this.facade.recargar();
@@ -434,6 +494,9 @@ export class LineasListComponent implements OnInit {
     this.causalGlosa().trim().length > 0 && (this.valorGlosa() ?? 0) > 0);
 
   abrirFormulario(cual: 'glosa' | 'mensaje' | 'quitarMensaje' | 'pendiente'): void {
+    // Los cuatro formularios cambian datos —añadir un pendiente también (DBG-05)—: fuera de
+    // Modificación no se abren.
+    if (this.sinCambiosDeDatos()) return;
     this.errorSeleccion.set(null);
     this.avisoSeleccion.set(null);
     this.formularioAbierto.set(this.formularioAbierto() === cual ? null : cual);
@@ -455,6 +518,7 @@ export class LineasListComponent implements OnInit {
    * la resolución, aunque sea más barato de deshacer.
    */
   async agregarPendienteALaSeleccion(): Promise<void> {
+    if (this.sinCambiosDeDatos()) return;
     const lineas = this.facade.referenciasSeleccionadas();
     if (!this.guardar(lineas, 'agregar el pendiente')) return;
 
@@ -470,6 +534,7 @@ export class LineasListComponent implements OnInit {
       this.facade.limpiarSeleccion();
       this.facade.recargar();
     } catch (err: unknown) {
+      this.cuentas.alRechazarUnCambio(err);
       this.errorSeleccion.set((err as Error).message ?? 'No se pudo agregar el pendiente.');
     } finally {
       this.ejecutando.set(false);
@@ -484,6 +549,7 @@ export class LineasListComponent implements OnInit {
    * en la operación; no son un fallo, simplemente no tenían nada que quitar.
    */
   async quitarMensajeDeLaSeleccion(): Promise<void> {
+    if (this.sinCambiosDeDatos()) return;
     const marcadas = new Set(this.facade.referenciasSeleccionadas());
     if (!this.guardar([...marcadas], 'quitar el mensaje')) return;
 
@@ -527,6 +593,7 @@ export class LineasListComponent implements OnInit {
       this.facade.limpiarSeleccion();
       this.facade.recargar();
     } catch (err: unknown) {
+      this.cuentas.alRechazarUnCambio(err);
       this.errorSeleccion.set((err as Error).message ?? 'No se pudo quitar el mensaje.');
     } finally {
       this.ejecutando.set(false);
@@ -573,6 +640,7 @@ export class LineasListComponent implements OnInit {
     cambios: Pick<CambiosEnLoteRequest, 'glosas' | 'novedades'>,
     exito: (aplicadas: number) => string
   ): Promise<void> {
+    if (this.sinCambiosDeDatos()) return;
     const lineas = this.facade.referenciasSeleccionadas();
     if (!this.guardar(lineas, 'aplicar el cambio')) return;
 
@@ -596,6 +664,7 @@ export class LineasListComponent implements OnInit {
       this.facade.limpiarSeleccion();
       this.facade.recargar();
     } catch (err: unknown) {
+      this.cuentas.alRechazarUnCambio(err);
       this.errorSeleccion.set((err as Error).message ?? 'No se pudo aplicar el cambio.');
     } finally {
       this.ejecutando.set(false);
@@ -828,7 +897,8 @@ export class LineasListComponent implements OnInit {
   }
 
   editarEnFila(row: ResumenLineaModel): void {
-    if (!row.editable) return;
+    // La línea y la cuenta: una línea editable de una cuenta fuera de Modificación no se abre.
+    if (!this.sePuedeEditar(row)) return;
     this.suscripcionFormulario?.unsubscribe();
     this.formularioFila = crearFormularioEnFila(row);
     this.suscripcionFormulario = merge(
@@ -876,6 +946,9 @@ export class LineasListComponent implements OnInit {
   });
 
   async guardarFila(row: ResumenLineaModel): Promise<void> {
+    // Si la cuenta salió de Modificación con la fila abierta, el efecto ya la habrá cerrado; esto
+    // es por si el Enter llega antes.
+    if (!this.cuentas.admiteCambios()) { this.cancelarEdicionEnFila(); return; }
     const f = this.formularioFila;
     if (!f || this.motivoParaNoGuardar() !== null) {
       f?.markAllAsTouched();

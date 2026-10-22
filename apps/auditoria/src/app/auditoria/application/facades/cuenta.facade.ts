@@ -57,30 +57,72 @@ export class CuentaFacade {
     return this.acciones().includes(accion);
   }
 
+  /**
+   * Si se pueden cambiar los datos de la cuenta (EST-01): la línea, la fila de la grilla, el
+   * lote, las novedades de cabecera y los pendientes que se añaden. **El único sitio** de la
+   * pantalla donde vive la regla; todas las superficies la leen de aquí.
+   *
+   * Sale de lo que publica el servicio y no del estado: el servicio es la autoridad y la hace
+   * cumplir. `=== true` a propósito: sin cuenta todavía, o con un servicio que no lo mande,
+   * da `false` —ante la duda no se edita— y se enciende sola cuando llega la cuenta.
+   */
+  readonly admiteCambios = computed(() => this.cuenta()?.admiteCambios === true);
+
+  /**
+   * Vuelve a pedir la cuenta y sus acciones. Para lo que cambia la cuenta por otro camino que
+   * los comandos de aquí —una resolución de pendientes, que puede moverla de estado (EST-03.4)—:
+   * la barra y la regla de cambios derivan de la cuenta y la siguen solas. Y para un comando de
+   * aquí que el servicio rechaza: el rechazo puede deberse a que la cuenta cambió por detrás.
+   */
+  recargar(): void {
+    this._cuentaResource.reload();
+    this._accionesResource.reload();
+  }
+
+  /**
+   * Para los comandos de datos de otras fachadas y pantallas (línea, fila, lote, pendiente que
+   * se añade). Si el servicio los rechazó con 409 `CUENTA_NO_MODIFICABLE`, la cuenta salió de
+   * Modificación por detrás —en OHI o en otra pestaña— y lo que pinta la pantalla es viejo. Se
+   * relee: la edición abierta se cierra sola (EST-01.8) y aparece «Pasar a Modificación»
+   * (EST-01.4). Cualquier otro rechazo no dice nada del estado y no se relee por él.
+   */
+  alRechazarUnCambio(error: unknown): void {
+    if (esCuentaNoModificable(error)) this.recargar();
+  }
+
   // ── Signals de comando ────────────────────────────────────────────
   readonly tiquete     = signal<TiqueteResponse | null>(null);
   readonly errorComando = signal<string | null>(null);
 
   /**
-   * Busca una cuenta por código. rxResource recarga automáticamente.
+   * Abre una cuenta por su código. Lo llama la vista de la cuenta cada vez que nace.
+   *
+   * El facade es de toda la aplicación y sobrevive a la vista, así que entrar a una cuenta no
+   * es lo mismo según cuál se viera antes:
+   *
+   * - **Otra cuenta.** Los recursos la piden solos al cambiar la señal. Lo anotado y sin guardar
+   *   de la anterior se descarta aquí: si siguiera, la cabecera de la nueva lo enseñaría como
+   *   suyo y «Guardar» lo escribiría en ella con su versión, sin que el bloqueo optimista lo
+   *   frenara —un alta de novedad no lleva nada que la ate a su cuenta—. Lo mismo el error del
+   *   último comando, que era de la otra.
+   * - **La misma cuenta otra vez** (volver desde el buscador, o desde la foto de una versión
+   *   por «Abrir esta versión»). La señal no cambia —compara con `Object.is`—, los recursos no
+   *   se enteran y servirían la cuenta y las acciones de la visita anterior, que pueden haber
+   *   cambiado entretanto (finalizada, por ejemplo). Mezcladas con el histórico, que la vista sí
+   *   vuelve a pedir, el selector ofrecería una versión «en curso» que no existe y «Enviar» se
+   *   habilitaría con acciones caducadas (BTN-12.7). Se recargan; mientras, `hasValue()` deja a
+   *   la vista con lo anterior y `loading()` en true. Lo anotado sí se conserva: es de esta cuenta.
    */
   buscar(codigo: string): void {
-    this.codigoBuscado.set(codigo.trim().toUpperCase());
-  }
-
-  /**
-   * Descarta la última cuenta consultada.
-   *
-   * Como el facade es un singleton de toda la app, `cuenta()` sigue devolviendo
-   * la última cuenta vista incluso después de navegar a otra pantalla. Sin
-   * limpiar este estado, volver al buscador reabre de inmediato esa misma
-   * cuenta: el efecto de `CuentaBusquedaComponent` que navega "cuando aparece
-   * una cuenta" ve el valor heredado y redirige antes de que el usuario pueda
-   * escribir un código nuevo. Se llama al entrar al buscador.
-   */
-  limpiar(): void {
-    this.codigoBuscado.set(null);
+    const normalizado = codigo.trim().toUpperCase();
+    if (normalizado === this.codigoBuscado()) {
+      this._cuentaResource.reload();
+      this._accionesResource.reload();
+      return;
+    }
+    this.cambiosDeNovedad.set([]);
     this.errorComando.set(null);
+    this.codigoBuscado.set(normalizado);
   }
 
   // ── Novedades de la cabecera ─────────────────────────────────────────────
@@ -113,7 +155,8 @@ export class CuentaFacade {
   async guardarNovedades(codigo: string, auditor: string): Promise<boolean> {
     const cambios = this.cambiosDeNovedad();
     const cuenta = this.cuenta();
-    if (cambios.length === 0 || !cuenta) return false;
+    // Fuera de Modificación no hay nada que mandar: el servicio lo rechazaría con 409 (EST-01).
+    if (cambios.length === 0 || !cuenta || !this.admiteCambios()) return false;
 
     this.errorComando.set(null);
     this.guardandoNovedades.set(true);
@@ -180,9 +223,12 @@ export class CuentaFacade {
         return true;
       }
       this.errorComando.set((err as Error).message ?? 'No se pudo ejecutar la acción');
-      // También al fallar: el estado pudo cambiarlo otro, y es lo que explica
-      // un conflicto.
-      this._accionesResource.reload();
+      // También al fallar: el estado pudo cambiarlo otro, y es lo que explica un conflicto. La
+      // cuenta y las acciones, no solo estas: el estado vive en la cuenta, y releer solo lo
+      // publicado lo mezclaba con el estado viejo —«Pasar a Modificación» apagado con un motivo
+      // falso, y sin poder editar una cuenta que otro ya había pasado a Modificación—. Las
+      // líneas no: la acción no se aplicó.
+      this.recargar();
       return false;
     } finally {
       this.ejecutandoAccion.set(null);
@@ -215,6 +261,9 @@ export class CuentaFacade {
       return true;
     } catch (err: unknown) {
       this.errorComando.set((err as Error).message ?? 'Error al enviar la cuenta');
+      // Por lo mismo que al fallar una acción: el rechazo puede deberse a que otro la movió, y
+      // la barra debe seguir al estado real (BTN-13.8). Si no cambió, se relee la misma.
+      this.recargar();
       return false;
     }
   }
@@ -226,6 +275,11 @@ export class CuentaFacade {
  */
 function esAplicadoSinRelectura(error: unknown): boolean {
   return (error as { codigo?: string | null } | null)?.codigo === 'APLICADO_SIN_RELEER';
+}
+
+/** Si el servicio rechazó un cambio de datos porque la cuenta no está en Modificación (EST-01.6). */
+function esCuentaNoModificable(error: unknown): boolean {
+  return (error as { codigo?: string | null } | null)?.codigo === 'CUENTA_NO_MODIFICABLE';
 }
 
 /**

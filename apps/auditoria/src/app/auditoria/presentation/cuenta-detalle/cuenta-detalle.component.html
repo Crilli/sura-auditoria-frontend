@@ -1,3 +1,6 @@
+<!-- La cuenta actual (la viva), o `null` mientras llega o si falló. La leen la barra y el cuerpo. -->
+@let cuenta = facade.cuenta();
+
 <div class="detalle-container" [style.--alto-barra-cuenta]="ALTO_BARRA_PX + 'px'">
 
   <!--
@@ -6,7 +9,7 @@
     encima de nada— y lleva solo lo que se usa a cada rato; lo secundario va en el menú.
     «Inicio» está siempre, incluso durante la carga o si la cuenta no existe.
   -->
-  <div class="barra-cuenta" role="region" aria-label="Barra de la cuenta">
+  <div class="barra-cuenta" role="region" aria-label="Barra de la cuenta" [class.barra-cuenta--foto]="enFoto()">
     <button mat-button
             type="button"
             class="inicio"
@@ -18,39 +21,139 @@
       <span class="inicio__rotulo">Inicio</span>
     </button>
 
-    @if (facade.cuenta(); as cuenta) {
-      <!-- Solo cuando la franja de resumen ya no se ve: arriba del todo sería repetirla. -->
-      @if (resumenFueraDeVista()) {
+    <!--
+      En la foto de una versión (BTN-12) la barra no depende de la cuenta viva: la foto se ve
+      aunque la cuenta actual tarde o falle, y lo que la barra ofrece allí no la necesita.
+    -->
+    @if (enFoto() || cuenta) {
+      <!-- Solo cuando la franja de resumen ya no se ve: arriba del todo sería repetirla. En la
+           foto no hay franja viva, y el resumen de la cuenta actual encima de una foto mentiría. -->
+      @if (!enFoto() && cuenta && resumenFueraDeVista()) {
         <div class="barra-cuenta__resumen" id="barra-resumen">
           <span class="barra-cuenta__codigo"><span class="barra-cuenta__prefijo">Cuenta </span>{{ cuenta.codigo }}</span>
           <span class="estado-badge barra-cuenta__estado"
                 [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</span>
+          <!-- El glosado ocupa el sitio del antiguo «No reconocido» (BTN-11.2), que no tiene
+               definición en la tabla de importes del 2026-10-21 y no se calcula. -->
+          @let totalesBarra = totalesDe(cuenta);
           <span class="barra-cuenta__dato">
-            No reconocido
-            <strong class="valor--diferencia">{{ diferencia(cuenta) | currency:'COP':'symbol':'1.0-0' }}</strong>
+            Glosado
+            <strong class="valor--glosado">{{ totalesBarra.glosado === null ? '—' : (totalesBarra.glosado | currency:'COP':'symbol':'1.0-0') }}</strong>
           </span>
         </div>
       }
 
       <div class="barra-cuenta__acciones">
         <!--
-          Apagado pero alcanzable con el tabulador (`disabledInteractive`): así el tooltip describe
-          al propio botón y el lector de pantalla lee el motivo, y tras enviar el diálogo puede
-          devolverle el foco aunque ya no se pueda enviar. El clic se frena en el componente.
+          El selector de versión (BTN-12), lo primero de la botonera: el grupo no se recorta
+          nunca —lo que cede en pantalla angosta es el resumen—, así que siempre se ve qué versión
+          hay en pantalla. Sin versiones en el histórico no hay nada que navegar y no sale.
         -->
-        <button mat-flat-button color="primary"
-                type="button"
-                id="btn-enviar"
-                disabledInteractive
-                [disabled]="!!motivoParaNoEnviar(cuenta)"
-                [matTooltip]="motivoParaNoEnviar(cuenta) ?? ''"
-                [matTooltipDisabled]="!motivoParaNoEnviar(cuenta)"
-                (click)="abrirDialogoEnviar(cuenta)">
-          <mat-icon>send</mat-icon>
-          Enviar
-        </button>
+        @if (opcionesDeVersion().length > 0) {
+          <button mat-stroked-button
+                  type="button"
+                  id="btn-version"
+                  class="selector-version"
+                  [class.selector-version--foto]="enFoto()"
+                  [matMenuTriggerFor]="menuVersiones"
+                  [matTooltip]="enFoto() ? 'Estás viendo una foto: cambiar de versión' : 'Cambiar de versión'"
+                  [attr.aria-label]="etiquetaDelSelector()">
+            <mat-icon>{{ enFoto() ? 'photo_library' : 'layers' }}</mat-icon>
+            <span class="selector-version__prefijo">Versión </span>
+            @if (versionEnPantalla().numero; as n) { V{{ n }} } @else if (!enFoto()) { actual }
+            @if (versionEnPantalla().rotulo; as rotulo) {
+              <span class="selector-version__rotulo">{{ rotulo }}</span>
+            }
+            <mat-icon class="selector-version__flecha" iconPositionEnd>arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #menuVersiones="matMenu" xPosition="before" class="menu-versiones">
+            @for (o of opcionesDeVersion(); track o.destino + (o.numero ?? '')) {
+              @if (o.destino === 'actual') {
+                <a mat-menu-item id="menu-version-actual" routerLink="lineas"
+                   [attr.aria-current]="o.enPantalla ? 'page' : null"
+                   [class.opcion-version--en-pantalla]="o.enPantalla">
+                  <mat-icon>{{ o.enPantalla ? 'check' : 'edit_note' }}</mat-icon>
+                  <span class="opcion-version">
+                    <span class="opcion-version__titulo">
+                      @if (o.numero !== null) { V{{ o.numero }} · {{ o.rotulo }} · cuenta actual }
+                      @else { Cuenta actual }
+                    </span>
+                    <span class="opcion-version__detalle">{{ o.estado | textoEstado }}</span>
+                  </span>
+                </a>
+              } @else {
+                <a mat-menu-item [attr.id]="'menu-version-' + o.numero" [routerLink]="['versiones', o.numero]"
+                   [attr.aria-current]="o.enPantalla ? 'page' : null"
+                   [class.opcion-version--en-pantalla]="o.enPantalla">
+                  <mat-icon>{{ o.enPantalla ? 'check' : 'photo_library' }}</mat-icon>
+                  <span class="opcion-version">
+                    <span class="opcion-version__titulo">V{{ o.numero }}</span>
+                    <span class="opcion-version__detalle">
+                      {{ o.estado | textoEstado }}
+                      @if (o.desde) { el {{ o.desde | date:'dd/MM/yyyy' }} }
+                      @else if (o.fechaEntrada) { · entrada {{ o.fechaEntrada | date:'dd/MM/yyyy' }} }
+                    </span>
+                  </span>
+                </a>
+              }
+            }
+          </mat-menu>
+        }
+
+        @if (enFoto()) {
+          <!--
+            En la foto «Enviar» desaparece, no se apaga: apagado seguiría alcanzable con el
+            tabulador, y enviaría la cuenta actual desde una pantalla que enseña otra versión.
+            Su sitio lo ocupa la vuelta a la cuenta actual.
+          -->
+          <a mat-stroked-button color="primary" id="btn-ir-a-actual" routerLink="lineas"
+             matTooltip="Volver a la cuenta actual" aria-label="Volver a la cuenta actual">
+            <mat-icon>update</mat-icon>
+            <span class="ir-a-actual__rotulo">Volver a la cuenta actual</span>
+          </a>
+        } @else if (cuenta) {
+          <!--
+            El envío (BTN-13): «Aceptar» en adjudicación manual y «Enviar» en el resto; por debajo
+            es el mismo POST. Nunca se apaga —pendientes, el envío sin publicar o la consulta de
+            acciones se avisan dentro de su diálogo— y solo desaparece con la cuenta finalizada:
+            si OHI no deja, el servicio lo rechaza y el auditor lee por qué (decisión del 2026-10-21).
+          -->
+          @if (seMuestraElEnvio(cuenta.estado)) {
+            @let rotulo = rotuloDelEnvio(cuenta.estado);
+            <button mat-flat-button color="primary"
+                    type="button"
+                    id="btn-enviar"
+                    (click)="abrirDialogoEnviar(cuenta)">
+              <mat-icon>{{ rotulo === 'Aceptar' ? 'task_alt' : 'send' }}</mat-icon>
+              {{ rotulo }}
+            </button>
+          }
+          <!--
+            El único camino para cambiar datos fuera de Modificación (EST-02): devolver la cuenta o,
+            si está finalizada, desfinalizarla. Apagado pero alcanzable con el tabulador
+            (`disabledInteractive`) cuando OHI no lo publica, para que el tooltip describa al propio
+            botón y el lector de pantalla lea el motivo; el clic se frena en el componente. En
+            pantalla angosta se queda en su icono antes que nada (BTN-11.6): el `aria-label` lo nombra.
+          -->
+          @if (accionParaPasarAModificacion(cuenta.estado)) {
+            @let motivoPaso = motivoParaNoPasarAModificacion(cuenta);
+            <button mat-stroked-button
+                    type="button"
+                    id="btn-pasar-a-modificacion"
+                    class="pasar-a-modificacion"
+                    disabledInteractive
+                    [disabled]="!!motivoPaso"
+                    [matTooltip]="motivoPaso ?? 'Pasar la cuenta a Modificación para cambiar sus datos'"
+                    aria-label="Pasar a Modificación"
+                    (click)="pasarAModificacion(cuenta)">
+              <mat-icon>edit_note</mat-icon>
+              <span class="pasar-a-modificacion__rotulo">Pasar a Modificación</span>
+            </button>
+          }
+        }
 
         <button mat-icon-button
+                #botonMenu
                 type="button"
                 id="btn-menu-cuenta"
                 [matMenuTriggerFor]="menuCuenta"
@@ -61,497 +164,623 @@
         </button>
         <!-- El motivo no es una opción del menú: se le cuelga como descripción para que se lea. -->
         <mat-menu #menuCuenta="matMenu" xPosition="before"
-                  [aria-describedby]="motivoParaNoEnviar(cuenta) ? 'motivo-no-enviar' : ''">
+                  [aria-describedby]="!enFoto() && cuenta && motivoParaNoPasarAModificacion(cuenta) ? 'motivo-no-pasar-a-modificacion' : ''">
           <!--
             La historia es una consulta puntual —«¿quién la desfinalizó y cuándo?»—: un panel
             permanente le quitaría sitio a lo que sí se mira a diario, y así se consulta solo
-            cuando se pide.
+            cuando se pide. Las versiones ya no van aquí: las ofrece el selector de la barra.
           -->
-          <button mat-menu-item id="menu-historia" (click)="abrirHistoria(cuenta)">
+          <button mat-menu-item id="menu-historia" (click)="abrirHistoria()">
             <mat-icon>history</mat-icon>
             <span>Historia de la cuenta</span>
           </button>
-          @if (versionVigente(); as v) {
-            <button mat-menu-item id="menu-version" (click)="abrirVersionVigente(cuenta)">
-              <mat-icon>description</mat-icon>
-              <span>Versión transmitida V{{ v.numero }}</span>
-            </button>
-          }
           <!--
             Un atajo, no una mudanza: las acciones siguen en «Datos de la cuenta» (decisión del
-            2026-10-17 sobre BTN-01 y BTN-09). Abre ese bloque y lo trae a la vista.
+            2026-10-17 sobre BTN-01 y BTN-09). Abre ese bloque y lo trae a la vista. En la foto
+            no está: las acciones son de la cuenta actual, y su bloque no se pinta.
           -->
-          <button mat-menu-item id="menu-acciones" (click)="irALasAcciones()">
-            <mat-icon>tune</mat-icon>
-            <span>Acciones habilitadas</span>
-          </button>
-          @if (motivoParaNoEnviar(cuenta); as motivo) {
-            <div class="menu-helper-text" id="motivo-no-enviar">{{ motivo }}</div>
+          @if (!enFoto() && cuenta) {
+            <button mat-menu-item id="menu-acciones" (click)="irALasAcciones()">
+              <mat-icon>tune</mat-icon>
+              <span>Acciones habilitadas</span>
+            </button>
+            <!-- También aquí (EST-02): en pantalla angosta el de la barra es solo un icono. -->
+            @if (accionParaPasarAModificacion(cuenta.estado)) {
+              <button mat-menu-item id="menu-pasar-a-modificacion"
+                      [disabled]="!!motivoParaNoPasarAModificacion(cuenta)"
+                      (click)="pasarAModificacion(cuenta)">
+                <mat-icon>edit_note</mat-icon>
+                <span>Pasar a Modificación</span>
+              </button>
+              @if (motivoParaNoPasarAModificacion(cuenta); as motivo) {
+                <div class="menu-helper-text" id="motivo-no-pasar-a-modificacion">{{ motivo }}</div>
+              }
+            }
           }
         </mat-menu>
       </div>
     }
   </div>
 
-  @if (facade.loading()) {
-    <div class="loading-overlay">
-      <mat-spinner></mat-spinner>
-      <p>Cargando información de la cuenta...</p>
+  <!-- La carga y el error de la cuenta actual no son de la foto: allí no se enseñan. -->
+  @if (!enFoto()) {
+    @if (facade.loading()) {
+      <div class="loading-overlay">
+        <mat-spinner></mat-spinner>
+        <p>Cargando información de la cuenta...</p>
+      </div>
+    }
+
+    @if (facade.cuentaError()) {
+      <div class="error-banner">
+        <mat-icon>error</mat-icon>
+        <span>{{ facade.cuentaError()?.message }}</span>
+      </div>
+    }
+  }
+
+  <!--
+    Una versión que no está en el histórico —inexistente, o la que se está trabajando— no tiene
+    foto, y se dice (BTN-12.5): ni una foto en blanco ni la cuenta actual haciéndose pasar por ella.
+  -->
+  @if (sinFoto(); as motivo) {
+    <div class="sin-foto sura-mensaje sura-mensaje--alerta" role="alert" id="sin-foto">
+      <mat-icon>{{ motivo === 'EN_CURSO' ? 'edit_note' : 'image_not_supported' }}</mat-icon>
+      <div class="sin-foto__texto">
+        @if (motivo === 'EN_CURSO') {
+          <strong>La V{{ numeroEnVista() }} se está trabajando: es la cuenta actual.</strong>
+          <span>Solo las versiones finalizadas tienen foto.</span>
+        } @else {
+          <strong>La {{ esNumeroDeVersion(numeroEnVista()) ? 'V' + numeroEnVista() : 'versión pedida' }} no tiene foto: no está en el histórico de lo transmitido.</strong>
+          <!-- De qué versiones sí hay foto, solo con el histórico en la mano: «todavía no tiene
+               versiones finalizadas» no puede salir de una lista que no ha llegado o que falló. -->
+          @if (estadoVersiones() === 'ok') {
+            @if (ultimaDelHistorico(); as ultima) {
+              <span>Esta cuenta tiene foto de la V1 a la V{{ ultima }}.</span>
+            } @else {
+              <span>Esta cuenta todavía no tiene versiones finalizadas.</span>
+            }
+          } @else if (estadoVersiones() === 'error') {
+            <span>No se pudo consultar de qué versiones hay foto.</span>
+          }
+        }
+      </div>
+      <a mat-flat-button color="primary" id="btn-volver-sin-foto" routerLink="lineas">
+        Volver a la cuenta actual
+      </a>
     </div>
   }
 
-  @if (facade.cuentaError()) {
-    <div class="error-banner">
-      <mat-icon>error</mat-icon>
-      <span>{{ facade.cuentaError()?.message }}</span>
+  <!--
+    Mientras no se sabe si la versión tiene foto, ni sí ni no (BTN-12.5): un estado neutro, que no
+    es una alerta. Ni el aviso «Estás viendo…» de una foto que puede no existir, ni el «no tiene
+    foto» de una versión que puede ser la que se trabaja.
+  -->
+  @if (estadoDeLaVersion() === 'COMPROBANDO') {
+    <div class="foto-cuenta__cargando" role="status" id="comprobando-version">
+      <mat-spinner diameter="28"></mat-spinner>
+      <span>Comprobando la V{{ numeroEnVista() }}…</span>
     </div>
   }
 
-  @if (facade.cuenta(); as cuenta) {
-    <div class="header-section">
-
+  @if (enFoto() ? (estadoDeLaVersion() === 'FOTO' || estadoDeLaVersion() === 'ERROR') : !!cuenta) {
+    @if (enFoto()) {
       <!--
-        Franja de resumen: lo único que ocupa espacio de forma permanente.
-        El resto de la cabecera vive en acordeones para que las pestañas de
-        trabajo (Líneas / Pendientes / Seguimiento) queden sobre el pliegue.
+        La foto de la versión, en lugar de la cabecera viva. Nada de lo de abajo se edita: es como
+        quedó la cuenta al finalizarse esa versión, leída del histórico (BTN-12, BUS-20).
+        Si no se pudo consultar, la tarjeta dice el fallo y deja reintentar; las líneas siguen.
       -->
-      <div class="header-resumen" #resumen>
-        <div class="titulo">
-          <h1>Cuenta {{ cuenta.codigo }}</h1>
-          <span class="estado-badge" [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</span>
-          @if (cuenta.pendientesSinResolver > 0) {
-            <span class="estado-badge estado-badge--alerta">
-              {{ cuenta.pendientesSinResolver }} pendiente(s) de cabecera
+      <section class="foto-cuenta" aria-labelledby="titulo-foto">
+        @if (foto()) {
+          <p class="foto-cuenta__aviso" role="note">
+            <mat-icon aria-hidden="true">photo_camera</mat-icon>
+            <span>
+              Estás viendo la <strong>V{{ numeroEnVista() }}</strong> tal como quedó al finalizarse.
+              Es una foto: no se puede editar.
             </span>
+            <a mat-button color="primary" id="aviso-ir-a-actual" routerLink="lineas">Volver a la cuenta actual</a>
+          </p>
+        }
+
+        <div class="foto-cuenta__tarjeta">
+          <h1 id="titulo-foto">
+            Cuenta {{ cuenta?.codigo ?? codigo }} · V{{ numeroEnVista() }}
+            @if (foto()) { <span class="sura-distintivo sura-distintivo--info">Foto</span> }
+          </h1>
+          @if (foto(); as f) {
+            <sura-foto-version [foto]="f" />
+          } @else if (errorDeFoto(); as mensaje) {
+            <!-- Al reintentar el aviso se queda, con el botón apagado y alcanzable: si se fuera,
+                 se llevaría el foco. -->
+            <div class="sura-mensaje sura-mensaje--error" role="alert" id="error-foto">
+              <mat-icon>error_outline</mat-icon>
+              <span>{{ mensaje }}</span>
+              <button mat-button color="primary" type="button" id="btn-reintentar-foto"
+                      disabledInteractive [disabled]="reintentandoFoto()"
+                      (click)="reintentarFoto()">{{ reintentandoFoto() ? 'Reintentando…' : 'Reintentar' }}</button>
+            </div>
           }
         </div>
+      </section>
 
-        <div class="resumen-financiero">
-          <div class="dato">
-            <label>Total Autorizado</label>
-            <span class="valor">{{ cuenta.totalAutorizado | currency:'COP':'symbol':'1.0-0' }}</span>
-          </div>
-          <div class="dato">
-            <label>Total Cubierto</label>
-            <span class="valor">{{ cuenta.totalCubierto | currency:'COP':'symbol':'1.0-0' }}</span>
-          </div>
-          <div class="dato">
-            <label>No reconocido</label>
-            <span class="valor valor--diferencia">
-              {{ diferencia(cuenta) | currency:'COP':'symbol':'1.0-0' }}
-            </span>
-          </div>
-        </div>
-      </div>
+      <!-- Una sola pestaña: en el histórico no hay pendientes por versión, y el seguimiento es
+           del envío de la cuenta actual. -->
+      <nav mat-tab-nav-bar #pestanas [tabPanel]="tabPanel" class="pestanas-cuenta" id="pestanas-foto">
+        <a mat-tab-link [routerLink]="['versiones', numeroEnVista(), 'lineas']" routerLinkActive
+           #rlaLineasVersion="routerLinkActive" [active]="rlaLineasVersion.isActive"
+           (click)="alCambiarDePestana()">
+          Líneas · V{{ numeroEnVista() }}
+        </a>
+      </nav>
+    } @else if (cuenta) {
+      <div class="header-section">
 
-      <!--
-        `multi`: el auditor puede tener abiertos los dos bloques a la vez.
-        La preferencia de apertura se conserva entre cuentas (ver el componente).
-      -->
-      <mat-accordion multi class="header-detalle">
-
-        <mat-expansion-panel #panelCuenta
-                             id="panel-datos-cuenta"
-                             [expanded]="panelCuentaAbierto()"
-                             (opened)="panelCuentaAbierto.set(true)"
-                             (closed)="panelCuentaAbierto.set(false)">
-          <mat-expansion-panel-header #cabeceraPanelCuenta
-                                      collapsedHeight="44px" expandedHeight="44px"
-                                      aria-label="Datos de la cuenta">
-            <mat-panel-title>
-              <mat-icon aria-hidden="true">description</mat-icon>
-              Datos de la cuenta
-            </mat-panel-title>
-            <mat-panel-description>
-              {{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}
-              <!-- La versión de negocio, no el contador de bloqueo. El «v488» que había aquí
-                   era el segundo, y se leía como si fuera la versión de la cuenta. -->
-              @if (versionVigente(); as v) { · transmitida V{{ v.numero }} }
-            </mat-panel-description>
-          </mat-expansion-panel-header>
-
-          <div class="panel-cuerpo">
-            <dl class="detalle-cabecera">
-              <div>
-                <dt>Periodo de la cuenta</dt>
-                <dd>{{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}</dd>
-              </div>
-              <div>
-                <dt>Estado</dt>
-                <dd [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</dd>
-              </div>
-              <!--
-                Dos números que antes compartían rótulo y no tienen nada que ver:
-                · la VERSIÓN es la del documento transmitido —nace cada vez que la cuenta se
-                  desfinaliza y vuelve a cerrarse—, y es la que le importa al auditor. Se rotula
-                  «última transmitida» y no «vigente» porque el histórico solo guarda lo que ya
-                  se transmitió: medido en CM-94421, la respuesta a glosa abrió la V6 y el
-                  histórico llega a la V5, porque la V6 es la que se está trabajando;
-                · la REVISIÓN es el contador de bloqueo optimista del sistema de registro, que
-                  sube con cada escritura. Se conserva porque explica los conflictos de
-                  versión al guardar, pero ya no se llama «Versión».
-              -->
-              <div>
-                <dt>Última versión transmitida</dt>
-                <dd>
-                  @if (versionVigente(); as v) {
-                    <button mat-button color="primary" class="enlace-version"
-                            (click)="abrirVersionVigente(cuenta)"
-                            [matTooltip]="'Ver la versión ' + v.numero + ' tal como se transmitió'">
-                      V{{ v.numero }}
-                    </button>
-                    @if (versiones().length > 1) {
-                      <span class="dato-secundario">de {{ versiones().length }}</span>
-                    }
-                  } @else {
-                    <span matTooltip="La cuenta todavía no se ha transmitido">Sin transmitir</span>
-                  }
-                </dd>
-              </div>
-              <div>
-                <dt matTooltip="Contador de bloqueo optimista: sube con cada cambio guardado">
-                  Revisión
-                </dt>
-                <dd>{{ cuenta.version }}</dd>
-              </div>
-              <div>
-                <dt>Pendientes sin resolver</dt>
-                <dd>{{ cuenta.pendientesSinResolver }}</dd>
-              </div>
-            </dl>
-
-            <div class="acciones-disponibles">
-              <span class="acciones-disponibles__titulo">
-                Acciones habilitadas por el sistema de registro
+        <!--
+          Franja de resumen: lo único que ocupa espacio de forma permanente.
+          El resto de la cabecera vive en acordeones para que las pestañas de
+          trabajo (Líneas / Pendientes / Seguimiento) queden sobre el pliegue.
+        -->
+        <div class="header-resumen" #resumen>
+          <div class="titulo">
+            <h1>Cuenta {{ cuenta.codigo }}</h1>
+            <span class="estado-badge" [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</span>
+            @if (cuenta.pendientesSinResolver > 0) {
+              <span class="estado-badge estado-badge--alerta">
+                {{ cuenta.pendientesSinResolver }} pendiente(s) de cabecera
               </span>
-              @if (facade.accionesCargando()) {
-                <span class="sura-texto-suave">Consultando…</span>
-              } @else if (facade.acciones().length > 0) {
-                <ul class="acciones-disponibles__lista">
-                  @for (accion of facade.acciones(); track accion) {
-                    <li>
-                      @if (esEjecutable(accion)) {
-                        <button mat-stroked-button
-                                class="accion-boton"
-                                [class.accion-boton--grave]="esIrreversible(accion)"
-                                [disabled]="facade.ejecutandoAccion() !== null"
-                                (click)="ejecutar(cuenta, accion)">
-                          @if (esIrreversible(accion)) {
-                            <mat-icon>warning</mat-icon>
-                          }
-                          {{ facade.ejecutandoAccion() === accion
-                              ? 'Ejecutando…'
-                              : etiquetaAccion(accion) }}
-                        </button>
-                      } @else {
-                        <!-- Habilitada por el sistema de registro, pero con su
-                             propio camino en esta aplicación. Se dice cuál, en
-                             vez de dejar un botón muerto. -->
-                        <span class="sura-distintivo sura-distintivo--info accion-en-otro-sitio"
-                              [matTooltip]="aDondeLleva(accion)">
-                          {{ etiquetaAccion(accion) }}
-                        </span>
-                      }
-                    </li>
-                  }
-                </ul>
-              } @else {
-                <span class="sura-texto-suave">Ninguna en el estado actual.</span>
-              }
+            }
+          </div>
+
+          <!--
+            Los cuatro importes de la cuenta con el vocabulario que fijó negocio el 2026-10-21:
+            cargado = totalClaimedAmount, convenido = totalAllowedAmount (ENC-12), autorizado =
+            totalCoveredAmount (ENC-13) y glosado = totalValorGlosado. Hasta entonces la franja
+            rotulaba «Total Autorizado» al convenido y «Total Cubierto» al autorizado, y añadía un
+            «No reconocido» (convenido − autorizado) que la tabla no define: ya no se calcula.
+            Lo que OHI no trae es «—», no un cero.
+          -->
+          @let totales = totalesDe(cuenta);
+          <div class="resumen-financiero" id="resumen-financiero">
+            <div class="dato">
+              <label>Total cargado</label>
+              <span class="valor">{{ totales.cargado === null ? '—' : (totales.cargado | currency:'COP':'symbol':'1.0-0') }}</span>
+            </div>
+            <div class="dato">
+              <label>Total convenido</label>
+              <span class="valor">{{ totales.convenido === null ? '—' : (totales.convenido | currency:'COP':'symbol':'1.0-0') }}</span>
+            </div>
+            <div class="dato">
+              <label>Total autorizado</label>
+              <span class="valor">{{ totales.autorizado === null ? '—' : (totales.autorizado | currency:'COP':'symbol':'1.0-0') }}</span>
+            </div>
+            <div class="dato">
+              <label>Total glosado</label>
+              <span class="valor valor--glosado">{{ totales.glosado === null ? '—' : (totales.glosado | currency:'COP':'symbol':'1.0-0') }}</span>
             </div>
           </div>
-        </mat-expansion-panel>
+        </div>
 
-        <!-- Prestador de facturación: radicación, factura y trámite de la cuenta. -->
-        @if (cuenta.informacionFacturacion; as factura) {
-          <mat-expansion-panel [expanded]="panelPrestadorAbierto()"
-                               (opened)="panelPrestadorAbierto.set(true)"
-                               (closed)="panelPrestadorAbierto.set(false)">
-            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
-                                        aria-label="Prestador de facturación">
+        <!--
+          `multi`: el auditor puede tener abiertos los dos bloques a la vez.
+          La preferencia de apertura se conserva entre cuentas (ver el componente).
+        -->
+        <mat-accordion multi class="header-detalle">
+
+          <mat-expansion-panel #panelCuenta
+                               id="panel-datos-cuenta"
+                               [expanded]="panelCuentaAbierto()"
+                               (opened)="panelCuentaAbierto.set(true)"
+                               (closed)="panelCuentaAbierto.set(false)">
+            <mat-expansion-panel-header #cabeceraPanelCuenta
+                                        collapsedHeight="44px" expandedHeight="44px"
+                                        aria-label="Datos de la cuenta">
               <mat-panel-title>
-                <mat-icon aria-hidden="true">local_hospital</mat-icon>
-                Prestador de facturación
+                <mat-icon aria-hidden="true">description</mat-icon>
+                Datos de la cuenta
               </mat-panel-title>
-              <!-- Lo esencial se lee sin abrir el panel. -->
-              <mat-panel-description>{{ resumenPrestador(factura) }}</mat-panel-description>
+              <mat-panel-description>
+                {{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}
+                <!-- La versión de negocio, no el contador de bloqueo. El «v488» que había aquí
+                     era el segundo, y se leía como si fuera la versión de la cuenta. -->
+                @if (versionVigente(); as v) { · transmitida V{{ v.numero }} }
+              </mat-panel-description>
             </mat-expansion-panel-header>
 
             <div class="panel-cuerpo">
-              <div class="grupos">
-
-                <section class="grupo">
-                  <h3 class="grupo__titulo">Identificación y trámite</h3>
-                  <dl class="detalle-cabecera">
-                    <!--
-                      Nombre arriba y NIT debajo, y no «NOMBRE (NIT)» en una línea: el NIT se
-                      copia para buscar en otros sistemas y seleccionarlo suelto es más fácil.
-                      Si el padrón no devolvió el nombre se pinta solo el NIT, sin renglón vacío.
-                    -->
-                    <div>
-                      <dt>Prestador</dt>
-                      <dd>
-                        {{ factura.prestadorFacturacionNombre ?? factura.prestadorFacturacionNit ?? '—' }}
-                        @if (factura.prestadorFacturacionNombre && factura.prestadorFacturacionNit) {
-                          <span class="sura-dato-secundario">NIT {{ factura.prestadorFacturacionNit }}</span>
-                        }
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>N° Factura</dt>
-                      <dd>{{ factura.numeroFactura ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>N° Radicado</dt>
-                      <dd>{{ factura.numeroRadicado ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Tipo de servicio</dt>
-                      <dd>{{ factura.tipoServicio ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Pagar a prestador</dt>
-                      <dd>
-                        {{ factura.pagarAPrestadorNombre ?? factura.pagarAPrestadorNit ?? '—' }}
-                        @if (factura.pagarAPrestadorNombre && factura.pagarAPrestadorNit) {
-                          <span class="sura-dato-secundario">NIT {{ factura.pagarAPrestadorNit }}</span>
-                        }
-                        @if (factura.pagarAPrestadorNit && factura.prestadorFacturacionNit
-                             && factura.pagarAPrestadorNit !== factura.prestadorFacturacionNit) {
-                          <span class="sura-dato-secundario cuenta-detalle__cobra-otro">cobra otro prestador</span>
-                        }
-                      </dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section class="grupo">
-                  <h3 class="grupo__titulo">Fechas</h3>
-                  <dl class="detalle-cabecera">
-                    <div>
-                      <dt>Radicación</dt>
-                      <dd>{{ (factura.fechaRadicacion | date:'dd/MM/yyyy') ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Emisión</dt>
-                      <dd>{{ (factura.fechaEmision | date:'dd/MM/yyyy') ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Vencimiento</dt>
-                      <dd>{{ (factura.fechaVencimiento | date:'dd/MM/yyyy') ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Ingreso</dt>
-                      <dd>{{ (factura.fechaIngreso | date:'dd/MM/yyyy') ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Egreso</dt>
-                      <dd>{{ (factura.fechaEgreso | date:'dd/MM/yyyy') ?? '—' }}</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section class="grupo">
-                  <h3 class="grupo__titulo">Valores</h3>
-                  <dl class="detalle-cabecera">
-                    <div>
-                      <dt>Valor factura</dt>
-                      <dd>{{ factura.valorFactura === null ? '—' : (factura.valorFactura | currency:'COP':'symbol':'1.0-0') }}</dd>
-                    </div>
-                    <div>
-                      <dt>Valor total factura</dt>
-                      <dd>{{ factura.valorTotalFactura === null ? '—' : (factura.valorTotalFactura | currency:'COP':'symbol':'1.0-0') }}</dd>
-                    </div>
-                    <div>
-                      <dt>Total cargado</dt>
-                      <dd>{{ factura.totalCargado === null ? '—' : (factura.totalCargado | currency:'COP':'symbol':'1.0-0') }}</dd>
-                    </div>
-                    <div>
-                      <dt>Total convenido</dt>
-                      <dd>{{ factura.totalConvenido === null ? '—' : (factura.totalConvenido | currency:'COP':'symbol':'1.0-0') }}</dd>
-                    </div>
-                    <div>
-                      <dt>Total valor glosado</dt>
-                      <dd>{{ factura.totalValorGlosado === null ? '—' : (factura.totalValorGlosado | currency:'COP':'symbol':'1.0-0') }}</dd>
-                    </div>
-                    <div>
-                      <dt>Valor NC crédito</dt>
-                      <dd>{{ factura.valorNotaCredito === null ? '—' : (factura.valorNotaCredito | currency:'COP':'symbol':'1.0-0') }}</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                <section class="grupo">
-                  <h3 class="grupo__titulo">Marcas y acuse</h3>
-                  <dl class="detalle-cabecera">
-                    <div>
-                      <dt>Acuse de recibido</dt>
-                      <dd>{{ factura.acuseRecibido ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Marca radicado ATEP</dt>
-                      <dd>{{ factura.marcaRadicadoAtep ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Marca multicore</dt>
-                      <dd>{{ factura.marcaMulticore ?? '—' }}</dd>
-                    </div>
-                    <div>
-                      <dt>Marca pendiente manual</dt>
-                      <dd>{{ factura.marcaPendienteManual ?? '—' }}</dd>
-                    </div>
-                  </dl>
-                </section>
-
-                @if (factura.observacionesInternas || factura.observacionesExternas) {
-                  <section class="grupo grupo--ancho">
-                    <h3 class="grupo__titulo">Observaciones</h3>
-                    <dl class="detalle-cabecera detalle-cabecera--observaciones">
-                      @if (factura.observacionesInternas) {
-                        <div>
-                          <dt>Observaciones internas</dt>
-                          <dd>{{ factura.observacionesInternas }}</dd>
-                        </div>
+              <dl class="detalle-cabecera">
+                <div>
+                  <dt>Periodo de la cuenta</dt>
+                  <dd>{{ cuenta.fechaInicio | date:'dd/MM/yyyy' }} — {{ cuenta.fechaFin | date:'dd/MM/yyyy' }}</dd>
+                </div>
+                <div>
+                  <dt>Estado</dt>
+                  <dd [matTooltip]="cuenta.estado | estadoEnOhi">{{ cuenta.estado | textoEstado }}</dd>
+                </div>
+                <!--
+                  Dos números que antes compartían rótulo y no tienen nada que ver:
+                  · la VERSIÓN es la del documento transmitido —nace cada vez que la cuenta se
+                    desfinaliza y vuelve a cerrarse—, y es la que le importa al auditor. Se rotula
+                    «última transmitida» y no «vigente» porque el histórico solo guarda lo que ya
+                    se transmitió: medido en CM-94421, la respuesta a glosa abrió la V6 y el
+                    histórico llega a la V5, porque la V6 es la que se está trabajando;
+                  · la REVISIÓN es el contador de bloqueo optimista del sistema de registro, que
+                    sube con cada escritura. Se conserva porque explica los conflictos de
+                    versión al guardar, pero ya no se llama «Versión».
+                -->
+                <div>
+                  <dt>Última versión transmitida</dt>
+                  <dd>
+                    @if (versionVigente(); as v) {
+                      <!-- Lleva a la foto de esa versión, con sus líneas (BTN-12); antes abría
+                           un diálogo con la cabecera y los importes. -->
+                      <a mat-button color="primary" class="enlace-version"
+                         [routerLink]="['versiones', v.numero]"
+                         [matTooltip]="'Ver la versión ' + v.numero + ' tal como se transmitió'">
+                        V{{ v.numero }}
+                      </a>
+                      @if (versiones().length > 1) {
+                        <span class="dato-secundario">de {{ versiones().length }}</span>
                       }
-                      @if (factura.observacionesExternas) {
-                        <div>
-                          <dt>Observaciones externas <span class="sura-texto-suave">(notas para la glosa o devolución)</span></dt>
-                          <dd>{{ factura.observacionesExternas }}</dd>
-                        </div>
-                      }
-                    </dl>
-                  </section>
+                    } @else {
+                      <span matTooltip="La cuenta todavía no se ha transmitido">Sin transmitir</span>
+                    }
+                  </dd>
+                </div>
+                <div>
+                  <dt matTooltip="Contador de bloqueo optimista: sube con cada cambio guardado">
+                    Revisión
+                  </dt>
+                  <dd>{{ cuenta.version }}</dd>
+                </div>
+                <div>
+                  <dt>Pendientes sin resolver</dt>
+                  <dd>{{ cuenta.pendientesSinResolver }}</dd>
+                </div>
+              </dl>
+
+              <div class="acciones-disponibles">
+                <span class="acciones-disponibles__titulo">
+                  Acciones habilitadas por el sistema de registro
+                </span>
+                @if (facade.accionesCargando()) {
+                  <span class="sura-texto-suave">Consultando…</span>
+                } @else if (facade.acciones().length > 0) {
+                  <ul class="acciones-disponibles__lista">
+                    @for (accion of facade.acciones(); track accion) {
+                      <li>
+                        @if (esEjecutable(accion)) {
+                          <button mat-stroked-button
+                                  class="accion-boton"
+                                  [class.accion-boton--grave]="esIrreversible(accion)"
+                                  [disabled]="facade.ejecutandoAccion() !== null"
+                                  (click)="ejecutar(cuenta, accion)">
+                            @if (esIrreversible(accion)) {
+                              <mat-icon>warning</mat-icon>
+                            }
+                            {{ facade.ejecutandoAccion() === accion
+                                ? 'Ejecutando…'
+                                : etiquetaAccion(accion) }}
+                          </button>
+                        } @else {
+                          <!-- Habilitada por el sistema de registro, pero con su
+                               propio camino en esta aplicación. Se dice cuál, en
+                               vez de dejar un botón muerto. -->
+                          <span class="sura-distintivo sura-distintivo--info accion-en-otro-sitio"
+                                [matTooltip]="aDondeLleva(accion)">
+                            {{ etiquetaAccion(accion) }}
+                          </span>
+                        }
+                      </li>
+                    }
+                  </ul>
+                } @else {
+                  <span class="sura-texto-suave">Ninguna en el estado actual.</span>
                 }
-
               </div>
             </div>
           </mat-expansion-panel>
-        }
 
-        <!--
-          Novedades de la cabecera. Siempre presente, aunque la cuenta no tenga
-          ninguna: si no, no habría dónde pulsar «agregar» justo en las cuentas
-          donde más falta hace.
-        -->
-        <mat-expansion-panel [expanded]="panelNovedadesAbierto()"
-                             (opened)="panelNovedadesAbierto.set(true)"
-                             (closed)="panelNovedadesAbierto.set(false)">
-          <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
-                                      aria-label="Novedades de la cuenta">
+          <!-- Prestador de facturación: radicación, factura y trámite de la cuenta. -->
+          @if (cuenta.informacionFacturacion; as factura) {
+            <mat-expansion-panel [expanded]="panelPrestadorAbierto()"
+                                 (opened)="panelPrestadorAbierto.set(true)"
+                                 (closed)="panelPrestadorAbierto.set(false)">
+              <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
+                                          aria-label="Prestador de facturación">
+                <mat-panel-title>
+                  <mat-icon aria-hidden="true">local_hospital</mat-icon>
+                  Prestador de facturación
+                </mat-panel-title>
+                <!-- Lo esencial se lee sin abrir el panel. -->
+                <mat-panel-description>{{ resumenPrestador(factura) }}</mat-panel-description>
+              </mat-expansion-panel-header>
+
+              <div class="panel-cuerpo">
+                <div class="grupos">
+
+                  <section class="grupo">
+                    <h3 class="grupo__titulo">Identificación y trámite</h3>
+                    <dl class="detalle-cabecera">
+                      <!--
+                        Nombre arriba y NIT debajo, y no «NOMBRE (NIT)» en una línea: el NIT se
+                        copia para buscar en otros sistemas y seleccionarlo suelto es más fácil.
+                        Si el padrón no devolvió el nombre se pinta solo el NIT, sin renglón vacío.
+                      -->
+                      <div>
+                        <dt>Prestador</dt>
+                        <dd>
+                          {{ factura.prestadorFacturacionNombre ?? factura.prestadorFacturacionNit ?? '—' }}
+                          @if (factura.prestadorFacturacionNombre && factura.prestadorFacturacionNit) {
+                            <span class="sura-dato-secundario">NIT {{ factura.prestadorFacturacionNit }}</span>
+                          }
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>N° Factura</dt>
+                        <dd>{{ factura.numeroFactura ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>N° Radicado</dt>
+                        <dd>{{ factura.numeroRadicado ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Tipo de servicio</dt>
+                        <dd>{{ factura.tipoServicio ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Pagar a prestador</dt>
+                        <dd>
+                          {{ factura.pagarAPrestadorNombre ?? factura.pagarAPrestadorNit ?? '—' }}
+                          @if (factura.pagarAPrestadorNombre && factura.pagarAPrestadorNit) {
+                            <span class="sura-dato-secundario">NIT {{ factura.pagarAPrestadorNit }}</span>
+                          }
+                          @if (factura.pagarAPrestadorNit && factura.prestadorFacturacionNit
+                               && factura.pagarAPrestadorNit !== factura.prestadorFacturacionNit) {
+                            <span class="sura-dato-secundario cuenta-detalle__cobra-otro">cobra otro prestador</span>
+                          }
+                        </dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  <section class="grupo">
+                    <h3 class="grupo__titulo">Fechas</h3>
+                    <dl class="detalle-cabecera">
+                      <div>
+                        <dt>Radicación</dt>
+                        <dd>{{ (factura.fechaRadicacion | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Emisión</dt>
+                        <dd>{{ (factura.fechaEmision | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Vencimiento</dt>
+                        <dd>{{ (factura.fechaVencimiento | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Ingreso</dt>
+                        <dd>{{ (factura.fechaIngreso | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Egreso</dt>
+                        <dd>{{ (factura.fechaEgreso | date:'dd/MM/yyyy') ?? '—' }}</dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  <section class="grupo">
+                    <h3 class="grupo__titulo">Valores</h3>
+                    <dl class="detalle-cabecera">
+                      <div>
+                        <dt>Valor factura</dt>
+                        <dd>{{ factura.valorFactura === null ? '—' : (factura.valorFactura | currency:'COP':'symbol':'1.0-0') }}</dd>
+                      </div>
+                      <div>
+                        <dt>Valor total factura</dt>
+                        <dd>{{ factura.valorTotalFactura === null ? '—' : (factura.valorTotalFactura | currency:'COP':'symbol':'1.0-0') }}</dd>
+                      </div>
+                      <div>
+                        <dt>Total cargado</dt>
+                        <dd>{{ factura.totalCargado === null ? '—' : (factura.totalCargado | currency:'COP':'symbol':'1.0-0') }}</dd>
+                      </div>
+                      <div>
+                        <dt>Total valor glosado</dt>
+                        <dd>{{ factura.totalValorGlosado === null ? '—' : (factura.totalValorGlosado | currency:'COP':'symbol':'1.0-0') }}</dd>
+                      </div>
+                      <div>
+                        <dt>Valor NC crédito</dt>
+                        <dd>{{ factura.valorNotaCredito === null ? '—' : (factura.valorNotaCredito | currency:'COP':'symbol':'1.0-0') }}</dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  <section class="grupo">
+                    <h3 class="grupo__titulo">Marcas y acuse</h3>
+                    <dl class="detalle-cabecera">
+                      <div>
+                        <dt>Acuse de recibido</dt>
+                        <dd>{{ factura.acuseRecibido ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Marca radicado ATEP</dt>
+                        <dd>{{ factura.marcaRadicadoAtep ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Marca multicore</dt>
+                        <dd>{{ factura.marcaMulticore ?? '—' }}</dd>
+                      </div>
+                      <div>
+                        <dt>Marca pendiente manual</dt>
+                        <dd>{{ factura.marcaPendienteManual ?? '—' }}</dd>
+                      </div>
+                    </dl>
+                  </section>
+
+                  @if (factura.observacionesInternas || factura.observacionesExternas) {
+                    <section class="grupo grupo--ancho">
+                      <h3 class="grupo__titulo">Observaciones</h3>
+                      <dl class="detalle-cabecera detalle-cabecera--observaciones">
+                        @if (factura.observacionesInternas) {
+                          <div>
+                            <dt>Observaciones internas</dt>
+                            <dd>{{ factura.observacionesInternas }}</dd>
+                          </div>
+                        }
+                        @if (factura.observacionesExternas) {
+                          <div>
+                            <dt>Observaciones externas <span class="sura-texto-suave">(notas para la glosa o devolución)</span></dt>
+                            <dd>{{ factura.observacionesExternas }}</dd>
+                          </div>
+                        }
+                      </dl>
+                    </section>
+                  }
+
+                </div>
+              </div>
+            </mat-expansion-panel>
+          }
+
+          <!--
+            Novedades de la cabecera. Siempre presente, aunque la cuenta no tenga
+            ninguna: si no, no habría dónde pulsar «agregar» justo en las cuentas
+            donde más falta hace.
+          -->
+          <mat-expansion-panel [expanded]="panelNovedadesAbierto()"
+                               (opened)="panelNovedadesAbierto.set(true)"
+                               (closed)="panelNovedadesAbierto.set(false)">
+            <mat-expansion-panel-header collapsedHeight="44px" expandedHeight="44px"
+                                        aria-label="Novedades de la cuenta">
+              <mat-panel-title>
+                <mat-icon aria-hidden="true">campaign</mat-icon>
+                Novedades
+                <span class="sura-contador">{{ cuenta.novedades.length }}</span>
+              </mat-panel-title>
+              <mat-panel-description>{{ resumenNovedades(cuenta.novedades) }}</mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <div class="panel-cuerpo">
+              <!--
+                Fuera de Modificación las novedades se ven pero no se tocan (EST-01), y se dice
+                por qué y a dónde ir: al botón de la barra, que es el único camino.
+              -->
+              @if (motivoSinCambios(); as motivo) {
+                <p class="sura-nota sura-nota--regla aviso-sin-cambios" role="status" id="aviso-novedades-sin-cambios">
+                  <mat-icon aria-hidden="true">edit_off</mat-icon>
+                  <span>{{ motivo }}</span>
+                </p>
+              }
+              <sura-seccion-novedades
+                  [novedades]="cuenta.novedades"
+                  [esEdicion]="facade.admiteCambios()"
+                  [cambios]="facade.cambiosDeNovedad()"
+                  (agregar)="facade.anotarCambioDeNovedad($event)"
+                  (deshacer)="facade.deshacerCambioDeNovedad($event)" />
+
+              <!--
+                Botón propio: en la cabecera la novedad es lo único editable, así
+                que no hay un formulario mayor del que colgarse como en la línea.
+              -->
+              @if (facade.admiteCambios() && facade.cambiosDeNovedad().length > 0) {
+                <div class="novedades-cuenta__acciones">
+                  <button mat-flat-button color="primary"
+                          [disabled]="facade.guardandoNovedades()"
+                          (click)="guardarNovedades()">
+                    {{ facade.guardandoNovedades()
+                        ? 'Guardando…'
+                        : 'Guardar ' + facade.cambiosDeNovedad().length +
+                          (facade.cambiosDeNovedad().length === 1 ? ' cambio' : ' cambios') }}
+                  </button>
+                  <button mat-button
+                          [disabled]="facade.guardandoNovedades()"
+                          (click)="facade.cambiosDeNovedad.set([])">
+                    Descartar
+                  </button>
+                </div>
+              }
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
+
+      </div>
+
+      <!--
+        Lo que el prestador respondió a las glosas. Solo lectura: así se acordó el alcance.
+        Va en la cabecera y no en una pestaña aparte porque viene en la misma consulta —no
+        cuesta una llamada— y porque son pocas filas: lo medido son una o dos por cuenta.
+      -->
+      @if (cuenta.respuestasGlosa.length) {
+        <mat-expansion-panel class="panel-seccion">
+          <mat-expansion-panel-header>
             <mat-panel-title>
-              <mat-icon aria-hidden="true">campaign</mat-icon>
-              Novedades
-              <span class="sura-contador">{{ cuenta.novedades.length }}</span>
+              <mat-icon>forum</mat-icon>
+              Respuesta a glosa
+              <span class="badge">{{ cuenta.respuestasGlosa.length }}</span>
             </mat-panel-title>
-            <mat-panel-description>{{ resumenNovedades(cuenta.novedades) }}</mat-panel-description>
           </mat-expansion-panel-header>
 
-          <div class="panel-cuerpo">
-            <sura-seccion-novedades
-                [novedades]="cuenta.novedades"
-                [esEdicion]="true"
-                [cambios]="facade.cambiosDeNovedad()"
-                (agregar)="facade.anotarCambioDeNovedad($event)"
-                (deshacer)="facade.deshacerCambioDeNovedad($event)" />
-
-            <!--
-              Botón propio: en la cabecera la novedad es lo único editable, así
-              que no hay un formulario mayor del que colgarse como en la línea.
-            -->
-            @if (facade.cambiosDeNovedad().length > 0) {
-              <div class="novedades-cuenta__acciones">
-                <button mat-flat-button color="primary"
-                        [disabled]="facade.guardandoNovedades()"
-                        (click)="guardarNovedades()">
-                  {{ facade.guardandoNovedades()
-                      ? 'Guardando…'
-                      : 'Guardar ' + facade.cambiosDeNovedad().length +
-                        (facade.cambiosDeNovedad().length === 1 ? ' cambio' : ' cambios') }}
-                </button>
-                <button mat-button
-                        [disabled]="facade.guardandoNovedades()"
-                        (click)="facade.cambiosDeNovedad.set([])">
-                  Descartar
-                </button>
-              </div>
-            }
-          </div>
-        </mat-expansion-panel>
-      </mat-accordion>
-
-    </div>
-
-    <!--
-      Lo que el prestador respondió a las glosas. Solo lectura: así se acordó el alcance.
-      Va en la cabecera y no en una pestaña aparte porque viene en la misma consulta —no
-      cuesta una llamada— y porque son pocas filas: lo medido son una o dos por cuenta.
-    -->
-    @if (cuenta.respuestasGlosa.length) {
-      <mat-expansion-panel class="panel-seccion">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
-            <mat-icon>forum</mat-icon>
-            Respuesta a glosa
-            <span class="badge">{{ cuenta.respuestasGlosa.length }}</span>
-          </mat-panel-title>
-        </mat-expansion-panel-header>
-
-        <table class="tabla-simple">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Versión que abrió</th>
-              <th>Llegada</th>
-              <th>Vence</th>
-              <th class="num">Valor</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (r of cuenta.respuestasGlosa; track r.secuencia) {
+          <table class="tabla-simple">
+            <thead>
               <tr>
-                <td>{{ r.secuencia }}</td>
-                <td>{{ r.versionAbierta || '—' }}</td>
-                <td>{{ r.fechaLlegada | date:'dd/MM/yyyy' }}</td>
-                <td>
-                  @if (r.fechaVencimiento) {
-                    {{ r.fechaVencimiento | date:'dd/MM/yyyy' }}
-                    <!-- El veredicto lo da el servidor: con dos relojes, el aviso aparecería
-                         y desaparecería sin que nada hubiera cambiado. -->
-                    @if (r.vencida) { <strong class="vencida">· vencida</strong> }
-                  } @else { — }
-                </td>
-                <td class="num">{{ r.valor | currency:'COP':'symbol':'1.0-0' }}</td>
+                <th>#</th>
+                <th>Versión que abrió</th>
+                <th>Llegada</th>
+                <th>Vence</th>
+                <th class="num">Valor</th>
               </tr>
-            }
-          </tbody>
-        </table>
-      </mat-expansion-panel>
+            </thead>
+            <tbody>
+              @for (r of cuenta.respuestasGlosa; track r.secuencia) {
+                <tr>
+                  <td>{{ r.secuencia }}</td>
+                  <td>{{ r.versionAbierta || '—' }}</td>
+                  <td>{{ r.fechaLlegada | date:'dd/MM/yyyy' }}</td>
+                  <td>
+                    @if (r.fechaVencimiento) {
+                      {{ r.fechaVencimiento | date:'dd/MM/yyyy' }}
+                      <!-- El veredicto lo da el servidor: con dos relojes, el aviso aparecería
+                           y desaparecería sin que nada hubiera cambiado. -->
+                      @if (r.vencida) { <strong class="vencida">· vencida</strong> }
+                    } @else { — }
+                  </td>
+                  <td class="num">{{ r.valor | currency:'COP':'symbol':'1.0-0' }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </mat-expansion-panel>
+      }
+
+      <!-- Se pegan debajo de la barra al bajar (BTN-11): cambiar de pestaña tampoco obliga a subir. -->
+      <nav mat-tab-nav-bar #pestanas [tabPanel]="tabPanel" class="pestanas-cuenta">
+        <a mat-tab-link routerLink="lineas" routerLinkActive #rlaLineas="routerLinkActive" [active]="rlaLineas.isActive"
+           (click)="alCambiarDePestana()">
+          Líneas
+          @if (totalLineas() !== null) {
+            <span class="badge">{{ totalLineas() }}</span>
+          }
+        </a>
+        <a mat-tab-link routerLink="pendientes" routerLinkActive #rlaPendientes="routerLinkActive" [active]="rlaPendientes.isActive"
+           (click)="alCambiarDePestana()">
+          Pendientes
+          <!--
+            El cero se muestra. «No hay pendientes» es información, y además es la única forma
+            de distinguirlo de «todavía no se sabe»: antes, sin pendientes, no había distintivo.
+          -->
+          <span class="badge">{{ cuenta.pendientesSinResolver }}</span>
+        </a>
+        <a mat-tab-link routerLink="proceso" routerLinkActive #rlaProceso="routerLinkActive" [active]="rlaProceso.isActive"
+           (click)="alCambiarDePestana()">
+          Seguimiento
+        </a>
+      </nav>
     }
 
-    <!-- Se pegan debajo de la barra al bajar (BTN-11): cambiar de pestaña tampoco obliga a subir. -->
-    <nav mat-tab-nav-bar #pestanas [tabPanel]="tabPanel" class="pestanas-cuenta">
-      <a mat-tab-link routerLink="lineas" routerLinkActive #rlaLineas="routerLinkActive" [active]="rlaLineas.isActive"
-         (click)="alCambiarDePestana()">
-        Líneas
-        @if (totalLineas() !== null) {
-          <span class="badge">{{ totalLineas() }}</span>
-        }
-      </a>
-      <a mat-tab-link routerLink="pendientes" routerLinkActive #rlaPendientes="routerLinkActive" [active]="rlaPendientes.isActive"
-         (click)="alCambiarDePestana()">
-        Pendientes
-        <!--
-          El cero se muestra. «No hay pendientes» es información, y además es la única forma
-          de distinguirlo de «todavía no se sabe»: antes, sin pendientes, no había distintivo.
-        -->
-        <span class="badge">{{ cuenta.pendientesSinResolver }}</span>
-      </a>
-      <a mat-tab-link routerLink="proceso" routerLinkActive #rlaProceso="routerLinkActive" [active]="rlaProceso.isActive"
-         (click)="alCambiarDePestana()">
-        Seguimiento
-      </a>
-    </nav>
-
+    <!--
+      Un solo `<router-outlet>`, el mismo en la cuenta actual y en la foto: con uno en cada rama,
+      la vista de la pestaña se crearía dos veces (dos peticiones y un parpadeo).
+    -->
     <mat-tab-nav-panel #tabPanel>
       <router-outlet></router-outlet>
     </mat-tab-nav-panel>

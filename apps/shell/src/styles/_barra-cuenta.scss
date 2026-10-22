@@ -17,6 +17,19 @@
 // la plantilla como `--alto-barra-cuenta`, el mismo número que usa el observador
 // de la franja de resumen.
 
+// «Pasar a Modificación» en su icono (EST-02, BTN-11.6): sigue teniendo su `aria-label`
+// y su ayuda, y el menú de la barra lo repite con letras.
+@mixin paso-en-su-icono {
+  .pasar-a-modificacion__rotulo { display: none; }
+
+  .pasar-a-modificacion {
+    min-width: 0;
+    padding-inline: var(--sura-espacio-2);
+
+    > .mat-icon { margin-inline: 0; }
+  }
+}
+
 .detalle-container {
   // Lo que dentro de una pestaña ya era fijo se pega debajo de la barra y las
   // pestañas, no detrás. El alto de las pestañas, medido: 48px del enlace, 1px del
@@ -75,7 +88,7 @@
     font-size: var(--sura-texto-sm);
 
     // En letra pequeña el naranja de marca no se lee (2,5:1): el tono de texto de alerta.
-    .valor--diferencia { color: var(--sura-alerta-texto); }
+    .valor--glosado { color: var(--sura-alerta-texto); }
   }
 
   .barra-cuenta__acciones {
@@ -84,6 +97,50 @@
     gap: var(--sura-espacio-2);
     margin-left: auto;
     flex-shrink: 0;
+  }
+
+  // En la foto de una versión (BTN-12) la barra lleva un filete en el azul de
+  // información: se sabe de un vistazo, también al bajar por la grilla, que lo
+  // de debajo no es la cuenta actual.
+  .barra-cuenta.barra-cuenta--foto {
+    box-shadow: var(--sura-sombra-sm), inset 0 3px 0 var(--sura-info);
+  }
+
+  // El selector de versión: «Versión V9 en curso ▾». El rótulo es un distintivo
+  // pequeño; en la foto, en el color de información.
+  .selector-version {
+    white-space: nowrap;
+
+    .selector-version__rotulo {
+      margin-left: var(--sura-espacio-1);
+      padding: 0 var(--sura-espacio-2);
+      border-radius: var(--sura-radio-pill);
+      background: var(--sura-gris-200);
+      color: var(--sura-gris-700);
+      font-size: var(--sura-texto-sm);
+      font-weight: var(--sura-peso-semibold);
+    }
+
+    &.selector-version--foto .selector-version__rotulo {
+      background: var(--sura-info-fondo);
+      color: var(--sura-info);
+    }
+  }
+
+  // «Pasar a Modificación» (EST-02), junto al envío. Sin salto de renglón: partido en
+  // dos, el botón crecía en alto y la barra, que tiene alto fijo, lo recortaba.
+  .pasar-a-modificacion { white-space: nowrap; }
+
+  // Con el resumen compacto a la vista (BTN-11.2) el paso se queda en su icono: con sus
+  // 210px de rótulo el resumen —código, estado y glosado, unos 470px— solo cabía entero
+  // a partir de unos 1320px de ventana, y antes del paso cabía desde unos 1100.
+  .barra-cuenta:has(#barra-resumen) { @include paso-en-su-icono; }
+
+  // El aviso de que la cuenta no admite cambios (EST-01.4): uno por pantalla —encima de
+  // la grilla, en la línea, en las novedades de cabecera—, todos con el mismo texto.
+  .aviso-sin-cambios {
+    align-items: center;
+    margin: 0 0 var(--sura-espacio-3);
   }
 
   // Las pestañas se pegan debajo de la barra. El fondo es el de la página: sin
@@ -95,13 +152,50 @@
     background: var(--sura-gris-100);
   }
 
+  // En la foto (BTN-12) la vuelta a la cuenta actual ocupa el sitio de «Enviar» y
+  // es mucho más larga: entre 641 y unos 730px la botonera no cabía y el menú se
+  // salía por la derecha (medido a 650px en CM-28143 V7: 20px fuera de la barra;
+  // cabía a partir de unos 690, y con «V12 sin foto» hace falta más). Por eso en la
+  // foto se queda en su icono antes que el resto (BTN-11.6): sigue teniendo su
+  // `aria-label` y su tooltip, y el aviso de debajo repite la vuelta con letras.
+  @media (max-width: 760px) {
+    .barra-cuenta--foto .ir-a-actual__rotulo { display: none; }
+
+    .barra-cuenta--foto #btn-ir-a-actual {
+      min-width: 0;
+      padding-inline: var(--sura-espacio-2);
+
+      > .mat-icon { margin-inline: 0; }
+    }
+
+    // Con el envío y «Pasar a Modificación» juntos (EST-02), aun con el paso en su icono,
+    // a 641px y con «Versión V6 en curso» el menú ya se metía 4px en el relleno de la
+    // barra; con una versión de dos cifras y la barra de desplazamiento del escritorio se
+    // salía. El selector se queda en «V9 en curso ▾», sin el «Versión» delante, que ya
+    // dice su `aria-label`.
+    .selector-version__prefijo { display: none; }
+  }
+
+  // «Pasar a Modificación» se queda en su icono antes que nada (BTN-11.6): con su rótulo
+  // mide 210px, y medido con «Versión V6 en curso» y «Aceptar» al lado, la botonera
+  // necesitaba unos 835px de ventana para no salirse de la barra; el margen es para una
+  // versión de dos cifras.
+  @media (max-width: 900px) {
+    .barra-cuenta { @include paso-en-su-icono; }
+  }
+
   // En pantalla angosta la barra se queda con lo imprescindible: el icono de
-  // inicio, el código, «Enviar» y el menú.
+  // inicio, el código, el envío, «Pasar a Modificación» en su icono y el menú.
+  //
+  // Los huecos, a 4px: con los dos botones del estado (BTN-13, EST-02), medido a
+  // 375px, la botonera se salía 10px aun con el paso en su icono.
   @media (max-width: 640px) {
     .barra-cuenta {
-      gap: var(--sura-espacio-2);
+      gap: var(--sura-espacio-1);
       padding: 0 var(--sura-espacio-2);
     }
+
+    .barra-cuenta__acciones { gap: var(--sura-espacio-1); }
 
     // Sin «Cuenta» delante: recortado, el rótulo se comía el código, que es lo que
     // identifica la cuenta.
@@ -109,11 +203,36 @@
     .barra-cuenta__prefijo,
     .barra-cuenta__estado,
     .barra-cuenta__dato { display: none; }
+
+    // El selector se queda en «V3 ▾» y la vuelta a la actual, en su icono: así
+    // caben con el menú sin partir la barra (BTN-11.6). Inicio, el selector y la
+    // vuelta pierden además el ancho mínimo y el relleno de Material (64px y 16 a
+    // 24px por lado): medido a 375px, con el selector la botonera pasaba 30px del
+    // ancho de la barra y el menú se salía por la derecha.
+    .selector-version__prefijo,
+    .selector-version__rotulo,
+    .selector-version > .mat-icon:not(.selector-version__flecha),
+    .ir-a-actual__rotulo { display: none; }
+
+    .barra-cuenta .inicio,
+    .barra-cuenta .selector-version,
+    .barra-cuenta #btn-ir-a-actual {
+      min-width: 0;
+      padding-inline: var(--sura-espacio-2);
+    }
+
+    .barra-cuenta #btn-ir-a-actual > .mat-icon { margin-inline: 0; }
+
+    // El envío se queda en su rótulo, sin el icono: el rótulo es lo que dice qué hace
+    // («Aceptar» o «Enviar»). Con los huecos estrechos, así cabe también a 360px con el
+    // resumen compacto a la vista.
+    .barra-cuenta #btn-enviar > .mat-icon { display: none; }
   }
 }
 
-// El motivo de no poder enviar, dentro del menú de la barra. El menú se pinta en la
-// capa superpuesta de Material, fuera de `.detalle-container`: por eso va suelto.
+// El motivo de no poder pasar a Modificación, dentro del menú de la barra (hasta el
+// 2026-10-21 era el de no poder enviar, que ya no se apaga). El menú se pinta en la capa
+// superpuesta de Material, fuera de `.detalle-container`: por eso va suelto.
 .menu-helper-text {
   padding: var(--sura-espacio-2) var(--sura-espacio-3);
   font-size: var(--sura-texto-sm);
@@ -121,6 +240,28 @@
   max-width: 260px;
   white-space: normal;
   line-height: 1.3;
+}
+
+// Las opciones del selector de versión: el número arriba y, debajo, el estado y la
+// fecha. Como el menú del motivo, se pinta en la capa superpuesta: va suelto.
+.menu-versiones {
+  .opcion-version {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    padding-block: var(--sura-espacio-1);
+  }
+
+  .opcion-version__titulo { font-weight: var(--sura-peso-semibold); }
+
+  .opcion-version__detalle {
+    font-size: var(--sura-texto-sm);
+    color: var(--sura-texto-suave);
+  }
+
+  .opcion-version--en-pantalla {
+    background: var(--sura-azul-tenue);
+  }
 }
 
 // El foco de teclado no se queda debajo de la barra ni de las pestañas (WCAG 2.4.11):

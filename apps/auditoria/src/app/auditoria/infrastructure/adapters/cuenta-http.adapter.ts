@@ -9,6 +9,7 @@ import {
 import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 import { CambioNovedadRequest } from '../../domain/models/linea-cuenta.model';
 import { EstadoProcesoModel } from '../../domain/models/estado-proceso.model';
+import { DetalleLineaDeVersionModel, LineaDeVersionModel } from '../../domain/models/linea-de-version.model';
 import { environment } from '@sura/environments';
 
 @Injectable({ providedIn: 'root' })
@@ -120,5 +121,34 @@ export class CuentaHttpAdapter extends CuentaRepository {
 
   override consultarVersion(codigoCuenta: string, numero: number): Observable<FotoVersionModel> {
     return this.http.get<FotoVersionModel>(`${this.baseUrl}/${codigoCuenta}/versiones/${numero}`);
+  }
+
+  /**
+   * GET /api/v1/cuentas/{codigo}/versiones/{numero}/lineas?pagina=&tamano=
+   *
+   * Siempre con `pagina` y `tamano`, como las líneas vivas: sin tamaño el servicio aplicaría el
+   * suyo y el paginador contaría con otro.
+   */
+  override listarLineasDeVersion(
+    codigoCuenta: string,
+    numero: number,
+    pagina: number,
+    tamano: number
+  ): Observable<OffsetPage<LineaDeVersionModel>> {
+    const params = new HttpParams()
+      .set('pagina', Math.max(0, pagina).toString())
+      .set('tamano', tamano.toString());
+    return this.http.get<OffsetPage<LineaDeVersionModel>>(
+      `${this.baseUrl}/${codigoCuenta}/versiones/${numero}/lineas`, { params });
+  }
+
+  /** GET /api/v1/cuentas/{codigo}/versiones/{numero}/lineas/{numeroLinea} */
+  override consultarLineaDeVersion(
+    codigoCuenta: string,
+    numero: number,
+    numeroLinea: number
+  ): Observable<DetalleLineaDeVersionModel> {
+    return this.http.get<DetalleLineaDeVersionModel>(
+      `${this.baseUrl}/${codigoCuenta}/versiones/${numero}/lineas/${numeroLinea}`);
   }
 }

@@ -28,7 +28,8 @@
           <mat-icon>visibility</mat-icon>
           Solo consultar
         </button>
-      } @else if (linea.editable) {
+      } @else if (editable()) {
+        <!-- La línea y la cuenta: fuera de Modificación no se ofrece editar (EST-01). -->
         <button mat-raised-button type="button" class="sura-cta" id="btn-entrar-edicion"
                 (click)="irAEdicion()">
           <mat-icon>edit</mat-icon>
@@ -60,6 +61,21 @@
         <span class="sura-subtitulo">{{ linea.descripcionProcedimiento }}</span>
       }
     </h2>
+
+    <!--
+      Fuera de Modificación la línea se ve en consulta (EST-01), también si se pidió `…/editar`
+      (EST-01.5), y se dice una vez por qué: es de la cuenta, no de la línea, y el camino es el
+      botón de la barra. Si se pidió editar, se dice además que se abrió en consulta.
+    -->
+    @if (motivoDeLaCuenta(); as motivo) {
+      <p class="sura-nota sura-nota--regla aviso-sin-cambios" role="status" id="aviso-linea-sin-cambios">
+        <mat-icon aria-hidden="true">edit_off</mat-icon>
+        <span>
+          {{ motivo }}
+          @if (edicionDenegada()) { Se pidió abrirla en edición y se abrió en consulta. }
+        </span>
+      </p>
+    }
 
     @if (esEdicion()) {
       <!--
@@ -256,8 +272,10 @@
 
       </mat-accordion>
 
-      @if (!linea.editable) {
-        <div class="sura-mensaje sura-mensaje--alerta" role="status">
+      <!-- El de la línea, solo si la cuenta admite cambios: si no, el motivo es de la cuenta y ya
+           lo dijo su aviso (o, sin la cuenta todavía, no se sabe y no se afirma nada). -->
+      @if (cuentaAdmiteCambios() && !editable()) {
+        <div class="sura-mensaje sura-mensaje--alerta" role="status" id="aviso-linea-no-editable">
           <mat-icon>lock</mat-icon>
           <span>
             @if (linea.bloqueada) { Esta línea está bloqueada }
@@ -297,7 +315,7 @@
             Cancelar
           </button>
 
-          @if (linea.editable) {
+          @if (editable()) {
             <button mat-stroked-button type="button"
                     id="btn-guardar"
                     [disabled]="ocupado() || form.invalid"

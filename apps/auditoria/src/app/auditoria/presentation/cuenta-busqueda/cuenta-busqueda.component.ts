@@ -15,8 +15,7 @@ import { VersionCuentaDialogComponent }
 import { BusquedaFacade } from '../../application/facades/busqueda.facade';
 import { ResumenCuentaModel } from '../../domain/models/cuenta-medica.model';
 import {
-  VersionEnCursoModel, estaAbierta, estadoEnOhi, laUltimaEsLaVigente, rotuloDeLaUltimaVersion,
-  versionEnCurso
+  VersionEnCursoModel, estadoEnOhi, laUltimaEsLaVigente, rotuloDeLaUltimaVersion, versionEnCurso
 } from '../../domain/models/estado-cuenta.model';
 import { EstadoEnOhiPipe, TextoEstadoPipe } from '../compartido/estado-cuenta.pipe';
 
@@ -68,8 +67,11 @@ export class CuentaBusquedaComponent {
     radicado: new FormControl<string>(this.busqueda.filtro().radicado ?? ''),
   });
 
-  /** Las cuentas con las versiones desplegadas. Por código, para que sobreviva al repintar. */
-  readonly desplegadas = signal<Set<string>>(new Set());
+  constructor() {
+    // Cada vez que se enseña, y no solo la primera: al volver del detalle la cuenta puede
+    // haberse enviado o devuelto, y la búsqueda que se conservó es de antes.
+    this.busqueda.refrescar();
+  }
 
   /** Se intentó buscar sin criterio: se dice aquí, antes de salir, y no con un 400. */
   readonly faltaCriterio = signal(false);
@@ -110,14 +112,12 @@ export class CuentaBusquedaComponent {
       return;
     }
     this.faltaCriterio.set(false);
-    this.desplegadas.set(new Set());
     this.busqueda.buscar({ factura, radicado });
   }
 
   limpiar(): void {
     this.formulario.reset({ factura: '', radicado: '' });
     this.faltaCriterio.set(false);
-    this.desplegadas.set(new Set());
     this.busqueda.limpiar();
   }
 
@@ -128,19 +128,11 @@ export class CuentaBusquedaComponent {
   alternarVersiones(cuenta: ResumenCuentaModel, evento: Event): void {
     // Sin esto, desplegar las versiones también abriría la cuenta: el clic llega a la fila.
     evento.stopPropagation();
-    const codigo = cuenta.codigo;
-    const despliega = !this.estaDesplegada(codigo);
-    this.desplegadas.update(actual => {
-      const copia = new Set(actual);
-      if (copia.has(codigo)) copia.delete(codigo); else copia.add(codigo);
-      return copia;
-    });
-    // Solo hace falta para la fila en curso, y solo la tiene una cuenta abierta.
-    if (despliega && estaAbierta(cuenta.estado)) this.busqueda.cargarHistoria(codigo);
+    this.busqueda.alternarVersiones(cuenta);
   }
 
   estaDesplegada(codigo: string): boolean {
-    return this.desplegadas().has(codigo);
+    return this.busqueda.estaDesplegada(codigo);
   }
 
   /** La versión abierta de la cuenta, si la tiene: va encima de las del histórico. */

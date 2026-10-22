@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, input } from '@angular/core';
+import { CurrencyPipe }         from '@angular/common';
 import { ReactiveFormsModule }  from '@angular/forms';
 import { MatFormFieldModule }   from '@angular/material/form-field';
 import { MatInputModule }       from '@angular/material/input';
@@ -10,13 +11,16 @@ import { LineaFormGroup }       from '../linea-form';
 /**
  * Tarifas y contrato que aplican a la línea. Los códigos de tarifario no se
  * editan: son de catálogo y un texto libre dejaría escribir uno que no existe.
+ *
+ * Abre con la tarifa de contrato: el importe de la cláusula con que se tarifó,
+ * que explica por qué el convenido de la línea difiere de lo pactado.
  */
 @Component({
   selector: 'sura-seccion-convenio',
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    ReactiveFormsModule, MatFormFieldModule, MatInputModule, CampoBloqueadoComponent
+    CurrencyPipe, ReactiveFormsModule, MatFormFieldModule, MatInputModule, CampoBloqueadoComponent
   ],
   templateUrl: './seccion-convenio.component.html',
   styles: [':host { display: contents; }']

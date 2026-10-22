@@ -1,9 +1,11 @@
 import { Injectable, inject, signal, computed } from '@angular/core';
 import { rxResource } from '@angular/core/rxjs-interop';
+import { tap } from 'rxjs';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
 import {
   FiltroCuentasModel, HitoModel, ResumenCuentaModel
 } from '../../domain/models/cuenta-medica.model';
+import { estaAbierta } from '../../domain/models/estado-cuenta.model';
 import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/offset-page.model';
 
 /**
@@ -17,7 +19,13 @@ import { OffsetPage } from '../../../../../../../libs/data-access/http/src/lib/o
  * ## En la raíz, a propósito
  * Volver del detalle de una cuenta a la lista tiene que encontrar la búsqueda donde se dejó.
  * Si la fachada muriera con la pantalla, el auditor tendría que reescribir la factura cada vez
- * que mira una de sus versiones.
+ * que mira una de sus versiones. Por lo mismo viven aquí las cuentas desplegadas.
+ *
+ * ## Conservar la búsqueda no es conservar las respuestas
+ * El auditor vuelve del detalle después de enviar la cuenta o devolverla a modificación, y la
+ * lista seguía enseñando lo de antes: el estado, el número de versiones y una «V{n} en curso»
+ * que ya no lo estaba. Por eso la pantalla llama a `refrescar()` cada vez que se enseña: la
+ * misma factura, la misma página y las mismas desplegadas, con las respuestas de ahora.
  */
 @Injectable({ providedIn: 'root' })
 export class BusquedaFacade {
@@ -43,7 +51,12 @@ export class BusquedaFacade {
       ? { filtro: this._filtro(), pagina: this._pagina() }
       : undefined,
     stream: ({ params }) =>
-      this.repositorio.buscar(params.filtro, params.pagina, this.TAMANO_PAGINA),
+      this.repositorio.buscar(params.filtro, params.pagina, this.TAMANO_PAGINA).pipe(
+        // Al refrescar, las desplegadas que sigan abiertas vuelven a pedir su historia. Con la
+        // respuesta en la mano y no antes: lo que decide si hace falta es el estado de ahora.
+        tap(pagina => pagina.elementos
+          .filter(c => this.estaDesplegada(c.codigo))
+          .forEach(c => this.pedirHistoriaSiHaceFalta(c)))),
   });
 
   // `hasValue()` antes de `value()`: en error, `value()` LANZA en vez de devolver nada, y una
@@ -98,6 +111,43 @@ export class BusquedaFacade {
     this._historias.update(actual => new Map(actual).set(codigo, hitos));
   }
 
+  /** Las cuentas con las versiones desplegadas. Por código, para que sobreviva al repintar. */
+  private readonly _desplegadas = signal<ReadonlySet<string>>(new Set());
+
+  estaDesplegada(codigo: string): boolean {
+    return this._desplegadas().has(codigo);
+  }
+
+  /** Despliega o pliega las versiones de una cuenta. Al desplegar, pide su historia si la usa. */
+  alternarVersiones(cuenta: ResumenCuentaModel): void {
+    const despliega = !this.estaDesplegada(cuenta.codigo);
+    this._desplegadas.update(actual => {
+      const copia = new Set(actual);
+      if (despliega) copia.add(cuenta.codigo); else copia.delete(cuenta.codigo);
+      return copia;
+    });
+    if (despliega) this.pedirHistoriaSiHaceFalta(cuenta);
+  }
+
+  /** Solo hace falta para la fila en curso, y solo la tiene una cuenta abierta. */
+  private pedirHistoriaSiHaceFalta(cuenta: ResumenCuentaModel): void {
+    if (estaAbierta(cuenta.estado)) this.cargarHistoria(cuenta.codigo);
+  }
+
+  /**
+   * Vuelve a preguntar por la página que se está viendo, sin tocar el filtro, la página ni las
+   * desplegadas.
+   *
+   * Sin criterio no hace nada, igual que el recurso: no hay nada que refrescar y el servicio
+   * respondería 400. Las historias se olvidan porque pueden haber cambiado igual que la cuenta;
+   * las de las desplegadas que sigan abiertas se vuelven a pedir cuando llega la respuesta.
+   */
+  refrescar(): void {
+    if (!this.hayCriterio()) return;
+    this._historias.set(new Map());
+    this._resultado.reload();
+  }
+
   /** Si ya se buscó y no salió nada: distinto de «todavía no se ha buscado». */
   readonly sinResultados = computed(() =>
     this.hayCriterio() && !this.cargando() && !this.error() && this.resultados().length === 0);
@@ -110,6 +160,7 @@ export class BusquedaFacade {
     this._pagina.set(0);
     // Y vuelve a preguntar la historia: buscar otra vez es querer ver la cuenta como está ahora.
     this._historias.set(new Map());
+    this._desplegadas.set(new Set());
   }
 
   irAPagina(pagina: number): void {
@@ -120,5 +171,6 @@ export class BusquedaFacade {
     this._filtro.set({});
     this._pagina.set(0);
     this._historias.set(new Map());
+    this._desplegadas.set(new Set());
   }
 }

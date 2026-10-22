@@ -41,8 +41,12 @@ export type AccionCuenta =
  * Ficha de radicación y facturación del prestador — parte de la cabecera.
  *
  * Cualquier campo puede llegar en `null`: el sistema de registro no siempre
- * tiene diligenciado el trámite completo, y `totalConvenido` en particular no
- * tiene fuente en OHI (no expone una tarifa convenida a nivel de cuenta).
+ * tiene diligenciado el trámite completo.
+ *
+ * El total convenido **no** está aquí: es el `totalAllowedAmount` de la cuenta y
+ * viaja en la raíz (`CuentaMedicaModel.totalConvenido`), junto al autorizado. Aquí
+ * hubo un `totalConvenido` que siempre llegaba en `null`; se quitó para que el dato
+ * tenga una sola fuente.
  */
 export interface InformacionFacturacionModel {
   prestadorFacturacionNit:  string | null;
@@ -61,8 +65,9 @@ export interface InformacionFacturacionModel {
   fechaEgreso:              string | null;
   valorFactura:             number | null;
   valorTotalFactura:        number | null;
+  /** Valor cargado de la cuenta: `totalClaimedAmount` de OHI. */
   totalCargado:             number | null;
-  totalConvenido:           number | null;
+  /** Valor glosado de la cuenta: `totalValorGlosado` de OHI. */
   totalValorGlosado:        number | null;
   valorNotaCredito:         number | null;
   tipoServicio:             string | null;
@@ -89,10 +94,22 @@ export interface CuentaMedicaModel {
   estado:                EstadoCuenta;
   fechaInicio:           string; // ISO 8601
   fechaFin:              string;
-  totalAutorizado:       number;
-  totalCubierto:         number;
+  /**
+   * Total convenido de la cuenta: `totalAllowedAmount` de OHI (ENC-12). Hasta el 2026-10-21 este
+   * mismo dato viajaba con el nombre `totalAutorizado`. `null` si OHI no lo trae: se pinta «—».
+   */
+  totalConvenido:        number | null;
+  /** Total autorizado: `totalCoveredAmount` de OHI (ENC-13), lo que reconoce el motor. */
+  totalAutorizado:       number | null;
   version:               number;
   pendientesSinResolver: number;
+  /**
+   * Si la cuenta admite ahora cambios de datos (EST-01): solo en Modificación, regla de negocio
+   * del 2026-10-21. La publica el servicio, que además la hace cumplir (409
+   * `CUENTA_NO_MODIFICABLE`); la pantalla la obedece y no la deduce del estado. Un servicio que
+   * todavía no la mande se trata como `false`: ante la duda no se edita.
+   */
+  admiteCambios:         boolean;
   informacionFacturacion: InformacionFacturacionModel;
   /**
    * Lo que el prestador respondió a las glosas, en orden de llegada. Solo lectura.
@@ -251,9 +268,13 @@ export interface FotoVersionModel {
   numeroFactura:     string | null;
   prestador:         string | null;
   valorFactura:      number | null;
+  /** `totalClaimedAmount`. */
   totalCargado:      number | null;
+  /** `totalAllowedAmount`: el mismo concepto que el total convenido de la cuenta viva. */
+  totalConvenido:    number | null;
+  /** `totalCoveredAmount`: el mismo concepto que el total autorizado de la cuenta viva. */
   totalAutorizado:   number | null;
-  totalCubierto:     number | null;
+  /** `totalValorGlosado`. */
   totalGlosado:      number | null;
   totalNotasCredito: number | null;
   estadoActual:      string | null;

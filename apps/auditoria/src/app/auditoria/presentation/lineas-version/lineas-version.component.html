@@ -1,0 +1,230 @@
+<section class="lineas-version" aria-labelledby="titulo-lineas-version">
+
+  <header class="lineas-version__cabecera">
+    <h2 id="titulo-lineas-version">Líneas de la V{{ numero() }}</h2>
+    @if (respuesta()?.totalRegistros; as total) {
+      <span class="sura-contador" [attr.aria-label]="total + ' líneas'">{{ total }}</span>
+    }
+    <!-- El modo se dice con letras: sin casillas ni lápices, la ausencia sola no basta. -->
+    <span class="lineas-version__modo">
+      <mat-icon aria-hidden="true">lock</mat-icon>
+      Foto · solo lectura
+    </span>
+  </header>
+
+  @if (!numeroValido()) {
+    <p class="sura-mensaje sura-mensaje--alerta" role="alert">
+      <mat-icon>image_not_supported</mat-icon>
+      <span>La dirección no lleva un número de versión válido.</span>
+    </p>
+  } @else if (error(); as mensaje) {
+    <!-- Antes que la espera: al reintentar, el aviso se queda con el botón apagado y alcanzable
+         hasta la respuesta, y el foco con él. -->
+    <div class="sura-mensaje sura-mensaje--error" role="alert" id="error-lineas-version">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ mensaje }}</span>
+      <button mat-button color="primary" type="button" id="btn-reintentar-lineas-version"
+              disabledInteractive [disabled]="cargando()"
+              (click)="reintentar()">{{ cargando() ? 'Reintentando…' : 'Reintentar' }}</button>
+    </div>
+  } @else if (!respuesta()) {
+    <!-- Solo en la primera carga: al cambiar de página se queda la anterior, atenuada. -->
+    <div class="lineas-version__cargando" role="status">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Cargando las líneas de la V{{ numero() }}…</p>
+    </div>
+  } @else if (sinLineas()) {
+    <!-- Una versión sin líneas existe: no es un error y no se dice como tal (BUS-21.6). -->
+    <div class="lineas-version__vacia" role="status" id="sin-lineas-version">
+      <mat-icon aria-hidden="true">inbox</mat-icon>
+      <p><strong>La V{{ numero() }} no tiene líneas.</strong></p>
+      <p class="sura-texto-suave">
+        Es lo normal en la cuenta madre de un large claim: sus líneas están en las subcuentas.
+      </p>
+    </div>
+  } @else if (paginaVacia()) {
+    <div class="lineas-version__vacia" role="status">
+      <mat-icon aria-hidden="true">inbox</mat-icon>
+      <p>Esta página ya no tiene líneas.</p>
+      <button mat-button color="primary" type="button" id="btn-version-primera-pagina"
+              disabledInteractive [disabled]="cargando()" (click)="irAPagina(1)">Ir a la primera página</button>
+    </div>
+  } @else {
+    <div class="lineas-version__tabla mat-elevation-z2" [class.lineas-version__tabla--cargando]="cargando()"
+         [attr.aria-busy]="cargando() || null">
+      <table mat-table [dataSource]="lineas()" [attr.aria-label]="'Líneas de la versión ' + numero()">
+
+        <ng-container matColumnDef="numeroLinea">
+          <th mat-header-cell *matHeaderCellDef>#</th>
+          <td mat-cell *matCellDef="let l">{{ l.numeroLinea }}</td>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let l">
+            @if (l.estado) {
+              <span class="sura-distintivo" [class]="claseDeEstado(l.estado)">{{ textoDeEstado(l.estado) }}</span>
+            } @else { — }
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="atencion">
+          <th mat-header-cell *matHeaderCellDef>Atención</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">
+                {{ l.fechaInicio ? (l.fechaInicio | date:'dd/MM/yyyy') : '—' }}
+                @if (l.fechaFin && l.fechaFin !== l.fechaInicio) { al {{ l.fechaFin | date:'dd/MM/yyyy' }} }
+              </span>
+              @if (l.codigoAutorizacion) {
+                <span class="celda-doble__secundario" [matTooltip]="'Autorización ' + l.codigoAutorizacion">
+                  Aut. {{ l.codigoAutorizacion }}
+                </span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="procedimiento">
+          <th mat-header-cell *matHeaderCellDef>Prestación</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">
+                {{ l.codigoProcedimiento ?? '—' }}
+                @if (l.catalogoProcedimiento) { <span class="sura-texto-suave">· {{ l.catalogoProcedimiento }}</span> }
+              </span>
+              @if (l.descripcionProcedimiento) {
+                <span class="celda-doble__secundario" [matTooltip]="l.descripcionProcedimiento">
+                  {{ l.descripcionProcedimiento }}
+                </span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="afiliado">
+          <th mat-header-cell *matHeaderCellDef>Afiliado</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ l.codigoAfiliado ?? '—' }}</span>
+              @if (l.nombreAfiliado) {
+                <span class="celda-doble__secundario" [matTooltip]="l.nombreAfiliado">{{ l.nombreAfiliado }}</span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Importes: un valor que no viene es una raya, nunca un cero (BUS-21.3). -->
+        <ng-container matColumnDef="valorCargado">
+          <th mat-header-cell *matHeaderCellDef>V. Cargado</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ l.valorCargado == null ? '—' : (l.valorCargado | currency:'COP':'symbol':'1.0-0') }}</span>
+              @if (l.unidadesCargadas != null) { <span class="celda-doble__secundario">{{ l.unidadesCargadas }} und.</span> }
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Convenido = allowed* y autorizado = covered*, con los mismos ids y rótulos que la grilla
+             de la cuenta actual (decisión del 2026-10-21; antes «V. Autorizado» y «V. Cubierto»). -->
+        <ng-container matColumnDef="valorConvenido">
+          <th mat-header-cell *matHeaderCellDef>V. Convenido</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ l.valorConvenido == null ? '—' : (l.valorConvenido | currency:'COP':'symbol':'1.0-0') }}</span>
+              @if (l.unidadesConvenidas != null) { <span class="celda-doble__secundario">{{ l.unidadesConvenidas }} und.</span> }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="valorAutorizado">
+          <th mat-header-cell *matHeaderCellDef>V. Autorizado</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ l.valorAutorizado == null ? '—' : (l.valorAutorizado | currency:'COP':'symbol':'1.0-0') }}</span>
+              @if (l.unidadesAutorizadas != null) { <span class="celda-doble__secundario">{{ l.unidadesAutorizadas }} und.</span> }
+            </div>
+          </td>
+        </ng-container>
+
+        <ng-container matColumnDef="iva">
+          <th mat-header-cell *matHeaderCellDef>IVA</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">{{ l.valorIva === null ? '—' : (l.valorIva | currency:'COP':'symbol':'1.0-0') }}</span>
+              @if (l.porcentajeIva !== null) { <span class="celda-doble__secundario">{{ l.porcentajeIva }} %</span> }
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- El valor glosado y, debajo, sus causales; el desglose entero, en el tooltip y al abrir la línea. -->
+        <ng-container matColumnDef="valorGlosado">
+          <th mat-header-cell *matHeaderCellDef>V. Glosado</th>
+          <td mat-cell *matCellDef="let l">
+            <div class="celda-doble">
+              <span class="celda-doble__principal" [class.valor-glosado]="l.valorGlosado">
+                {{ l.valorGlosado == null ? '—' : (l.valorGlosado | currency:'COP':'symbol':'1.0-0') }}
+              </span>
+              @if (l.glosas.length > 0) {
+                <span class="celda-doble__secundario glosas-de-linea"
+                      [matTooltip]="desgloseDeGlosa(l.glosas)" matTooltipClass="tooltip-desglose-version">
+                  {{ causales(l.glosas) }}
+                </span>
+              }
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- Solo un ojo: aquí no hay lápiz, ni edición en la fila, ni casillas. -->
+        <ng-container matColumnDef="ver">
+          <th mat-header-cell *matHeaderCellDef><span class="cdk-visually-hidden">Consultar</span></th>
+          <td mat-cell *matCellDef="let l; let i = index">
+            <a mat-icon-button color="primary"
+               [routerLink]="[l.numeroLinea]" [queryParams]="{ posicion: posicionDe(i) }"
+               [attr.id]="'btn-ver-linea-version-' + l.numeroLinea"
+               [attr.aria-label]="'Consultar la línea ' + l.numeroLinea + ' de la V' + numero()"
+               matTooltip="Consultar la línea tal como quedó en esta versión">
+              <mat-icon>visibility</mat-icon>
+            </a>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnas; sticky: true"></tr>
+        <tr mat-row *matRowDef="let l; columns: columnas;"></tr>
+      </table>
+
+      <nav class="paginador" [attr.aria-label]="'Paginación de las líneas de la V' + numero()">
+        @if (rango(); as r) {
+          <span class="paginador__rango">
+            {{ r.desde }}–{{ r.hasta }} @if (r.total !== null) { de {{ r.total }} } líneas
+          </span>
+        }
+        <div class="paginador__controles">
+          <!-- `disabledInteractive`: el botón pulsado se apaga mientras llega la página sin soltar
+               el foco (uno nativo deshabilitado lo pierde), y el de la última página también. -->
+          <button mat-icon-button type="button" id="btn-version-pagina-anterior"
+                  disabledInteractive [disabled]="!hayAnterior() || cargando()" (click)="paginaAnterior()"
+                  matTooltip="Página anterior" aria-label="Página anterior">
+            <mat-icon>chevron_left</mat-icon>
+          </button>
+          @for (n of paginas(); track $index) {
+            @if (esNumero(n)) {
+              <button mat-button type="button" class="paginador__numero"
+                      [class.paginador__numero--activa]="n === paginaActual()"
+                      [attr.aria-current]="n === paginaActual() ? 'page' : null"
+                      [attr.id]="'btn-version-pagina-' + n"
+                      disabledInteractive [disabled]="cargando()" (click)="irAPagina(n)">{{ n }}</button>
+            } @else {
+              <span class="paginador__corte" aria-hidden="true">…</span>
+            }
+          }
+          <button mat-icon-button type="button" id="btn-version-pagina-siguiente"
+                  disabledInteractive [disabled]="!haySiguiente() || cargando()" (click)="paginaSiguiente()"
+                  matTooltip="Página siguiente" aria-label="Página siguiente">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </nav>
+    </div>
+  }
+</section>

@@ -10,12 +10,14 @@ import { MOTIVOS_BLOQUEO }      from '../../compartido/motivos-bloqueo';
 import { LineaFormGroup }       from '../linea-form';
 
 /**
- * Valores y cantidades de la línea.
+ * Valores y cantidades de la línea: cargado, convenido, autorizado y glosado.
+ *
+ * Con el vocabulario que fijó negocio el 2026-10-21: convenido = `allowedAmount`
+ * (se teclea), autorizado = `coveredAmount` (lo calcula el motor, con candado).
  *
  * La misma tabla sirve para leer y para editar: el auditor compara el cargado
- * con el autorizado en la fila en la que los está mirando, y sacar esos cinco
- * campos a un formulario aparte obligaba a recordar de memoria lo que acababa
- * de leer.
+ * con el convenido en la fila en la que los está mirando, y sacar esos campos a
+ * un formulario aparte obligaba a recordar de memoria lo que acababa de leer.
  */
 @Component({
   selector: 'sura-seccion-valores',

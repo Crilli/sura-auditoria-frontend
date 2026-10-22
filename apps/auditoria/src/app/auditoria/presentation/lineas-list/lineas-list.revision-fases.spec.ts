@@ -25,8 +25,9 @@ const fila = (referencia: number, novedades: NovedadModel[]): ResumenLineaModel 
   referencia, numeroLinea: referencia, codigoProcedimiento: '870603',
   descripcionProcedimiento: null, catalogoProcedimiento: 'CUPS', codigoAfiliado: 'X',
   nombreAfiliado: null, fechaInicio: '2023-06-09', fechaFin: null, codigoAutorizacion: null,
-  valorAutorizado: 0, valorCargado: 1, unidadesCargadas: 1, unidadesAutorizadas: 1,
-  valorIva: null, porcentajeIva: null, valorCubierto: 0, valorGlosado: 0,
+  valorCargado: 1_000, unidadesCargadas: 3, valorConvenido: 900, unidadesConvenidas: 2,
+  valorAutorizado: 800, unidadesAutorizadas: 1,
+  valorIva: null, porcentajeIva: null, valorGlosado: 100,
   editable: true, cantidadPendientes: 0, pendientes: [], tieneNovedadBloqueante: false,
   novedades, version: 7,
 });

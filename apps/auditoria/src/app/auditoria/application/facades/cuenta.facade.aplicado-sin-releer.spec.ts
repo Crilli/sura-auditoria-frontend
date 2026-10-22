@@ -18,7 +18,9 @@ describe('CuentaFacade — aplicado sin releer', () => {
 
   beforeEach(async () => {
     repo = {
-      consultar:         vi.fn(() => of({ codigo: 'CM-94421', version: 491 })),
+      // En Modificación: fuera de ella las novedades de cabecera no se guardan (EST-01).
+      consultar:         vi.fn(() => of({ codigo: 'CM-94421', version: 491,
+                                          estado: 'MODIFICACION', admiteCambios: true })),
       consultarAcciones: vi.fn(() => of({ accionesDisponibles: [] })),
       guardarNovedades:  vi.fn(() => throwError(aplicadoSinReleer)),
       ejecutarAccion:    vi.fn(() => throwError(aplicadoSinReleer)),

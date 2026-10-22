@@ -1,0 +1,32 @@
+// Tres bloques —datos, importes y la vuelta— que se colocan solos según el sitio: uno debajo
+// de otro en el diálogo del buscador (40rem) y uno junto a otro en la vista de la cuenta. Con
+// 20rem de mínimo, en el diálogo no caben dos y en la vista caben los tres. `min(…, 100%)`: en
+// un móvil la pista no puede quedarse clavada en 20rem, más ancha que la tarjeta (medido a
+// 375 px: los importes se salían por la derecha).
+:host {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(20rem, 100%), 1fr));
+  gap: 1rem 2rem;
+  align-items: start;
+}
+
+.foto__datos {
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem 1.5rem; margin: 0;
+  dt { font-size: 0.75rem; color: var(--sura-texto-suave, rgba(0, 0, 0, 0.55)); }
+  dd { margin: 0; overflow-wrap: anywhere; }
+}
+
+.foto__importes {
+  width: 100%; border-collapse: collapse;
+  th { text-align: left; font-weight: normal; color: var(--sura-texto-suave, rgba(0, 0, 0, 0.6)); padding: 0.25rem 0; }
+  td { text-align: right; font-variant-numeric: tabular-nums; }
+}
+
+.foto__subtitulo { font-size: 0.9rem; margin: 0 0 0.5rem; }
+
+.foto__historial {
+  margin: 0; padding: 0; list-style: none; max-height: 30vh; overflow-y: auto;
+  li { display: grid; grid-template-columns: 9rem 1fr; padding: 0.2rem 0; }
+}
+
+.foto__fecha { color: var(--sura-texto-suave, rgba(0, 0, 0, 0.55)); font-variant-numeric: tabular-nums; }

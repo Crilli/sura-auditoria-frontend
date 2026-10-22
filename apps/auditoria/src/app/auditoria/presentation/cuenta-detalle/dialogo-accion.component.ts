@@ -19,6 +19,11 @@ export interface DatosDialogoAccion {
   pideMotivos: boolean;
   /** Los que aplican a esta cuenta, ya acotados por tipo de proceso. */
   motivos: MotivoModel[];
+  /**
+   * Qué le pasa a la cuenta, cuando la etiqueta no lo dice sola. «Pasar a Modificación» sobre
+   * una cuenta finalizada es desfinalizarla, y eso hay que leerlo antes de elegir el motivo.
+   */
+  explicacion?: string;
 }
 
 /**

@@ -12,8 +12,9 @@ import { CampoEnFila, ModoRecalculo, valoresDeLaFila }
 export interface FormularioEnFila {
   valorCargado:        FormControl<number | null>;
   unidadesCargadas:    FormControl<number | null>;
-  valorAutorizado:     FormControl<number | null>;
-  unidadesAutorizadas: FormControl<number | null>;
+  /** El convenido (`allowedAmount`): el autorizado no se teclea, lo calcula el motor. */
+  valorConvenido:      FormControl<number | null>;
+  unidadesConvenidas:  FormControl<number | null>;
   modoRecalculo:       FormControl<ModoRecalculo | null>;
 }
 
@@ -39,8 +40,8 @@ export function crearFormularioEnFila(fila: ResumenLineaModel): FormGroup<Formul
   return new FormGroup<FormularioEnFila>({
     valorCargado:        control('valorCargado'),
     unidadesCargadas:    control('unidadesCargadas'),
-    valorAutorizado:     control('valorAutorizado'),
-    unidadesAutorizadas: control('unidadesAutorizadas'),
+    valorConvenido:      control('valorConvenido'),
+    unidadesConvenidas:  control('unidadesConvenidas'),
     modoRecalculo:       new FormControl<ModoRecalculo | null>(null, [Validators.required]),
   });
 }

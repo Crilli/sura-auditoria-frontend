@@ -328,6 +328,18 @@
   </section>
 
     <!--
+      Fuera de Modificación la grilla es de consulta (EST-01): sin lápiz ni «Editar aquí», y los
+      cambios sobre la selección apagados. Se dice una vez, aquí, encima de la grilla y de la barra
+      de la selección, y se remite al botón de la barra de la cuenta, que es el único camino.
+    -->
+    @if (motivoSinCambios(); as motivo) {
+      <p class="sura-nota sura-nota--regla aviso-sin-cambios" role="status" id="aviso-cuenta-sin-cambios">
+        <mat-icon aria-hidden="true">edit_off</mat-icon>
+        <span>{{ motivo }}</span>
+      </p>
+    }
+
+    <!--
       La barra solo existe cuando hay algo marcado: una barra con todos los botones
       apagados es ruido que además insinúa que hay algo que hacer.
     -->
@@ -350,17 +362,24 @@
           <button mat-button (click)="limpiarSeleccion()">Quitar la selección</button>
         </div>
 
+        <!--
+          Lo que cambia datos —desbloquear, glosa, añadir y quitar mensaje, añadir pendiente— se
+          apaga fuera de Modificación (EST-01), con el motivo en la ayuda: apagado pero alcanzable
+          (`disabledInteractive`) solo por esa razón, para que la ayuda se lea; el clic lo frena el
+          componente. «Resolver» no cambia datos y queda como estaba (EST-03.2).
+        -->
         <div class="seleccion-masiva__acciones">
           <!--
             Desbloquear acotado: el contrato ya lo admitía de punta a punta y nadie lo
             usaba. Ojo con el freno: sin lista, el sistema de registro desbloquea TODAS
             las líneas de la cuenta, así que este botón no puede existir sin selección.
           -->
-          <button mat-stroked-button
-                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
-                  [matTooltip]="seleccionTodoElFiltro()
+          <button mat-stroked-button id="btn-desbloquear-seleccion"
+                  [disabledInteractive]="!cuentaAdmiteCambios()"
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || !cuentaAdmiteCambios()"
+                  [matTooltip]="motivoSinCambios() ?? (seleccionTodoElFiltro()
                     ? 'Marque las líneas una a una: «todas las que cumplen el filtro» no viaja como lista'
-                    : 'Desbloquea solo las líneas marcadas'"
+                    : 'Desbloquea solo las líneas marcadas')"
                   (click)="desbloquearSeleccion()">
             <mat-icon>lock_open</mat-icon>
             Desbloquear {{ cuantasSeleccionadas() }}
@@ -372,7 +391,7 @@
             vista no se ofrece, porque no habría cuál resolver.
           -->
           @if (filtro().motivoPendiente; as motivo) {
-            <button mat-flat-button color="primary"
+            <button mat-flat-button color="primary" id="btn-resolver-seleccion"
                     [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || resolucionEnCursoAqui()"
                     [matTooltip]="seleccionTodoElFiltro()
                       ? 'Marque las líneas una a una: «todas las que cumplen el filtro» no viaja como lista'
@@ -385,37 +404,41 @@
             </button>
           }
 
-          <button mat-stroked-button
-                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+          <button mat-stroked-button id="btn-aplicar-glosa"
+                  [disabledInteractive]="!cuentaAdmiteCambios()"
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || !cuentaAdmiteCambios()"
                   [class.activo]="formularioAbierto() === 'glosa'"
-                  matTooltip="Aplica la misma glosa a las líneas marcadas"
+                  [matTooltip]="motivoSinCambios() ?? 'Aplica la misma glosa a las líneas marcadas'"
                   (click)="abrirFormulario('glosa')">
             <mat-icon>request_quote</mat-icon>
             Aplicar glosa
           </button>
 
-          <button mat-stroked-button
-                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+          <button mat-stroked-button id="btn-anadir-mensaje"
+                  [disabledInteractive]="!cuentaAdmiteCambios()"
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || !cuentaAdmiteCambios()"
                   [class.activo]="formularioAbierto() === 'mensaje'"
-                  matTooltip="Añade el mismo mensaje a las líneas marcadas"
+                  [matTooltip]="motivoSinCambios() ?? 'Añade el mismo mensaje a las líneas marcadas'"
                   (click)="abrirFormulario('mensaje')">
             <mat-icon>add_comment</mat-icon>
             Añadir mensaje
           </button>
 
-          <button mat-stroked-button
-                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+          <button mat-stroked-button id="btn-quitar-mensaje"
+                  [disabledInteractive]="!cuentaAdmiteCambios()"
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || !cuentaAdmiteCambios()"
                   [class.activo]="formularioAbierto() === 'quitarMensaje'"
-                  matTooltip="Quita un mensaje puesto a mano de las líneas marcadas"
+                  [matTooltip]="motivoSinCambios() ?? 'Quita un mensaje puesto a mano de las líneas marcadas'"
                   (click)="abrirFormulario('quitarMensaje')">
             <mat-icon>comments_disabled</mat-icon>
             Quitar mensaje
           </button>
 
-          <button mat-stroked-button
-                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro()"
+          <button mat-stroked-button id="btn-anadir-pendiente"
+                  [disabledInteractive]="!cuentaAdmiteCambios()"
+                  [disabled]="ocupado() || ejecutando() || seleccionTodoElFiltro() || !cuentaAdmiteCambios()"
                   [class.activo]="formularioAbierto() === 'pendiente'"
-                  matTooltip="Pone un motivo de pendiente en las líneas marcadas"
+                  [matTooltip]="motivoSinCambios() ?? 'Pone un motivo de pendiente en las líneas marcadas'"
                   (click)="abrirFormulario('pendiente')">
             <mat-icon>pending_actions</mat-icon>
             Añadir pendiente
@@ -688,9 +711,15 @@
         </ng-container>
 
         <!--
-          Cargado e IVA entran como celdas de dos renglones y no como cuatro columnas
-          sueltas: el documento pide 17 campos y la tabla ya iba con scroll horizontal.
-          Es el mismo patrón que ya usan Atención y Procedimiento.
+          Importes con el vocabulario que fijó negocio el 2026-10-21 (el de las etiquetas de OHI):
+          cargado = claimed*, convenido = allowed*, autorizado = covered*. Hasta entonces la
+          columna del convenido se rotulaba «V. Autorizado» y la del autorizado «V. Cubierto».
+
+          Cada importe va con su cantidad debajo, en una celda de dos renglones y no en columnas
+          sueltas: el documento pide 17 campos y la tabla ya iba con scroll horizontal. Es el
+          mismo patrón que ya usan Atención y Procedimiento. Un dato que OHI no trae es «—»,
+          nunca un cero; con `== null` y no `=== null`, para que un campo que ni siquiera llega
+          (un servicio de otra versión del contrato) tampoco se pinte como celda vacía o «und.».
         -->
         <ng-container matColumnDef="valorCargado">
           <th mat-header-cell *matHeaderCellDef>
@@ -701,14 +730,15 @@
           <td mat-cell *matCellDef="let row">
             @if (enEdicion(row) && formularioFila) {
               <ng-container *ngTemplateOutlet="parDeCampos;
-                context: { row, valor: 'valorCargado', unidades: 'unidadesCargadas', rotulo: 'cargado' }">
+                context: { row, valor: 'valorCargado', unidades: 'unidadesCargadas',
+                           rotuloValor: 'Valor cargado', rotuloUnidades: 'Cantidad cargada' }">
               </ng-container>
             } @else {
               <div class="celda-doble">
                 <span class="celda-doble__principal">
-                  {{ row.valorCargado === null ? '—' : (row.valorCargado | currency:'COP':'symbol':'1.0-0') }}
+                  {{ row.valorCargado == null ? '—' : (row.valorCargado | currency:'COP':'symbol':'1.0-0') }}
                 </span>
-                @if (row.unidadesCargadas !== null) {
+                @if (row.unidadesCargadas != null) {
                   <span class="celda-doble__secundario">{{ row.unidadesCargadas }} und.</span>
                 }
               </div>
@@ -716,21 +746,44 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="valorAutorizado">
-          <th mat-header-cell *matHeaderCellDef>V. Autorizado</th>
+        <!-- Valor y cantidad convenidos (GRID-10, GRID-11): lo que se edita en la fila (GRID-18). -->
+        <ng-container matColumnDef="valorConvenido">
+          <th mat-header-cell *matHeaderCellDef>V. Convenido</th>
           <td mat-cell *matCellDef="let row">
             @if (enEdicion(row) && formularioFila) {
               <ng-container *ngTemplateOutlet="parDeCampos;
-                context: { row, valor: 'valorAutorizado', unidades: 'unidadesAutorizadas', rotulo: 'autorizado' }">
+                context: { row, valor: 'valorConvenido', unidades: 'unidadesConvenidas',
+                           rotuloValor: 'Valor convenido', rotuloUnidades: 'Cantidad convenida' }">
               </ng-container>
             } @else {
               <div class="celda-doble">
-                <span class="celda-doble__principal">{{ row.valorAutorizado | currency:'COP':'symbol':'1.0-0' }}</span>
-                @if (row.unidadesAutorizadas !== null) {
-                  <span class="celda-doble__secundario">{{ row.unidadesAutorizadas }} und.</span>
+                <span class="celda-doble__principal">
+                  {{ row.valorConvenido == null ? '—' : (row.valorConvenido | currency:'COP':'symbol':'1.0-0') }}
+                </span>
+                @if (row.unidadesConvenidas != null) {
+                  <span class="celda-doble__secundario">{{ row.unidadesConvenidas }} und.</span>
                 }
               </div>
             }
+          </td>
+        </ng-container>
+
+        <!--
+          Valor y cantidad autorizados (GRID-12, GRID-13): los calcula el motor de coberturas y
+          /claimsupdate no los acepta, así que en edición llevan candado en vez de campo.
+        -->
+        <ng-container matColumnDef="valorAutorizado">
+          <th mat-header-cell *matHeaderCellDef>V. Autorizado</th>
+          <td mat-cell *matCellDef="let row">
+            <div class="celda-doble">
+              <span class="celda-doble__principal">
+                {{ row.valorAutorizado == null ? '—' : (row.valorAutorizado | currency:'COP':'symbol':'1.0-0') }}
+              </span>
+              @if (row.unidadesAutorizadas != null) {
+                <span class="celda-doble__secundario">{{ row.unidadesAutorizadas }} und.</span>
+              }
+            </div>
+            @if (enEdicion(row)) { <sura-campo-bloqueado [motivo]="motivos.calculado" /> }
           </td>
         </ng-container>
 
@@ -749,14 +802,6 @@
           </td>
         </ng-container>
 
-        <ng-container matColumnDef="valorCubierto">
-          <th mat-header-cell *matHeaderCellDef>V. Cubierto</th>
-          <td mat-cell *matCellDef="let row">
-            {{ row.valorCubierto | currency:'COP':'symbol':'1.0-0' }}
-            @if (enEdicion(row)) { <sura-campo-bloqueado [motivo]="motivos.calculado" /> }
-          </td>
-        </ng-container>
-
         <ng-container matColumnDef="valorGlosado">
           <th mat-header-cell *matHeaderCellDef>
             <button type="button" class="cabecera-orden" (click)="ordenarPor('valor_glosado')">
@@ -764,12 +809,13 @@
             </button>
           </th>
           <td mat-cell *matCellDef="let row">
-            @if (row.valorGlosado) {
-              <span class="valor-glosado">
+            <!-- Sin glosa es «—»; un glosado de 0 es un dato y se pinta, sin el resalte. -->
+            @if (row.valorGlosado == null) {
+              —
+            } @else {
+              <span [class.valor-glosado]="row.valorGlosado > 0">
                 {{ row.valorGlosado | currency:'COP':'symbol':'1.0-0' }}
               </span>
-            } @else {
-              —
             }
             @if (enEdicion(row)) { <sura-campo-bloqueado [motivo]="motivos.desglose" /> }
           </td>
@@ -805,8 +851,10 @@
                         matTooltipClass="tooltip-multilinea">
                 {{ row.novedades.length }} novedad{{ row.novedades.length === 1 ? '' : 'es' }}
               </mat-chip>
-            } @else if (!row.editable) {
-              <mat-chip>No editable</mat-chip>
+            } @else if (!sePuedeEditar(row)) {
+              <!-- La editabilidad efectiva: la de la línea y la de la cuenta. Si es por la cuenta,
+                   la ayuda dice por qué; el aviso de encima de la grilla ya lo dijo una vez. -->
+              <mat-chip [matTooltip]="row.editable ? (motivoSinCambios() ?? '') : ''">No editable</mat-chip>
             } @else {
               <mat-chip color="primary">Editable</mat-chip>
             }
@@ -858,7 +906,8 @@
                     matTooltip="Consultar (sin editar)">
               <mat-icon>visibility</mat-icon>
             </button>
-            @if (row.editable) {
+            <!-- La línea y la cuenta: fuera de Modificación no hay lápiz ni «Editar aquí» (EST-01.2). -->
+            @if (sePuedeEditar(row)) {
               <button mat-icon-button color="accent"
                       [routerLink]="[row.referencia, 'editar']"
                       [attr.id]="'btn-editar-' + row.referencia"
@@ -866,7 +915,8 @@
                       matTooltip="Abrir la línea completa para editarla">
                 <mat-icon>edit</mat-icon>
               </button>
-              <!-- Editar aquí: los cuatro valores que la grilla enseña, sin abrir la línea. -->
+              <!-- Editar aquí: valor y cantidad cargados y convenidos, sin abrir la línea. El
+                   autorizado no: lo calcula el motor de coberturas. -->
               <button mat-icon-button type="button"
                       [attr.id]="'btn-editar-fila-' + row.referencia"
                       [disabled]="filaEnEdicion() !== null"
@@ -874,7 +924,7 @@
                       aria-label="Editar los valores en la grilla"
                       [matTooltip]="filaEnEdicion() !== null
                         ? 'Termine antes la línea que está editando'
-                        : 'Editar cargado y autorizado aquí, sin abrir la línea'">
+                        : 'Editar cargado y convenido aquí, sin abrir la línea'">
                 <mat-icon>edit_note</mat-icon>
               </button>
             }
@@ -990,8 +1040,12 @@
 <!--
   Un par «valor y unidades» en edición. Debajo de cada campo, tras un conflicto, va lo que la
   línea tiene ahora: así el conflicto se resuelve aquí, comparando, y no recargando la pantalla.
+
+  Los rótulos accesibles llegan enteros y no compuestos de una raíz: «Unidades» + «cargado»
+  salía sin concordancia, y el lector de pantalla los lee tal cual.
 -->
-<ng-template #parDeCampos let-row="row" let-valor="valor" let-unidades="unidades" let-rotulo="rotulo">
+<ng-template #parDeCampos let-row="row" let-valor="valor" let-unidades="unidades"
+             let-rotuloValor="rotuloValor" let-rotuloUnidades="rotuloUnidades">
   @if (formularioFila) {
     <div class="par-en-fila" [formGroup]="formularioFila">
       @for (campo of [valor, unidades]; track campo; let esValor = $first) {
@@ -1000,7 +1054,7 @@
                         [class.campo-en-fila--unidades]="!esValor">
           <input matInput type="number" min="0" [formControlName]="campo"
                  [attr.id]="'fila-' + row.referencia + '-' + campo"
-                 [attr.aria-label]="(esValor ? 'Valor ' : 'Unidades ') + rotulo">
+                 [attr.aria-label]="esValor ? rotuloValor : rotuloUnidades">
           @if (!esValor) { <span matTextSuffix>und.</span> }
           @if (errorDeCampo(campo); as error) {
             <mat-error>{{ error }}</mat-error>

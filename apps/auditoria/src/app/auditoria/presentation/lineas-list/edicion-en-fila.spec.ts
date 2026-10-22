@@ -1,18 +1,22 @@
 import { crearFormularioEnFila } from './edicion-en-fila';
 import { ResumenLineaModel } from '../../domain/models/linea-cuenta.model';
 
-/** El formulario de la fila. Ningún dato identifica a una persona. */
+/**
+ * El formulario de la fila. Ningún dato identifica a una persona. Cifras distintas por concepto
+ * (cargado 1000, convenido 900, autorizado 800) para que un cruce se note.
+ */
 
 const fila = (cambios: Partial<ResumenLineaModel> = {}) => ({
-  referencia: 1, numeroLinea: 1, valorCargado: 100, unidadesCargadas: 1,
-  valorAutorizado: 80, unidadesAutorizadas: 1, version: 3, editable: true, ...cambios,
+  referencia: 1, numeroLinea: 1, valorCargado: 1_000, unidadesCargadas: 3,
+  valorConvenido: 900, unidadesConvenidas: 2, valorAutorizado: 800, unidadesAutorizadas: 1,
+  version: 3, editable: true, ...cambios,
 } as ResumenLineaModel);
 
 describe('crearFormularioEnFila', () => {
 
-  it('[GRID-18] arranca con los valores de la fila', () => {
+  it('[GRID-18] arranca con cargado y convenido de la fila; el autorizado no tiene control', () => {
     expect(crearFormularioEnFila(fila()).getRawValue()).toEqual({
-      valorCargado: 100, unidadesCargadas: 1, valorAutorizado: 80, unidadesAutorizadas: 1,
+      valorCargado: 1_000, unidadesCargadas: 3, valorConvenido: 900, unidadesConvenidas: 2,
       modoRecalculo: null,
     });
   });
@@ -46,7 +50,7 @@ describe('crearFormularioEnFila', () => {
 
   it('[GRID-18] los negativos no se aceptan', () => {
     const f = crearFormularioEnFila(fila());
-    f.controls.valorAutorizado.setValue(-1);
-    expect(f.controls.valorAutorizado.errors?.['min']).toBeTruthy();
+    f.controls.valorConvenido.setValue(-1);
+    expect(f.controls.valorConvenido.errors?.['min']).toBeTruthy();
   });
 });

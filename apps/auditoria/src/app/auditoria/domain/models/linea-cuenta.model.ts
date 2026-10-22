@@ -82,16 +82,29 @@ export interface ResumenLineaModel {
   fechaFin:                 string | null;
   /** Código de autorización; `null` si la línea no lo trae. */
   codigoAutorizacion:       string | null;
-  valorAutorizado:          number;
-  /** Lo que el prestador cobró, con sus unidades. Puede faltar. */
+  /*
+   * Importes y cantidades, con el vocabulario que fijó negocio el 2026-10-21 (el mismo de las
+   * etiquetas de OHI): cargado = `claimed*`, convenido = `allowed*`, autorizado = `covered*`.
+   * Hasta esa fecha la aplicación llamaba «autorizado» al `allowed*` y «cubierto» al `covered*`;
+   * los nombres de aquí son los del JSON del servicio, que cambió a la vez.
+   *
+   * Cualquiera puede llegar en `null` —OHI no lo trae— y entonces se pinta «—», no un cero:
+   * una línea negada no tiene convenido, que no es lo mismo que un convenido de 0.
+   */
+  /** Lo que el prestador cobró, con sus unidades: `claimedAmount`. */
   valorCargado:             number | null;
   unidadesCargadas:         number | null;
-  /** OHI omite las unidades autorizadas en el 7,5 % de las líneas. */
+  /** Lo pactado con el prestador para la línea: `allowedAmount`. Se edita en la fila (GRID-18). */
+  valorConvenido:           number | null;
+  /** `allowedNumberOfUnits`. OHI la omite en el 7,5 % de las líneas. */
+  unidadesConvenidas:       number | null;
+  /** Lo que reconoce el motor de coberturas: `coveredAmount`. No se escribe, se calcula. */
+  valorAutorizado:          number | null;
+  /** `coveredNumberOfUnits`. OHI la omite en el 4,3 % de las líneas. */
   unidadesAutorizadas:      number | null;
   /** IVA calculado por el motor. Casi siempre nulo: pocas prestaciones lo llevan. */
   valorIva:                 number | null;
   porcentajeIva:            number | null;
-  valorCubierto:            number;
   /** Valor glosado; `null` si la línea no tiene glosa. */
   valorGlosado:             number | null;
   editable:                 boolean;
@@ -133,8 +146,13 @@ export interface DatosConvenioModel {
   homologoCups:             string | null;
   multiplesCupsHomologos:   string | null;
   codigoUnicoContratoSiifa: string | null;
-  /** Tarifa pactada con el prestador, antes de los ajustes de regla. */
-  valorConvenido:           number | null;
+  /**
+   * Importe de la cláusula de contrato con que se tarifó la línea, **antes** de los ajustes de
+   * regla. No es el valor convenido de la línea (ese es `valorConvenido`, el `allowedAmount`
+   * de OHI, decisión del 2026-10-21): se llama distinto para que el detalle no lleve dos
+   * «convenido» con cifras distintas. `null` cuando la línea no tiene cláusula de contrato.
+   */
+  valorTarifaContrato:      number | null;
   /** Cláusula aplicada: prestador, propuesta y manual tarifario. */
   tarifaAplicada:           string | null;
 }
@@ -201,14 +219,17 @@ export interface DetalleLineaModel {
   /** Quien atendió, que puede no ser quien factura. */
   prestadorAtencionCodigo: string | null;
   prestadorAtencionNombre: string | null;
+  /** Importes y cantidades: el mismo vocabulario que en `ResumenLineaModel`. */
   valorCargado:         number | null;
   unidadesCargadas:     number | null;
-  valorAutorizado:      number;
-  /** OHI la omite en el 7,5% de las líneas; no asumir que viene. */
+  /** `allowedAmount`: lo que se edita como convenido. */
+  valorConvenido:       number | null;
+  /** `allowedNumberOfUnits`. OHI la omite en el 7,5% de las líneas; no asumir que viene. */
+  unidadesConvenidas:   number | null;
+  /** `coveredAmount`: lo calcula el motor de coberturas y no se escribe. */
+  valorAutorizado:      number | null;
+  /** `coveredNumberOfUnits`. OHI la omite en el 4,3% de las líneas. */
   unidadesAutorizadas:  number | null;
-  valorCubierto:        number;
-  /** OHI la omite en el 4,3% de las líneas. */
-  unidadesCubiertas:    number | null;
   valorGlosado:         number | null;
   observacionesGlosa:   string | null;
   convenio:             DatosConvenioModel;
@@ -239,8 +260,13 @@ export interface DetalleLineaModel {
  * contrato de escritura de OHI. Pasarse de ahí lo rechaza OHI, no el ms.
  *
  * Lo que NO está en esta lista es porque OHI no lo acepta escribir (valor y
- * unidades cubiertas, que las calcula el motor de coberturas) o porque es una
- * decisión de negocio (los datos del afiliado).
+ * unidades **autorizadas**, `coveredAmount`, que las calcula el motor de
+ * coberturas) o porque es una decisión de negocio (los datos del afiliado).
+ *
+ * Desde el 2026-10-21 el importe editable se llama `valorConvenido` y escribe el
+ * `allowedAmount` de OHI, el mismo campo que antes viajaba como `valorAutorizado`.
+ * El servicio rechaza con 400 un cuerpo que traiga `valorAutorizado`: así un
+ * cliente con el nombre viejo no escribe el autorizado en el convenido sin aviso.
  */
 export interface GuardarLineaRequest {
   versionEsperada:      number;
@@ -249,8 +275,10 @@ export interface GuardarLineaRequest {
   valorCargado?:        number;
   /** OHI la exige no nula; omitirla conserva la que ya tiene la línea. */
   unidadesCargadas?:    number;
-  valorAutorizado?:     number;
-  unidadesAutorizadas?: number;
+  /** Escribe `allowedAmount`. */
+  valorConvenido?:      number;
+  /** Escribe `allowedNumberOfUnits`. */
+  unidadesConvenidas?:  number;
   valorGlosado?:        number;
   conservarBeneficios?: boolean;
   conservarTarifacion?: boolean;
@@ -430,7 +458,7 @@ export type CambioNovedadRequest =
  *
  * Solo lo que tiene sentido idéntico en todas: el desglose de glosa y las novedades. Los
  * importes propios de cada línea no viajan aquí a propósito —aplicar el mismo valor
- * autorizado a veinte líneas distintas no es una operación masiva sino veinte errores— y el
+ * convenido a veinte líneas distintas no es una operación masiva sino veinte errores— y el
  * valor glosado tampoco, porque es la suma del desglose de cada una y lo calcula el servicio.
  */
 export interface CambiosEnLoteRequest {

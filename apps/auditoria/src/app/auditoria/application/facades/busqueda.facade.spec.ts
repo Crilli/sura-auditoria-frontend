@@ -47,6 +47,18 @@ const cuenta = (codigo: string): ResumenCuentaModel => ({
   estado: 'FINALIZADA', versiones: [],
 });
 
+/** Reabierta con una versión en el histórico: la que tiene fila en curso y usa la historia. */
+const abierta = (codigo: string): ResumenCuentaModel => ({
+  ...cuenta(codigo), estado: 'ADJUDICACION_MANUAL',
+  versiones: [{ numero: 1, fechaEntrada: '2026-09-01', valor: 8_800_000, estado: 'FINALIZADA',
+                estadoDesde: '2026-09-01T15:00:00Z' }],
+});
+
+const HITO: HitoModel = {
+  tipo: 'CAMBIO_DE_ESTADO', etiqueta: 'ADJUDICACION_MANUAL', detalle: null,
+  autor: 'Internal System User', loHizoElSistema: true, ocurridoEn: '2026-09-21T16:45:48Z',
+};
+
 describe('BusquedaFacade', () => {
   let facade: BusquedaFacade;
   let repo: RepositorioSimulado;
@@ -144,11 +156,6 @@ describe('BusquedaFacade', () => {
   });
 
   describe('la historia que alimenta la versión en curso', () => {
-    const HITO: HitoModel = {
-      tipo: 'CAMBIO_DE_ESTADO', etiqueta: 'ADJUDICACION_MANUAL', detalle: null,
-      autor: 'Internal System User', loHizoElSistema: true, ocurridoEn: '2026-09-21T16:45:48Z',
-    };
-
     it('[BUS-13] se pide una sola vez por cuenta, aunque se despliegue dos veces', () => {
       repo.hitos = [HITO];
       facade.cargarHistoria('CM-1');
@@ -180,6 +187,80 @@ describe('BusquedaFacade', () => {
 
       facade.cargarHistoria('CM-1');
       expect(repo.historiasPedidas).toEqual(['CM-1', 'CM-1']);
+    });
+
+    it('[BUS-13] desplegar la pide solo para las abiertas, y plegar no pide nada', () => {
+      facade.alternarVersiones(abierta('CM-1'));
+      facade.alternarVersiones(cuenta('CM-2'));
+      facade.alternarVersiones(abierta('CM-1'));
+
+      expect(repo.historiasPedidas).toEqual(['CM-1']);
+      expect(facade.estaDesplegada('CM-1')).toBe(false);
+      expect(facade.estaDesplegada('CM-2')).toBe(true);
+    });
+
+    it('[BUS-13] una búsqueda nueva pliega las desplegadas', () => {
+      facade.alternarVersiones(abierta('CM-1'));
+      facade.buscar({ factura: 'JONATHAN201' });
+
+      expect(facade.estaDesplegada('CM-1')).toBe(false);
+    });
+  });
+
+  describe('al volver del detalle', () => {
+    it('[BUS-12] refrescar vuelve a pedir la misma página con el mismo filtro y trae lo de ahora', async () => {
+      repo.filas = [abierta('CM-1')];
+      repo.total = 60;
+      facade.buscar({ factura: ' JONATHAN201 ' });
+      await asentar();
+      facade.irAPagina(1);
+      await asentar();
+      const antes = repo.peticiones.length;
+
+      // En el detalle, el auditor la envió y quedó finalizada.
+      repo.filas = [{ ...abierta('CM-1'), estado: 'FINALIZADA' }];
+      facade.refrescar();
+      await asentar();
+
+      expect(repo.peticiones).toHaveLength(antes + 1);
+      expect(repo.peticiones.at(-1)).toEqual(
+        { filtro: { factura: 'JONATHAN201', radicado: null }, pagina: 1, tamano: 25 });
+      expect(facade.filtro()).toEqual({ factura: 'JONATHAN201', radicado: null });
+      expect(facade.pagina()).toBe(1);
+      expect(facade.resultados()[0].estado).toBe('FINALIZADA');
+    });
+
+    it('[BUS-12] sin criterio refrescar no sale al servicio', async () => {
+      facade.refrescar();
+      await asentar();
+      expect(repo.peticiones).toHaveLength(0);
+
+      facade.buscar({ factura: 'JONATHAN201' });
+      await asentar();
+      facade.limpiar();
+      facade.refrescar();
+      await asentar();
+      expect(repo.peticiones).toHaveLength(1);
+    });
+
+    it('[BUS-13] conserva las desplegadas, olvida las historias y vuelve a pedir las de las que siguen abiertas', async () => {
+      repo.filas = [abierta('CM-1'), abierta('CM-2'), cuenta('CM-3')];
+      repo.hitos = [HITO];
+      facade.buscar({ factura: 'JONATHAN201' });
+      await asentar();
+      facade.resultados().forEach(c => facade.alternarVersiones(c));
+      expect(repo.historiasPedidas).toEqual(['CM-1', 'CM-2']);
+
+      // CM-2 se envió en el detalle y quedó finalizada; CM-1 sigue abierta.
+      repo.filas = [abierta('CM-1'), { ...abierta('CM-2'), estado: 'FINALIZADA' }, cuenta('CM-3')];
+      facade.refrescar();
+      await asentar();
+
+      expect(['CM-1', 'CM-2', 'CM-3'].map(c => facade.estaDesplegada(c))).toEqual([true, true, true]);
+      expect(repo.historiasPedidas).toEqual(['CM-1', 'CM-2', 'CM-1']);
+      expect(facade.historiaDe('CM-1')).toEqual([HITO]);
+      // La finalizada ya no tiene fila en curso: su historia vieja no se guarda ni se vuelve a pedir.
+      expect(facade.historiaDe('CM-2')).toBeNull();
     });
   });
 });

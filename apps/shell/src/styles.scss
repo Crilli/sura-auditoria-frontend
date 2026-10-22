@@ -21,6 +21,8 @@
 // Igual que el paginador: fuera del componente por presupuesto de estilos, con
 // los selectores anidados para no perder el nivel de especificidad.
 @use './styles/barra-cuenta';
+// La foto de una versión y sus líneas (BTN-12, BUS-21): por presupuesto, como la barra.
+@use './styles/version-cuenta';
 
 // ── Base ───────────────────────────────────────────────────────────────────
 * { box-sizing: border-box; }

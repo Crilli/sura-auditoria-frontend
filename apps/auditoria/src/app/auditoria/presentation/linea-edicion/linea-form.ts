@@ -15,8 +15,12 @@ import { ModoLinea } from './modo-linea';
 export interface LineaFormControls {
   valorCargado:        FormControl<number | null>;
   unidadesCargadas:    FormControl<number | null>;
-  valorAutorizado:     FormControl<number | null>;
-  unidadesAutorizadas: FormControl<number | null>;
+  /**
+   * El convenido (`allowedAmount`). El autorizado (`coveredAmount`) no tiene control: lo calcula
+   * el motor de coberturas y no se envía nunca (ver la nota de arriba sobre `getRawValue()`).
+   */
+  valorConvenido:      FormControl<number | null>;
+  unidadesConvenidas:  FormControl<number | null>;
   valorGlosado:        FormControl<number | null>;
   conservarBeneficios: FormControl<boolean | null>;
   conservarTarifacion: FormControl<boolean | null>;
@@ -70,8 +74,8 @@ export function crearFormularioLinea(fb: FormBuilder): LineaFormGroup {
   return fb.group<LineaFormControls>({
     valorCargado:        new FormControl<number | null>(null, [Validators.min(0)]),
     unidadesCargadas:    new FormControl<number | null>(null, [Validators.min(0)]),
-    valorAutorizado:     new FormControl<number | null>(null, [Validators.min(0)]),
-    unidadesAutorizadas: new FormControl<number | null>(null, [Validators.min(0)]),
+    valorConvenido:      new FormControl<number | null>(null, [Validators.min(0)]),
+    unidadesConvenidas:  new FormControl<number | null>(null, [Validators.min(0)]),
     valorGlosado:        new FormControl<number | null>(null, [Validators.min(0)]),
     conservarBeneficios: new FormControl<boolean | null>(false),
     conservarTarifacion: new FormControl<boolean | null>(false),
@@ -115,8 +119,8 @@ export function valoresDeLaLinea(detalle: DetalleLineaModel): LineaFormValores {
   return {
     valorCargado:        detalle.valorCargado,
     unidadesCargadas:    detalle.unidadesCargadas,
-    valorAutorizado:     detalle.valorAutorizado,
-    unidadesAutorizadas: detalle.unidadesAutorizadas,
+    valorConvenido:      detalle.valorConvenido,
+    unidadesConvenidas:  detalle.unidadesConvenidas,
     valorGlosado:        detalle.valorGlosado,
     conservarBeneficios: detalle.conservarBeneficios,
     conservarTarifacion: detalle.conservarTarifacion,
@@ -163,8 +167,8 @@ export function construirSolicitud(raw: LineaFormValores): GuardarLineaRequest {
 
     valorCargado:        raw.valorCargado ?? undefined,
     unidadesCargadas:    raw.unidadesCargadas ?? undefined,
-    valorAutorizado:     raw.valorAutorizado ?? undefined,
-    unidadesAutorizadas: raw.unidadesAutorizadas ?? undefined,
+    valorConvenido:      raw.valorConvenido ?? undefined,
+    unidadesConvenidas:  raw.unidadesConvenidas ?? undefined,
     valorGlosado:        raw.valorGlosado ?? undefined,
     conservarBeneficios: raw.conservarBeneficios ?? undefined,
     conservarTarifacion: raw.conservarTarifacion ?? undefined,

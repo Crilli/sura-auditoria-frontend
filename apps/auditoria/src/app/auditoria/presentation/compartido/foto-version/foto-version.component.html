@@ -1,0 +1,38 @@
+@let f = foto();
+
+<!-- «Estado de la versión» y no «Estado»: junto a la cuenta viva, los dos estados se leerían
+     como el mismo dato con dos valores (BUS-19.3). -->
+<dl class="foto__datos">
+  <div><dt>Estado de la versión</dt><dd [matTooltip]="f.estadoActual | estadoEnOhi">{{ f.estadoActual | textoEstado }}</dd></div>
+  <div><dt>Entrada</dt><dd>{{ f.fechaEntrada ? (f.fechaEntrada | date:'dd/MM/yyyy') : '—' }}</dd></div>
+  <div><dt>Factura</dt><dd>{{ f.numeroFactura || '—' }}</dd></div>
+  <div><dt>Prestador</dt><dd>{{ f.prestador || '—' }}</dd></div>
+</dl>
+
+<!-- Los mismos rótulos que la franja de la cuenta viva (decisión del 2026-10-21): convenido =
+     totalAllowedAmount y autorizado = totalCoveredAmount. Antes se rotulaban «Total autorizado» y
+     «Total cubierto». -->
+<table class="foto__importes">
+  <tbody>
+    <tr><th>Valor factura</th><td>{{ f.valorFactura !== null ? (f.valorFactura | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+    <tr><th>Total cargado</th><td>{{ f.totalCargado != null ? (f.totalCargado | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+    <tr><th>Total convenido</th><td>{{ f.totalConvenido != null ? (f.totalConvenido | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+    <tr><th>Total autorizado</th><td>{{ f.totalAutorizado != null ? (f.totalAutorizado | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+    <tr><th>Total glosado</th><td>{{ f.totalGlosado != null ? (f.totalGlosado | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+    <tr><th>Notas crédito</th><td>{{ f.totalNotasCredito !== null ? (f.totalNotasCredito | currency:'COP':'symbol':'1.0-0') : '—' }}</td></tr>
+  </tbody>
+</table>
+
+@if (f.historial.length > 0) {
+  <section class="foto__vuelta">
+    <h3 class="foto__subtitulo">Por dónde pasó esta versión</h3>
+    <ol class="foto__historial">
+      @for (e of f.historial; track e.desde) {
+        <li>
+          <span class="foto__fecha">{{ e.desde | date:'dd/MM/yyyy HH:mm' }}</span>
+          <span [matTooltip]="e.estado | estadoEnOhi">{{ e.estado | textoEstado }}</span>
+        </li>
+      }
+    </ol>
+  </section>
+}

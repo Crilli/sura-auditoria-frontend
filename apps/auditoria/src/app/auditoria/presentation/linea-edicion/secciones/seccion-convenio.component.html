@@ -3,6 +3,25 @@
 
 <dl class="sura-ficha-datos" [class.sura-ficha-datos--edicion]="edicion"
     [formGroup]="form()">
+  <!--
+    El importe de la cláusula de contrato, antes de los ajustes de regla, con la cláusula que se
+    aplicó debajo. Va aquí y no en la tabla de valores porque no es el valor convenido de la línea
+    (ese es el allowedAmount, decisión del 2026-10-21): rotulado «Convenido» al lado del convenido
+    de verdad serían dos cifras distintas con el mismo nombre. Sale de la tarifación, no se teclea.
+  -->
+  <div id="tarifa-contrato">
+    <dt>Tarifa de contrato</dt>
+    <dd [class.sura-bloqueado]="edicion">
+      {{ linea.convenio.valorTarifaContrato == null ? '—'
+           : (linea.convenio.valorTarifaContrato | currency:'COP':'symbol':'1.0-0') }}
+      @if (linea.convenio.tarifaAplicada) {
+        <span class="sura-dato-secundario">{{ linea.convenio.tarifaAplicada }}</span>
+      }
+      @if (edicion) {
+        <sura-campo-bloqueado [motivo]="motivos.tarifacion" />
+      }
+    </dd>
+  </div>
   <div>
     <dt>Número de contrato</dt>
     <dd>

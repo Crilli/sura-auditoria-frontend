@@ -45,9 +45,10 @@ table {
   white-space: nowrap;
 }
 
-// Las columnas de importe tampoco deben partir «COP 1,234,567» en dos.
+// Las columnas de importe tampoco deben partir «COP 1,234,567» en dos. Van por id de columna:
+// convenido = allowedAmount y autorizado = coveredAmount (decisión del 2026-10-21).
+.mat-column-valorConvenido,
 .mat-column-valorAutorizado,
-.mat-column-valorCubierto,
 .mat-column-valorGlosado {
   white-space: nowrap;
 }

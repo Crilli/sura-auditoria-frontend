@@ -1,16 +1,22 @@
 import { TestBed } from '@angular/core/testing';
-import { MAT_DIALOG_DATA } from '@angular/material/dialog';
+import { Router, provideRouter } from '@angular/router';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { of, throwError } from 'rxjs';
 import { VersionCuentaDialogComponent } from './version-cuenta-dialog.component';
 import { CuentaRepository } from '../../domain/ports/cuenta.repository';
 import { FotoVersionModel } from '../../domain/models/cuenta-medica.model';
 
-/** La foto de una versión. Código y factura de prueba; nada identifica a una persona. */
+/**
+ * La foto de una versión. Código y factura de prueba; nada identifica a una persona.
+ *
+ * Cada total con una cifra distinta (cargado 5.500.000, convenido 5.000.000, autorizado 4.500.000,
+ * glosado 1.000.000) para que un cruce entre convenido y autorizado se note.
+ */
 
 const FOTO: FotoVersionModel = {
-  codigo: 'CM-57944424433', numero: 2, fechaEntrada: '2026-09-02', numeroFactura: 'JONATHAN201',
-  prestador: 'Prestador de prueba', valorFactura: 6_000_000, totalCargado: 6_000_000,
-  totalAutorizado: 5_000_000, totalCubierto: 5_000_000, totalGlosado: 1_000_000,
+  codigo: 'CM-57944424433', numero: 2, fechaEntrada: '2026-09-02', numeroFactura: 'FE-PRUEBA-2',
+  prestador: 'Prestador de prueba', valorFactura: 6_000_000, totalCargado: 5_500_000,
+  totalConvenido: 5_000_000, totalAutorizado: 4_500_000, totalGlosado: 1_000_000,
   // Como los publica el servicio: traducidos del español del histórico al nombre del dominio.
   totalNotasCredito: null, estadoActual: 'FINALIZADA',
   historial: [
@@ -22,17 +28,20 @@ const FOTO: FotoVersionModel = {
 describe('VersionCuentaDialogComponent', () => {
   const montar = async (respuesta: ReturnType<CuentaRepository['consultarVersion']>) => {
     const repo = { consultarVersion: vi.fn().mockReturnValue(respuesta) };
+    const dialogo = { close: vi.fn() };
     await TestBed.configureTestingModule({
       imports: [VersionCuentaDialogComponent],
       providers: [
+        provideRouter([]),
         { provide: MAT_DIALOG_DATA, useValue: { codigoCuenta: 'CM-57944424433', numero: 2 } },
+        { provide: MatDialogRef, useValue: dialogo },
         { provide: CuentaRepository, useValue: repo },
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(VersionCuentaDialogComponent);
     await fixture.whenStable();
     fixture.detectChanges();
-    return { fixture, repo, dom: fixture.nativeElement as HTMLElement };
+    return { fixture, repo, dialogo, dom: fixture.nativeElement as HTMLElement };
   };
 
   it('[BUS-20] abre esa versión: su cabecera y sus importes', async () => {
@@ -43,6 +52,21 @@ describe('VersionCuentaDialogComponent', () => {
     expect(dom.textContent).toContain('6,000,000');
     expect(dom.textContent).toContain('1,000,000');
     expect(dom.textContent).toContain('Finalizada');
+  });
+
+  it('[BUS-20] los totales con los rótulos de la cuenta viva: cargado, convenido, autorizado, glosado', async () => {
+    const { dom } = await montar(of(FOTO));
+
+    const filas = Object.fromEntries(Array.from(dom.querySelectorAll('.foto__importes tr'))
+      .map(tr => [tr.querySelector('th')!.textContent!.trim(),
+                  tr.querySelector('td')!.textContent!.replace(/\D/g, '') || tr.querySelector('td')!.textContent!.trim()]));
+    expect(Object.keys(filas)).toEqual(['Valor factura', 'Total cargado', 'Total convenido',
+                                        'Total autorizado', 'Total glosado', 'Notas crédito']);
+    expect(filas['Total cargado']).toBe('5500000');
+    expect(filas['Total convenido']).toBe('5000000');
+    expect(filas['Total autorizado']).toBe('4500000');
+    expect(filas['Total glosado']).toBe('1000000');
+    expect(dom.textContent).not.toContain('Total cubierto');
   });
 
   it('[BUS-19] su historia habla como la cuenta: en palabras, no con el nombre del dominio', async () => {
@@ -77,5 +101,24 @@ describe('VersionCuentaDialogComponent', () => {
 
     expect(dom.querySelector('[role="alert"]')?.textContent).toContain('no tiene versión 2');
     expect(fixture.componentInstance.cargando()).toBe(false);
+    // Sin foto no hay versión que abrir: llevaría al mismo error, ya fuera de la lista.
+    expect(dom.querySelector('#btn-abrir-version')).toBeNull();
+  });
+
+  it('[BUS-20] «Abrir esta versión» cierra la vista rápida y lleva a la foto entera de la versión', async () => {
+    const { dom, dialogo } = await montar(of(FOTO));
+    const navegar = vi.spyOn(TestBed.inject(Router), 'navigate').mockResolvedValue(true);
+
+    dom.querySelector<HTMLButtonElement>('#btn-abrir-version')!.click();
+
+    expect(dialogo.close).toHaveBeenCalledTimes(1);
+    expect(navegar).toHaveBeenCalledWith(['/auditoria', 'CM-57944424433', 'versiones', 2]);
+  });
+
+  it('[BUS-20] la foto del diálogo es la misma pieza que la de la vista de la cuenta', async () => {
+    const { dom } = await montar(of(FOTO));
+
+    expect(dom.querySelector('sura-foto-version')).not.toBeNull();
+    expect(dom.querySelector('sura-foto-version')?.textContent).toContain('Estado de la versión');
   });
 });

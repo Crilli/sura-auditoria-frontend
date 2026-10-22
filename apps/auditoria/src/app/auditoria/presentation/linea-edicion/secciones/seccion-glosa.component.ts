@@ -16,7 +16,7 @@ import { CATALOGO_GLOSAS }    from '../../compartido/catalogo-glosas';
  *
  * <p>En edición permite agregar y quitar glosas. Lo que se marca aquí **no se
  * aplica al momento**: se acumula como cambios pendientes y viaja en el guardado
- * de la línea, de modo que agregar una glosa y corregir el valor autorizado son
+ * de la línea, de modo que agregar una glosa y corregir el valor convenido son
  * una sola operación, con una sola versión y un solo recálculo.
  *
  * <p>Una glosa no se edita: se quita y se pone otra. El sistema de registro
